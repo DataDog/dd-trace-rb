@@ -26,8 +26,10 @@ module Datadog
         # @param agent_settings [Datadog::Core::Configuration::AgentSettings]
         # @param logger [Core::Logger]
         # @param telemetry [Core::Telemetry::Component, nil]
+        # @param statsd [Datadog::Statsd, nil] the DogStatsD client that the
+        #   tracer's components built, which metric probes submit through
         # @return [Component, nil] the built component, or nil when no component was built
-        def build(settings, agent_settings, logger, telemetry: nil)
+        def build(settings, agent_settings, logger, telemetry:, statsd:)
           return unless settings.respond_to?(:dynamic_instrumentation)
 
           # Explicit DD_DYNAMIC_INSTRUMENTATION_ENABLED=false: do not build the
@@ -54,7 +56,7 @@ module Datadog
             return
           end
 
-          new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
+          new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry, statsd: statsd).tap do |component|
             DI.add_current_component(component)
           end
         end
@@ -83,8 +85,11 @@ module Datadog
       # @param logger [Datadog::Core::Logger] diagnostics logger, wrapped in the DI logger facade
       # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component DI errors and guardrails metrics are emitted through
+      # @param statsd [Datadog::Statsd, nil] the DogStatsD client that metric
+      #   probes submit through, or nil when dogstatsd-ruby is missing or
+      #   incompatible
       # @return [void]
-      def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
+      def initialize(settings, agent_settings, logger, telemetry:, statsd:, code_tracker: nil)
         @settings = settings
         @agent_settings = agent_settings
         logger = DI::Logger.new(settings, logger)
@@ -100,7 +105,7 @@ module Datadog
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
         @correlation_sampler = CorrelationSampler.new
-        @metric_emitter = MetricEmitter.new(logger, telemetry: telemetry)
+        @metric_emitter = MetricEmitter.new(logger, telemetry: telemetry, statsd: statsd)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker,
           correlation_sampler: correlation_sampler, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
@@ -117,6 +122,7 @@ module Datadog
           probe_notification_builder: probe_notification_builder,
           telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
+          metric_emitter: @metric_emitter,
         )
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
@@ -195,6 +201,9 @@ module Datadog
 
           probe_manager.stop
           probe_notifier_worker.stop
+          # The worker submits the recorded points within the send
+          # interval; the stopped worker leaves the last ones to this flush.
+          metric_emitter.flush
           @started = false
         end
       end

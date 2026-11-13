@@ -33,11 +33,11 @@ module Datadog
 
       @rc_enablement_signal_paths: Array[Core::Remote::Configuration::Path]
 
-      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?telemetry: Core::Telemetry::Component?) -> Component?
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, telemetry: Core::Telemetry::Component?, statsd: Datadog::Statsd?) -> Component?
 
       def self.explicitly_enabled?: (Datadog::Core::Configuration::Settings settings) -> bool
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, telemetry: Core::Telemetry::Component?, statsd: Datadog::Statsd?, ?code_tracker: CodeTracker?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 

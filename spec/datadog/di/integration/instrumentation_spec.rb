@@ -118,7 +118,7 @@ RSpec.describe "Instrumentation integration" do
     # Call start! so probe installation actually proceeds — the
     # definition trace point is disabled until start!, and the probe
     # notifier worker isn't running until start!.
-    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry, statsd: nil).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end

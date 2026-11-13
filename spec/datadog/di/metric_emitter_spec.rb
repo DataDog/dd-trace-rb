@@ -8,263 +8,248 @@ RSpec.describe Datadog::DI::MetricEmitter do
 
   let(:logger) { instance_double(Datadog::DI::Logger).as_null_object }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
-  let(:installed_version) { Gem::Version.new("5.7.1") }
-  let(:statsd) { instance_double(Datadog::Statsd, host: "127.0.0.1", port: 8125) }
+  let(:statsd) { instance_double(Datadog::Statsd, count: nil, gauge: nil, histogram: nil, distribution: nil, flush: nil) }
 
-  before do
-    allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(installed_version)
-    allow(Datadog::Statsd).to receive(:new).and_return(statsd)
-  end
+  subject(:emitter) { described_class.new(logger, telemetry: telemetry, statsd: statsd) }
 
-  let(:emitter) { described_class.new(logger, telemetry: telemetry) }
-
-  let(:probe) do
+  def metric_probe(kind, id: "probe-#{kind}", tags: ["env:prod"])
     Datadog::DI::Probe.new(
-      id: "probe-42", type: :metric,
+      id: id, type: :metric,
       type_name: "Foo", method_name: "bar",
-      metric_kind: :count, metric_name: "test.metric",
-      tags: ["env:prod"],
+      metric_kind: kind, metric_name: "test.metric",
+      tags: tags,
     )
   end
 
+  let(:probe) { metric_probe(:count, id: "probe-42") }
+  let(:metric_name) { "dynamic.instrumentation.metric.probe.test.metric" }
+
   describe "#initialize" do
-    context "with a compatible dogstatsd-ruby installed" do
-      it "is available and builds the statsd client" do
-        expect(emitter.available?).to be true
-        expect(emitter.statsd).to be statsd
-      end
-
-      it "creates the client with the product namespace" do
-        emitter
-
-        expect(Datadog::Statsd).to have_received(:new).with(
-          Datadog::Core::Metrics::Dogstatsd.default_hostname,
-          Datadog::Core::Metrics::Dogstatsd.default_port,
-          namespace: "dynamic.instrumentation.metric.probe",
-          single_thread: true,
-        )
-      end
-
-      it "logs the dogstatsd version and endpoint at debug" do
-        strict_logger = instance_double(Datadog::DI::Logger)
-        allow(strict_logger).to receive(:debug)
-        allow(strict_logger).to receive(:warn)
-
-        described_class.new(strict_logger, telemetry: telemetry)
-
-        expect(strict_logger).to have_received(:debug) do |&block|
-          expect(block.call).to match(/di: metric probe emitter using dogstatsd-ruby 5\.7\.1 at 127\.0\.0\.1:8125/)
-        end
-      end
-    end
-
-    context "with an old dogstatsd-ruby installed" do
-      let(:installed_version) { Gem::Version.new("3.2.9") }
-
-      it "is unavailable and warns naming the dependency" do
-        strict_logger = instance_double(Datadog::DI::Logger)
-        warn_messages = []
-        allow(strict_logger).to receive(:debug)
-        allow(strict_logger).to receive(:warn) { |message| warn_messages << message }
-
-        emitter = described_class.new(strict_logger, telemetry: telemetry)
-
-        expect(emitter.available?).to be false
-        expect(warn_messages).to include(a_string_matching(/dogstatsd-ruby >= 3\.3\.0 \(excluding 5\.0\.x, 5\.1\.x, 5\.2\.x\) is required/))
-      end
-
-      it "does not create the statsd client" do
-        expect(Datadog::Statsd).to_not receive(:new)
-
-        expect(emitter.statsd).to be nil
-      end
-    end
-
-    context "with an incompatible dogstatsd-ruby installed" do
-      let(:installed_version) { Gem::Version.new("5.1.0") }
-
-      it "is unavailable" do
-        expect(emitter.available?).to be false
-      end
-    end
-
-    context "without dogstatsd-ruby installed" do
-      let(:installed_version) { nil }
-
-      it "is unavailable" do
-        expect(emitter.available?).to be false
-      end
-    end
-
-    context "when creating the statsd client fails" do
+    context "with a client" do
       before do
-        allow(Datadog::Statsd).to receive(:new).and_raise(StandardError, "socket setup failed")
+        allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(Gem::Version.new("5.7.1"))
       end
 
-      it "is unavailable and warns naming the failure" do
-        strict_logger = instance_double(Datadog::DI::Logger)
-        warn_messages = []
-        allow(strict_logger).to receive(:debug)
-        allow(strict_logger).to receive(:warn) { |message| warn_messages << message }
+      it "logs the dogstatsd-ruby version at debug" do
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to eq("di: metric probe emitter using dogstatsd-ruby 5.7.1")
+        end
 
-        emitter = described_class.new(strict_logger, telemetry: telemetry)
-
-        expect(emitter.available?).to be false
-        expect(warn_messages).to include(a_string_matching(/failed to create the dogstatsd client: StandardError: socket setup failed/))
-      end
-
-      it "reports the failure to telemetry" do
         emitter
+      end
+    end
 
-        expect(telemetry).to have_received(:report).with(
-          a_kind_of(StandardError),
-          description: "Failed to create the dogstatsd client",
+    context "without a client" do
+      let(:statsd) { nil }
+
+      it "logs the unavailability reason at debug" do
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to eq(
+            "di: metric probes are unavailable: dogstatsd-ruby >= 3.3.0 (excluding 5.0.x, 5.1.x, 5.2.x) " \
+              "is required; install or upgrade the gem in the application",
+          )
+        end
+
+        emitter
+      end
+    end
+  end
+
+  describe "#available? and #unavailable_reason" do
+    context "with a client" do
+      it "is available with no reason" do
+        expect(emitter.available?).to be true
+        expect(emitter.unavailable_reason).to be nil
+      end
+    end
+
+    context "without a client" do
+      let(:statsd) { nil }
+
+      it "is unavailable and names the dependency" do
+        expect(emitter.available?).to be false
+        expect(emitter.unavailable_reason).to eq(described_class::DEPENDENCY_REQUIRED_REASON)
+      end
+    end
+  end
+
+  describe "#record" do
+    it "makes no client call" do
+      expect(emitter.record(probe, 1)).to be true
+
+      expect(statsd).to_not have_received(:count)
+      expect(statsd).to_not have_received(:flush)
+    end
+
+    it "makes the point pending" do
+      expect { emitter.record(probe, 1) }.to change { emitter.pending? }.from(false).to(true)
+    end
+
+    context "when the emitter is closed" do
+      before { emitter.close }
+
+      it "records nothing" do
+        expect(emitter.record(probe, 1)).to be false
+        expect(emitter.pending?).to be false
+      end
+    end
+
+    context "without a client" do
+      let(:statsd) { nil }
+
+      it "records nothing" do
+        expect(emitter.record(probe, 1)).to be false
+        expect(emitter.pending?).to be false
+      end
+    end
+
+    context "with HISTOGRAM samples beyond the cap" do
+      let(:probe) { metric_probe(:histogram) }
+
+      before { stub_const("#{described_class}::MAX_PENDING_SAMPLES", 2) }
+
+      it "drops the samples over the cap and logs the count at the next flush" do
+        expect(emitter.record(probe, 1)).to be true
+        expect(emitter.record(probe, 2)).to be true
+        expect(emitter.record(probe, 3)).to be false
+        expect(emitter.record(probe, 4)).to be false
+
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to eq("di: dropped 2 HISTOGRAM sample(s) for probe probe-histogram: 2 samples were pending")
+        end
+        emitter.flush
+
+        expect(statsd).to have_received(:histogram).twice
+      end
+    end
+
+    context "with an unknown metric kind" do
+      it "raises an internal error" do
+        allow(probe).to receive(:metric_kind).and_return(:summary)
+
+        expect { emitter.record(probe, 1) }.to raise_error(
+          Datadog::DI::Error::InternalError, "unknown metric kind :summary of probe probe-42",
         )
       end
     end
   end
 
-  describe "#emit" do
-    before do
-      allow(statsd).to receive(:count)
-      allow(statsd).to receive(:gauge)
-      allow(statsd).to receive(:histogram)
-      allow(statsd).to receive(:distribution)
+  describe "#flush" do
+    it "submits nothing and returns false without pending points" do
+      expect(emitter.flush).to be false
+
+      expect(statsd).to_not have_received(:count)
+      expect(statsd).to_not have_received(:flush)
+      expect(emitter.last_emitted_at).to be nil
     end
 
-    [
-      [:count, :count],
-      [:gauge, :gauge],
-      [:histogram, :histogram],
-      [:distribution, :distribution],
-    ].each do |metric_kind, statsd_method|
-      context "metric kind #{metric_kind}" do
-        let(:probe) do
-          Datadog::DI::Probe.new(
-            id: "probe-42", type: :metric,
-            type_name: "Foo", method_name: "bar",
-            metric_kind: metric_kind, metric_name: "test.metric",
-            tags: ["env:prod"],
-          )
-        end
+    it "submits the sum of the recorded COUNT values" do
+      emitter.record(probe, 1)
+      emitter.record(probe, 2.5)
 
-        it "submits the value via the matching statsd method" do
-          emitter.emit(probe, 42)
+      expect(emitter.flush).to be true
 
-          expect(statsd).to have_received(statsd_method).with(
-            "test.metric", 42, tags: ["env:prod", "debugger.probeid:probe-42"],
-          )
-        end
-      end
+      expect(statsd).to have_received(:count).with(metric_name, 3.5, tags: ["env:prod", "debugger.probeid:probe-42"]).once
+      expect(statsd).to have_received(:flush).with(no_args).once
+      expect(emitter.pending?).to be false
     end
 
-    it "returns true" do
-      expect(emitter.emit(probe, 1)).to be true
+    it "submits the last recorded GAUGE value" do
+      gauge_probe = metric_probe(:gauge)
+      emitter.record(gauge_probe, 1)
+      emitter.record(gauge_probe, 7)
+
+      emitter.flush
+
+      expect(statsd).to have_received(:gauge).with(metric_name, 7, tags: ["env:prod", "debugger.probeid:probe-gauge"]).once
     end
 
-    it "adds only the probe id tag when the probe has no tags" do
-      no_tags_probe = Datadog::DI::Probe.new(
-        id: "probe-42", type: :metric,
-        type_name: "Foo", method_name: "bar",
-        metric_kind: :count, metric_name: "test.metric",
-      )
+    it "submits each HISTOGRAM and DISTRIBUTION sample" do
+      histogram_probe = metric_probe(:histogram)
+      distribution_probe = metric_probe(:distribution)
+      emitter.record(histogram_probe, 1)
+      emitter.record(histogram_probe, 2)
+      emitter.record(distribution_probe, 3)
 
-      emitter.emit(no_tags_probe, 1)
+      emitter.flush
+
+      expect(statsd).to have_received(:histogram).with(metric_name, 1, tags: ["env:prod", "debugger.probeid:probe-histogram"])
+      expect(statsd).to have_received(:histogram).with(metric_name, 2, tags: ["env:prod", "debugger.probeid:probe-histogram"])
+      expect(statsd).to have_received(:distribution).with(metric_name, 3, tags: ["env:prod", "debugger.probeid:probe-distribution"])
+    end
+
+    it "passes the probe tags unchanged ahead of the probe id tag" do
+      tagged_probe = metric_probe(:count, id: "probe-tags", tags: [" key : value ", "bare", "key:1", "key:2"])
+      emitter.record(tagged_probe, 1)
+
+      emitter.flush
 
       expect(statsd).to have_received(:count).with(
-        "test.metric", 1, tags: ["debugger.probeid:probe-42"],
+        metric_name, 1, tags: [" key : value ", "bare", "key:1", "key:2", "debugger.probeid:probe-tags"],
       )
     end
 
-    it "timestamps the last emission" do
-      expect(emitter.last_emitted_at).to be nil
+    it "sets last_emitted_at" do
+      emitter.record(probe, 1)
 
-      emitter.emit(probe, 1)
-
-      expect(emitter.last_emitted_at).to be_a(Time)
+      expect { emitter.flush }.to change { emitter.last_emitted_at }.from(nil).to(an_instance_of(Time))
     end
 
-    it "logs the emission at trace level with the prefixed metric name" do
-      strict_logger = instance_double(Datadog::DI::Logger)
-      allow(strict_logger).to receive(:debug)
-      allow(strict_logger).to receive(:warn)
-      allow(strict_logger).to receive(:trace)
+    context "with a client that defines no flush" do
+      let(:statsd) { double("dogstatsd-ruby 4.x client", count: nil) }
 
-      emitter = described_class.new(strict_logger, telemetry: telemetry)
-      emitter.emit(probe, 1)
+      it "submits the points and makes no flush call" do
+        emitter.record(probe, 1)
 
-      expect(strict_logger).to have_received(:trace) do |&block|
-        expect(block.call).to eq(
-          "di: emitted COUNT metric dynamic.instrumentation.metric.probe.test.metric for probe probe-42 (value=1)",
-        )
+        expect(emitter.flush).to be true
+        expect(statsd).to have_received(:count)
       end
     end
 
-    context "when the statsd client raises" do
-      before do
-        allow(statsd).to receive(:count).and_raise(StandardError, "datagram failed")
-      end
+    context "when a submission raises" do
+      let(:error) { IOError.new("closed stream") }
 
-      it "returns false" do
-        expect(emitter.emit(probe, 1)).to be false
-      end
+      before { allow(statsd).to receive(:count).and_raise(error) }
 
-      it "logs the failure at debug with the exception and first frame" do
-        strict_logger = instance_double(Datadog::DI::Logger)
-        debug_messages = []
-        allow(strict_logger).to receive(:trace)
-        allow(strict_logger).to receive(:warn)
-        allow(strict_logger).to receive(:debug) { |&block| debug_messages << block.call }
+      it "logs and reports the exception and drops the points" do
+        emitter.record(probe, 1)
 
-        emitter = described_class.new(strict_logger, telemetry: telemetry)
-        emitter.emit(probe, 1)
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to match(/\Adi: metric flush failed: IOError: closed stream \(.+\)\z/)
+        end
+        expect(emitter.flush).to be false
 
-        expect(debug_messages).to include(a_string_matching(/di: metric submission failed for probe probe-42: StandardError: datagram failed/))
-      end
-
-      it "reports the failure to telemetry" do
-        emitter.emit(probe, 1)
-
-        expect(telemetry).to have_received(:report).with(
-          a_kind_of(StandardError),
-          description: "Metric submission failed",
-        )
-      end
-
-      it "does not timestamp the last emission" do
-        emitter.emit(probe, 1)
-
+        expect(telemetry).to have_received(:report).with(error, description: "Metric flush failed")
+        expect(emitter.pending?).to be false
         expect(emitter.last_emitted_at).to be nil
       end
     end
 
-    context "when the emitter is closed" do
-      before do
-        allow(statsd).to receive(:close)
-        emitter.close
-      end
+    context "without a client" do
+      let(:statsd) { nil }
 
-      it "returns false without submitting" do
-        expect(emitter.emit(probe, 1)).to be false
-
-        expect(statsd).to_not have_received(:count)
-      end
+      it { expect(emitter.flush).to be false }
     end
   end
 
-  describe "#closed?" do
-    before do
-      allow(statsd).to receive(:close)
+  describe "pending points inherited across a fork" do
+    it "are discarded by the forked process" do
+      emitter.record(probe, 1)
+      allow(Process).to receive(:pid).and_return(Process.pid + 1)
+
+      expect(emitter.pending?).to be false
+      expect(emitter.flush).to be false
+      expect(statsd).to_not have_received(:count)
     end
 
-    it "is false for a new emitter" do
-      expect(emitter.closed?).to be false
-    end
+    it "leave the points that the forked process records" do
+      emitter.record(probe, 1)
+      allow(Process).to receive(:pid).and_return(Process.pid + 1)
+      emitter.record(probe, 2)
 
-    it "is true once the emitter is closed" do
-      emitter.close
+      emitter.flush
 
-      expect(emitter.closed?).to be true
+      expect(statsd).to have_received(:count).with(metric_name, 2, tags: ["env:prod", "debugger.probeid:probe-42"]).once
     end
   end
 
@@ -273,22 +258,19 @@ RSpec.describe Datadog::DI::MetricEmitter do
       allow(statsd).to receive(:close)
     end
 
-    it "closes the statsd client" do
+    it "flushes the pending points and leaves the client open" do
+      emitter.record(probe, 1)
+
       emitter.close
 
-      expect(statsd).to have_received(:close)
+      expect(statsd).to have_received(:count)
+      expect(statsd).to have_received(:flush)
+      expect(statsd).to_not have_received(:close)
+      expect(emitter.closed?).to be true
     end
+  end
 
-    it "logs the close at trace level" do
-      strict_logger = instance_double(Datadog::DI::Logger)
-      trace_messages = []
-      allow(strict_logger).to receive(:debug)
-      allow(strict_logger).to receive(:warn)
-      allow(strict_logger).to receive(:trace) { |&block| trace_messages << block.call }
-
-      described_class.new(strict_logger, telemetry: telemetry).close
-
-      expect(trace_messages).to include("di: metric emitter closed")
-    end
+  describe "#closed?" do
+    it { expect(emitter.closed?).to be false }
   end
 end

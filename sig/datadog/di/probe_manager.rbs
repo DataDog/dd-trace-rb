@@ -53,7 +53,7 @@ module Datadog
 
       def probe_executed_callback: (Context context) -> void
 
-      def probe_metric_emitted_callback: (Probe probe) -> void
+      def probe_metric_recorded_callback: (Probe probe) -> void
 
       def probe_expression_evaluation_failed_callback: (Context context, EL::Expression expr, Exception exc) -> void
 

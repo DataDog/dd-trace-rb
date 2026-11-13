@@ -3,34 +3,69 @@ module Datadog
     class MetricEmitter
       NAMESPACE: String
 
-      @logger: Logger
-      @telemetry: Core::Telemetry::Component?
-      @closed: bool
-      @last_emitted_at: Time?
+      MAX_PENDING_SAMPLES: Integer
+
+      DEPENDENCY_REQUIRED_REASON: String
+
+      @logger: DI::Logger
+
       @statsd: Datadog::Statsd?
-      @available: bool
 
-      def initialize: (Logger logger, ?telemetry: Core::Telemetry::Component?) -> void
+      @telemetry: Core::Telemetry::Component?
 
-      attr_reader logger: Logger
+      @closed: bool
+
+      @last_emitted_at: Time?
+
+      @lock: Thread::Mutex
+
+      @pending_values: Hash[Probe, Numeric]
+
+      @pending_samples: Hash[Probe, Array[Integer | Float]]
+
+      @dropped_samples: Hash[Probe, Integer]
+
+      @pending_pid: Integer
+
+      def initialize: (DI::Logger logger, telemetry: Core::Telemetry::Component?, statsd: Datadog::Statsd?) -> void
+
+      attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?
 
       attr_reader statsd: Datadog::Statsd?
 
+      attr_reader last_emitted_at: Time?
+
       def available?: () -> bool
+
+      def unavailable_reason: () -> String?
 
       def closed?: () -> bool
 
-      attr_reader last_emitted_at: Time?
+      def pending?: () -> bool
 
-      def emit: (Probe probe, Integer | Float value) -> bool
+      def record: (Probe probe, Integer | Float value) -> bool
+
+      def flush: () -> bool
 
       def close: () -> void
 
       private
 
-      def build_statsd_client: (Gem::Version version) -> Datadog::Statsd?
+      attr_reader lock: Thread::Mutex
+
+      attr_reader pending_values: Hash[Probe, Numeric]
+
+      attr_reader pending_samples: Hash[Probe, Array[Integer | Float]]
+
+      attr_reader dropped_samples: Hash[Probe, Integer]
+
+      attr_reader pending_pid: Integer
+
+      def discard_inherited_entries: () -> void
+
+      def submit: (Datadog::Statsd client, Probe probe, Numeric value) -> void
     end
   end
 end

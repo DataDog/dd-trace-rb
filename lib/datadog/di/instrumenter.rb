@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../core/rate_limiter"
+require_relative "../core/utils/only_once"
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
@@ -115,6 +116,7 @@ module Datadog
         @guardrails_telemetry = guardrails_telemetry
         @capture_expression_evaluator = capture_expression_evaluator
         @metric_emitter = metric_emitter
+        @metric_unavailable_warning = Core::Utils::OnlyOnce.new
         @code_tracker = code_tracker
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
         @correlation_sampler = correlation_sampler
@@ -136,6 +138,12 @@ module Datadog
       # @return [Datadog::DI::CorrelationSampler]
       attr_reader :correlation_sampler
       attr_reader :metric_emitter
+
+      # The gate that logs the metric probe unavailability warning once per
+      # instrumenter.
+      # @return [Core::Utils::OnlyOnce]
+      attr_reader :metric_unavailable_warning
+      private :metric_unavailable_warning
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -529,10 +537,11 @@ module Datadog
         # installation with an ERROR status naming the dependency instead of
         # installing probes that can never emit.
         if probe.type == :metric && !metric_emitter.available?
-          exc = Error::MetricEmissionUnavailable.new(
-            "metric probes are unavailable: dogstatsd-ruby >= 3.3.0 (excluding 5.0.x, 5.1.x, 5.2.x) is required; " \
-            "install or upgrade the gem in the application",
-          )
+          exc = Error::MetricEmissionUnavailable.new("metric probes are unavailable: #{metric_emitter.unavailable_reason}")
+          # The DI component is built on every tracer boot that meets the DI
+          # preconditions, so the warning waits for the first metric probe,
+          # where the customer can act on it.
+          metric_unavailable_warning.run { logger.warn("di: #{exc.message}") }
           logger.debug { "di: cannot install :metric probe at #{probe.location} (#{probe.id}): #{exc.message}" }
           raise exc
         end
@@ -722,7 +731,7 @@ module Datadog
       # @param target_block [Proc, nil] block argument passed to the probed method
       # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
-      # @param responder [#probe_executed_callback, #probe_expression_evaluation_failed_callback, #probe_metric_emitted_callback] callback target invoked with the built Context
+      # @param responder [#probe_executed_callback, #probe_expression_evaluation_failed_callback, #probe_metric_recorded_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
       # @yield invokes the original method via super and returns its value
@@ -963,8 +972,8 @@ module Datadog
       public :run_method_probe
 
       # Metric probe counterpart of #run_method_probe: evaluates the probe's
-      # condition and value expression against the firing scope, submits the
-      # metric, notifies EMITTING on the first successful submission, and
+      # condition and value expression against the firing scope, records the
+      # metric value, notifies EMITTING on the first recorded value, and
       # runs the CPU circuit breaker. The method itself runs with the
       # re-entrancy guard released, as for log probes, and the method's return
       # value and exceptions pass through unchanged. Metric emission is not
@@ -977,7 +986,7 @@ module Datadog
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the metric probe whose callback this invocation runs
-      # @param responder [#probe_expression_evaluation_failed_callback, #probe_metric_emitted_callback] callback target for evaluation errors and the EMITTING status
+      # @param responder [#probe_expression_evaluation_failed_callback, #probe_metric_recorded_callback] callback target for evaluation errors and the EMITTING status
       # @yield invokes the original method via super and returns its value
       # @return [Object] the original method's return value, or re-raises its exception
       def run_metric_probe(args, kwargs, target_self, probe, responder)
@@ -989,7 +998,7 @@ module Datadog
             # Entry timing: the metric work completes before the method body
             # and the method then runs with no further DI processing.
             begin
-              emit_metric_if_admitted(
+              record_metric_if_admitted(
                 probe,
                 build_metric_context(args, kwargs, target_self, probe),
                 responder,
@@ -1030,7 +1039,7 @@ module Datadog
             di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
             duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
             begin
-              emit_metric_if_admitted(
+              record_metric_if_admitted(
                 probe,
                 build_metric_context(args, kwargs, target_self, probe,
                   return_value: rv, duration: duration, exception: exc),
@@ -1100,7 +1109,7 @@ module Datadog
       # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
       #   the probe's target file, when the trace point is targeted.
       # @param responder [#probe_executed_callback, #probe_expression_evaluation_failed_callback,
-      #   #probe_metric_emitted_callback, #probe_disabled_callback]
+      #   #probe_metric_recorded_callback, #probe_disabled_callback]
       #   callback target for the probe hit.
       # @param tp [TracePoint] the trace point event that fired.
       # @return [void]
@@ -1153,11 +1162,11 @@ module Datadog
           end
 
           if probe.type == :metric
-            # Metric probes submit a metric per admitted hit and build no
+            # Metric probes record a metric value per admitted hit and build no
             # snapshot payload; emission is ungated by the per-probe and
             # global rate limiters, matching the other tracers, while the
             # CPU circuit breaker still applies.
-            emit_metric_if_admitted(
+            record_metric_if_admitted(
               probe,
               build_metric_line_context(probe, tp),
               responder,
@@ -1315,19 +1324,19 @@ module Datadog
       end
 
       # Evaluates the probe's condition and metric value expression and
-      # submits the metric for one admitted firing. Condition first, then
-      # value, then the packet, then the EMITTING callback, so a false
-      # condition suppresses emission and an evaluation error reports
-      # without emitting. COUNT with no value expression submits 1 per
-      # admitted hit; the other kinds emit nothing without a value
+      # records the metric value for one admitted firing. Condition first,
+      # then value, then the recording, then the recorded callback, so a
+      # false condition suppresses the point and an evaluation error
+      # reports without recording. COUNT with no value expression records
+      # 1 per admitted hit; the other kinds record nothing without a value
       # expression, matching Java and .NET.
       #
       # @param probe [Probe] the metric probe being fired
       # @param context [Context, nil] evaluation context, present when the
       #   probe has a condition or a value expression
-      # @param responder [#probe_expression_evaluation_failed_callback, #probe_metric_emitted_callback] callback target
+      # @param responder [#probe_expression_evaluation_failed_callback, #probe_metric_recorded_callback] callback target
       # @return [void]
-      def emit_metric_if_admitted(probe, context, responder)
+      def record_metric_if_admitted(probe, context, responder)
         if probe.condition || probe.metric_value
           raise DI::Error::InternalError, "metric probe expressions without evaluation context" unless context
 
@@ -1343,7 +1352,7 @@ module Datadog
           if expr = probe.metric_value
             begin
               value = coerce_metric_value(expr.evaluate(context, evaluation_deadline: METRIC_VALUE_EVALUATION_DEADLINE))
-              emit_metric_value(probe, value, responder)
+              record_metric_value(probe, value, responder)
             rescue Exception => exc # standard:disable Lint/RescueException
               report_probe_expression_error(probe, context, expr, exc, responder)
             end
@@ -1356,19 +1365,20 @@ module Datadog
         # value expression, matching Java and .NET.
         return unless probe.metric_kind == :count
 
-        emit_metric_value(probe, 1, responder)
+        record_metric_value(probe, 1, responder)
       end
 
-      # Submits the metric and notifies EMITTING on the first successful
-      # submission; a failed submission does not notify.
+      # Records the metric value in the metric emitter and invokes the
+      # responder's recorded callback when the emitter accepts it; a value
+      # that the emitter drops does not reach the callback.
       #
       # @param probe [Probe] the metric probe being fired
       # @param value [Integer, Float] the metric value
-      # @param responder [#probe_metric_emitted_callback] callback target
+      # @param responder [#probe_metric_recorded_callback] callback target
       # @return [void]
-      def emit_metric_value(probe, value, responder)
-        if metric_emitter.emit(probe, value)
-          responder.probe_metric_emitted_callback(probe)
+      def record_metric_value(probe, value, responder)
+        if metric_emitter.record(probe, value)
+          responder.probe_metric_recorded_callback(probe)
         end
       end
 

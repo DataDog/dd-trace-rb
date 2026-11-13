@@ -330,17 +330,19 @@ module Datadog
         probe_notifier_worker.add_snapshot(payload, probe: probe)
       end
 
-      # Callback invoked when a metric probe successfully submits a metric
-      # to the agent's dogstatsd listener.
+      # Callback invoked when the metric emitter accepts a point of a
+      # metric probe.
       #
       # Sends the EMITTING status once per the probe's lifetime, after the
-      # first successful submission; submission failures do not reach this
-      # callback.
+      # first accepted point, and schedules the submission of the point
+      # within the minimum send interval. Points that the emitter drops do
+      # not reach this callback.
       #
-      # @param probe [Probe] the probe whose metric was submitted
+      # @param probe [Probe] the probe whose point was recorded
       # @return [void]
-      def probe_metric_emitted_callback(probe)
+      def probe_metric_recorded_callback(probe)
         notify_emitting(probe)
+        probe_notifier_worker.schedule_metric_flush
       end
 
       # Callback invoked when a probe expression fails to evaluate.

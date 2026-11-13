@@ -3,6 +3,7 @@ require "datadog/core/metrics/dogstatsd"
 require "datadog/di/metric_emitter"
 require "datadog/di"
 require "datadog/statsd"
+require "socket"
 
 class MetricProbesIntegrationSpecTestClass
   def test_method(value)
@@ -22,10 +23,12 @@ RSpec.describe "Metric probes integration" do
   end
 
   let(:fake_statsd) do
-    instance_double(Datadog::Statsd, host: "127.0.0.1", port: 8125)
+    instance_double(Datadog::Statsd, count: nil, gauge: nil, flush: nil)
   end
 
-  let(:installed_version) { Gem::Version.new("5.7.1") }
+  let(:statsd) { fake_statsd }
+
+  let(:metric_name) { "dynamic.instrumentation.metric.probe.integration.metric" }
 
   let(:diagnostics_batches) { [] }
 
@@ -38,21 +41,6 @@ RSpec.describe "Metric probes integration" do
     allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
     allow(diagnostics_transport).to receive(:send_diagnostics) { |batch| diagnostics_batches << batch }
     allow(input_transport).to receive(:send_input) { |batch, *_args| input_batches << batch }
-
-    allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(installed_version)
-    # Only the DI emitter's client carries the product namespace; the core
-    # metrics client that the global test teardown rebuilds must keep
-    # constructing its own real statsd client, or its double leaks into
-    # the next example.
-    allow(Datadog::Statsd).to receive(:new).and_wrap_original do |method, *args, **kwargs|
-      if kwargs[:namespace] == Datadog::DI::MetricEmitter::NAMESPACE
-        fake_statsd
-      else
-        method.call(*args, **kwargs)
-      end
-    end
-    allow(fake_statsd).to receive(:count)
-    allow(fake_statsd).to receive(:gauge)
   end
 
   after do
@@ -76,14 +64,15 @@ RSpec.describe "Metric probes integration" do
 
   let(:logger) do
     instance_double(Datadog::Core::Logger).tap do |logger|
-      # The DI component's metric emitter logs its construction at debug
-      # and its unavailability at warn.
+      # The DI component's metric emitter logs its construction at debug,
+      # and the instrumenter logs the unavailability of metric probes at
+      # warn.
       allow(logger).to receive_messages(debug: nil, warn: nil)
     end
   end
 
   let(:component) do
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end
@@ -108,7 +97,7 @@ RSpec.describe "Metric probes integration" do
   end
 
   context "with the metric emitter available" do
-    it "installs the probe from the payload, emits on the statsd client, and reports the full status sequence" do
+    it "installs the probe from the payload, submits on the statsd client, and reports the full status sequence" do
       allow(component).to receive(:telemetry)
 
       probe = component.parse_probe_spec_and_notify(probe_spec)
@@ -116,11 +105,12 @@ RSpec.describe "Metric probes integration" do
 
       expect(MetricProbesIntegrationSpecTestClass.new.test_method(21)).to eq 42
 
-      expect(fake_statsd).to have_received(:count).with(
-        "integration.metric", 42, tags: ["env:prod", "debugger.probeid:metric-integration-probe"],
-      )
-
       component.probe_notifier_worker.flush
+
+      expect(fake_statsd).to have_received(:count).with(
+        metric_name, 42, tags: ["env:prod", "debugger.probeid:metric-integration-probe"],
+      )
+      expect(fake_statsd).to have_received(:flush)
 
       statuses = diagnostics_batches.flatten.map { |payload|
         payload.fetch(:debugger).fetch(:diagnostics).fetch(:status)
@@ -128,23 +118,63 @@ RSpec.describe "Metric probes integration" do
       expect(statuses).to eq ["RECEIVED", "INSTALLED", "EMITTING"]
     end
 
-    it "emits with the metric prefix and kind of the probe" do
+    it "submits the point from the DI background thread" do
+      probe = component.parse_probe_spec_and_notify(probe_spec)
+      probe_manager.add_probe(probe)
+
+      application_thread = Thread.current
+      submitting_threads = []
+      allow(fake_statsd).to receive(:count) { submitting_threads << Thread.current }
+
+      expect(MetricProbesIntegrationSpecTestClass.new.test_method(21)).to eq 42
+
+      component.probe_notifier_worker.flush
+
+      expect(submitting_threads.length).to eq 1
+      expect(submitting_threads.first).to_not be application_thread
+    end
+  end
+
+  context "with a real dogstatsd-ruby client" do
+    let(:listener) do
+      UDPSocket.new.tap { |socket| socket.bind("127.0.0.1", 0) }
+    end
+
+    let(:statsd) do
+      options = if Datadog::Core::Metrics::Dogstatsd.single_thread_supported?(Datadog::Core::Metrics::Dogstatsd.installed_version)
+        {single_thread: true}
+      else
+        {}
+      end
+      Datadog::Statsd.new("127.0.0.1", listener.addr[1], **options)
+    end
+
+    after do
+      statsd.close
+      listener.close
+    end
+
+    it "delivers the point of a single execution before shutdown" do
       probe = component.parse_probe_spec_and_notify(probe_spec)
       probe_manager.add_probe(probe)
 
       expect(MetricProbesIntegrationSpecTestClass.new.test_method(21)).to eq 42
+      component.probe_notifier_worker.flush
 
-      expect(Datadog::Statsd).to have_received(:new).with(
-        Datadog::Core::Metrics::Dogstatsd.default_hostname,
-        Datadog::Core::Metrics::Dogstatsd.default_port,
-        namespace: "dynamic.instrumentation.metric.probe",
-        single_thread: true,
+      # IO.select blocks until the datagram arrives; the timeout bounds a
+      # failing run.
+      expect(IO.select([listener], nil, nil, 5)).to_not be nil
+      messages = listener.recv(65536).split("\n")
+
+      expect(messages).to include(
+        a_string_starting_with("#{metric_name}:42|c|#").and(include("env:prod", "debugger.probeid:metric-integration-probe")),
       )
+      expect(component.metric_emitter.last_emitted_at).to be_a(Time)
     end
   end
 
   context "with the metric emitter unavailable" do
-    let(:installed_version) { nil }
+    let(:statsd) { nil }
 
     it "rejects the probe at install with an ERROR status naming the dependency" do
       allow(component).to receive(:telemetry)
@@ -201,9 +231,10 @@ RSpec.describe "Metric probes integration" do
         )
         expect(content.apply_error).to be nil
         expect(MetricProbesIntegrationSpecTestClass.new.test_method(21)).to eq 42
+        component.probe_notifier_worker.flush
 
         expect(fake_statsd).to have_received(:count).with(
-          "integration.metric", 42, tags: ["env:prod", "debugger.probeid:metric-integration-probe"],
+          metric_name, 42, tags: ["env:prod", "debugger.probeid:metric-integration-probe"],
         )
 
         probe_manager.remove_probe("metric-integration-probe")
@@ -211,7 +242,7 @@ RSpec.describe "Metric probes integration" do
     end
 
     context "when the emitter is unavailable" do
-      let(:installed_version) { nil }
+      let(:statsd) { nil }
 
       it "marks the remote config content errored without raising" do
         content = repository.contents.find { |content| content.path.config_id == "metric-integration-probe" }
@@ -256,14 +287,16 @@ RSpec.describe "Metric probes integration" do
        "value" => {"dsl" => "local", "json" => {"ref" => "local"}}}
     end
 
-    it "emits the evaluated local at the line" do
+    it "submits the evaluated local at the line" do
       probe = component.parse_probe_spec_and_notify(line_probe_spec)
       probe_manager.add_probe(probe)
 
       expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
+      component.probe_notifier_worker.flush
 
       expect(fake_statsd).to have_received(:gauge).with(
-        "integration.line.metric", 42, tags: ["debugger.probeid:metric-line-integration-probe"],
+        "dynamic.instrumentation.metric.probe.integration.line.metric", 42,
+        tags: ["debugger.probeid:metric-line-integration-probe"],
       )
     end
   end

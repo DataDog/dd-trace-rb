@@ -1492,6 +1492,35 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "DogStatsD client of dynamic instrumentation" do
+    let(:di_statsd) { [] }
+
+    before do
+      allow(Datadog::DI::Component).to receive(:build) do |*_args, statsd:, **_kwargs|
+        di_statsd << statsd
+        nil
+      end
+    end
+
+    it "is the client that the components built" do
+      expect(components.statsd).to_not be nil
+      expect(di_statsd).to eq([components.statsd])
+    end
+
+    context "with customer-supplied clients for runtime and health metrics" do
+      before do
+        settings.runtime_metrics.statsd = instance_double(::Datadog::Statsd)
+        settings.health_metrics.statsd = instance_double(::Datadog::Statsd)
+      end
+
+      it "is the client that the components built" do
+        expect(components.runtime_metrics.metrics.statsd).to be settings.runtime_metrics.statsd
+        expect(components.health_metrics.statsd).to be settings.health_metrics.statsd
+        expect(di_statsd).to eq([components.statsd])
+      end
+    end
+  end
+
   describe "#statsd_clients" do
     subject(:statsd_clients) { components.statsd_clients }
 

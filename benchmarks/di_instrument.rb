@@ -184,7 +184,7 @@ class DIInstrumentBenchmark
         guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
       ),
       correlation_sampler: Datadog::DI::CorrelationSampler.new,
-      metric_emitter: Datadog::DI::MetricEmitter.new(di_logger))
+      metric_emitter: Datadog::DI::MetricEmitter.new(di_logger, telemetry: telemetry, statsd: nil))
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target
