@@ -12,6 +12,8 @@ module Datadog
 
           def annotate!: (untyped span, untyped context) -> untyped
 
+          def annotate_owner!: (untyped span, untyped handler, untyped params, untyped context) -> untyped
+
           def configuration: () -> untyped
         end
         module S3Presigner

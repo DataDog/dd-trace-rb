@@ -4,7 +4,33 @@ module Datadog
       module Aws
         module Service
           class Base
+            ACCOUNT_ID_FORMAT: ::Regexp
+
+            SUCCESS_STATUS_CODES: ::Range[::Integer]
+
+            REGION_FORMAT: ::Regexp
+
+            NO_DOTTED_DNS_SUFFIXES: ::Array[::String]
+
+            DNS_SUFFIX_FAILURE_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
+
+            DNS_SUFFIX_FAILURE_DESCRIPTION: ::String
+
+            self.@aws_dotted_dns_suffixes: ::Array[::String]?
+
+            def self.aws_dotted_dns_suffixes: () -> ::Array[::String]
+
             def add_tags: (untyped span, untyped params) -> nil
+
+            def add_owner_tags: (Datadog::Tracing::SpanOperation span, any params, Contrib::Aws::ParsedContext context) -> void
+
+            private
+
+            def self.load_aws_dotted_dns_suffixes: () -> ::Array[::String]
+
+            def valid_account_id: (any value) -> ::String?
+
+            def aws_confirmed_response?: (Contrib::Aws::ParsedContext context, ::Regexp endpoint_label) -> bool
           end
         end
       end
