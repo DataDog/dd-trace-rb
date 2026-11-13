@@ -535,7 +535,7 @@ RSpec.describe Datadog::DI::Probe do
       let(:probe) do
         described_class.new(**metric_probe_args,
           tags: ["env:prod", "team:core"],
-          metric_value: metric_value_expression,)
+          metric_value: metric_value_expression)
       end
 
       it "carries the tags and the value expression" do
@@ -676,7 +676,7 @@ RSpec.describe Datadog::DI::Probe do
         let(:probe) do
           compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
           described_class.new(**metric_probe_args,
-            condition: Datadog::DI::EL::Expression.new("foo", compiled),)
+            condition: Datadog::DI::EL::Expression.new("foo", compiled))
         end
 
         it "is created" do
@@ -688,7 +688,7 @@ RSpec.describe Datadog::DI::Probe do
         let(:probe) do
           compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
           described_class.new(**metric_probe_args,
-            metric_value: Datadog::DI::EL::Expression.new("foo", compiled),)
+            metric_value: Datadog::DI::EL::Expression.new("foo", compiled))
         end
 
         it "is created" do

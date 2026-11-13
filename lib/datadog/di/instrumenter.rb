@@ -1030,7 +1030,7 @@ module Datadog
               emit_metric_if_admitted(
                 probe,
                 build_metric_context(args, kwargs, target_self, probe,
-                  return_value: rv, duration: duration, exception: exc,),
+                  return_value: rv, duration: duration, exception: exc),
                 responder,
               )
               check_and_disable_if_exceeded(probe, responder, di_start_time, di_duration)
