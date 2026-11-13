@@ -7,5 +7,6 @@ gem 'google-protobuf'
 
 # Choose correct specs for 'datadog' demo environment
 gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+gem 'libdatadog', Datadog::DemoEnv.locked_libdatadog_version if Datadog::DemoEnv.local_gem('datadog')
 
 gem "debug", platforms: %i[ mri mingw x64_mingw ]

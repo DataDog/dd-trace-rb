@@ -29,6 +29,17 @@ module Datadog
       ['datadog', *gem_spec]
     end
 
+    def locked_libdatadog_version
+      ruby = RUBY_VERSION.split('.').take(2).join('.')
+      lockfile = File.join(local_gem('datadog').fetch(:path), 'gemfiles', "ruby-#{ruby}.gemfile.lock")
+      versions = Bundler::LockfileParser.new(File.read(lockfile)).specs
+        .select { |spec| spec.name == 'libdatadog' }.map(&:version).uniq
+
+      raise "Expected one libdatadog version in #{lockfile}, found #{versions.inspect}" unless versions.one?
+
+      versions.first.to_s
+    end
+
     def gem_env_name(gem_name)
       gem_name.upcase.tr('-', '_')
     end
