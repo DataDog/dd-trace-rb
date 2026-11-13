@@ -1305,6 +1305,8 @@ client.query("SELECT * FROM users WHERE group='x'")
 
 The Net/HTTP integration will trace any HTTP call using the standard lib Net::HTTP module.
 
+While a trace is active, the integration also traces connection setup, including the TLS handshake for HTTPS, as an `http.connect` span.
+
 ```ruby
 require 'net/http'
 require 'datadog'
