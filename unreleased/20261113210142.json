@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6694",
+  "message": "Fix runtime and health metrics that a forked process exiting before its first submission sent a second time, by flushing the tracer's `Datadog::Statsd` clients before each fork."
+}
