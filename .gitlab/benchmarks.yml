@@ -22,6 +22,12 @@ variables:
 # Macrobenchmarks
 # -----------------------------------------------------
 
+
+# The template puts this job in the ci-image stage; run it next to the
+# benchmarks it builds for instead.
+build-benchmark-ci-images:
+  stage: microbenchmarks
+
 .macrobenchmarks:
   stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
