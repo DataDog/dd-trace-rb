@@ -151,10 +151,21 @@ static void assert_runtime_error(VALUE (*operation)(VALUE), const char *message)
   rb_set_errinfo(Qnil);
 }
 
-static int check_consumer_mutex_unlocked(DDTRACE_UNUSED void *unused) {
-  assert(mtx_trylock(&consumer_state.mutex) == thrd_success);
-  assert(mtx_unlock(&consumer_state.mutex) == thrd_success);
-  return 0;
+static void *check_consumer_mutex_unlocked(DDTRACE_UNUSED void *unused) {
+  assert(pthread_mutex_trylock(&consumer_state.mutex) == 0);
+  assert(pthread_mutex_unlock(&consumer_state.mutex) == 0);
+  return NULL;
+}
+
+static void test_consumer_mutex_recursive(void) {
+  mutex_lock(&consumer_state.mutex);
+  assert(pthread_mutex_trylock(&consumer_state.mutex) == 0);
+  mutex_unlock(&consumer_state.mutex);
+  mutex_unlock(&consumer_state.mutex);
+
+  pthread_t thread;
+  assert(pthread_create(&thread, NULL, check_consumer_mutex_unlocked, NULL) == 0);
+  assert(pthread_join(thread, NULL) == 0);
 }
 
 static void test_reset_failure(const char *allocation, const char *message) {
@@ -198,11 +209,9 @@ static void test_reset_failure(const char *allocation, const char *message) {
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
   assert_allocation_accounting();
 
-  thrd_t thread;
-  assert(thrd_create(&thread, check_consumer_mutex_unlocked, NULL) == thrd_success);
-  int result_code;
-  assert(thrd_join(thread, &result_code) == thrd_success);
-  assert(result_code == 0);
+  pthread_t thread;
+  assert(pthread_create(&thread, NULL, check_consumer_mutex_unlocked, NULL) == 0);
+  assert(pthread_join(thread, NULL) == 0);
 
   assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_OK);
   assert(buffered_event_count() == 1);
@@ -839,10 +848,9 @@ static void test_retention_failure(bool fail_threads, size_t retained_objects, u
   assert(verstable_mark_frame_set_size(&consumer_state.mark_frame_set) == (fail_threads ? 0U : 7U));
   assert_allocation_accounting();
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, false).offset == 0);
-  thrd_t thread;
-  assert(thrd_create(&thread, check_consumer_mutex_unlocked, NULL) == thrd_success);
-  int result;
-  assert(thrd_join(thread, &result) == thrd_success && result == 0);
+  pthread_t thread;
+  assert(pthread_create(&thread, NULL, check_consumer_mutex_unlocked, NULL) == 0);
+  assert(pthread_join(thread, NULL) == 0);
 
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   assert(buffered_event_count() == 2);
@@ -1165,6 +1173,7 @@ int main(int argc, char **argv) {
   setup_signal_handler_init(rb_module_new());
   test_raw_events_queue_internal_error();
   initialize_consumer(Qnil);
+  test_consumer_mutex_recursive();
   miteruby_consumer_reset();
   assert(miteruby_allocator_alloc_size(consumer_state.interned_events_queue) == INTERNED_EVENTS_QUEUE_MAX_SIZE && consumer_state.interned_events_queue != NULL);
   assert_allocation_accounting();
@@ -1215,7 +1224,7 @@ int main(int argc, char **argv) {
   miteruby_raw_events_queue_destroy(consumer_state.raw_events_queue);
   miteruby_allocator_free(&consumer_state.raw_events_queue);
   assert(miteruby_allocator_requested_bytes() == 0);
-  mtx_destroy(&consumer_state.mutex);
+  assert(pthread_mutex_destroy(&consumer_state.mutex) == 0);
   puts("Miteruby consumer tests passed");
   return ruby_cleanup(0);
 }

@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
-#include <threads.h>
+#include <sched.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -108,12 +108,12 @@ typedef struct {
     miteruby_raw_events_queue_record_t result;
 } interrupt_test_state;
 
-static int interruptible_reader(void *context)
+static void *interruptible_reader(void *context)
 {
     interrupt_test_state *test = context;
     atomic_store(&test->started, true);
     test->result = miteruby_raw_events_queue_read(&raw_events_queue, &test->interrupted);
-    return 0;
+    return NULL;
 }
 
 static void test_interruptible_read(void)
@@ -122,20 +122,20 @@ static void test_interruptible_read(void)
     atomic_init(&test.started, false);
     atomic_init(&test.interrupted, false);
     miteruby_raw_events_queue_wake_consumer(&raw_events_queue);
-    thrd_t reader;
-    assert(thrd_create(&reader, interruptible_reader, &test) == thrd_success);
+    pthread_t reader;
+    assert(pthread_create(&reader, NULL, interruptible_reader, &test) == 0);
     while (!atomic_load(&test.started))
-        thrd_yield();
+        sched_yield();
 #ifndef __APPLE__
     int pending_wakeups;
     do {
         assert(sem_getvalue(&raw_events_queue.consumer_wakeup, &pending_wakeups) == 0);
-        thrd_yield();
+        sched_yield();
     } while (pending_wakeups != 0);
 #endif
     atomic_store(&test.interrupted, true);
     miteruby_raw_events_queue_wake_consumer(&raw_events_queue);
-    assert(thrd_join(reader, NULL) == thrd_success);
+    assert(pthread_join(reader, NULL) == 0);
     assert(test.result.interrupted && !test.result.end_of_stream && test.result.data == NULL);
 
     uint64_t value = 77;
