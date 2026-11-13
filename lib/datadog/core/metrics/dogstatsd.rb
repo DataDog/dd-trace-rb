@@ -16,13 +16,11 @@ module Datadog
       # cadence (once per client or emitter instance), so consuming them
       # never changes how often the gem environment is probed.
       module Dogstatsd
-        module_function
-
         # The version of the dogstatsd-ruby gem visible to this process, or
         # nil when the gem is not installed.
         #
         # @return [Gem::Version, nil]
-        def installed_version
+        def self.installed_version
           (defined?(Datadog::Statsd::VERSION) &&
             Datadog::Statsd::VERSION &&
             Gem::Version.new(Datadog::Statsd::VERSION)) ||
@@ -36,7 +34,7 @@ module Datadog
         #
         # @param version [Gem::Version, nil]
         # @return [Boolean]
-        def supported?(version)
+        def self.supported?(version)
           !version.nil? && version >= Gem::Version.new("3.3.0") &&
             !(version >= Gem::Version.new("5.0") && version < Gem::Version.new("5.3"))
         end
@@ -52,21 +50,21 @@ module Datadog
         #
         # @param version [Gem::Version]
         # @return [Boolean]
-        def single_thread_supported?(version)
+        def self.single_thread_supported?(version)
           version >= Gem::Version.new("5.2")
         end
 
         # Default dogstatsd listener host, read from the environment.
         #
         # @return [String]
-        def default_hostname
+        def self.default_hostname
           DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
         end
 
         # Default dogstatsd listener port, read from the environment.
         #
         # @return [Integer]
-        def default_port
+        def self.default_port
           DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
         end
       end
