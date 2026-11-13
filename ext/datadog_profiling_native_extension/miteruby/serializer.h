@@ -30,13 +30,13 @@ void miteruby_serializer_init(VALUE profiling_module);
 void miteruby_serializer_check_available(VALUE serializer);
 // Requires the GVL and consumer mutex. On success, takes ownership of the queue and empties the metadata arguments.
 // Does not allocate Ruby objects or invoke Ruby callbacks during the transfer.
-miteruby_serializer_exit_reason_t miteruby_serializer_take_batch(
+miteruby_serializer_exit_reason_t serializer_step1_serialize_with_gvl_with_consumer_lock(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   miteruby_mark_frame_array_t *frame_array, miteruby_location_array_t *location_array,
   verstable_mark_threads_set *threads_set
 );
 // Requires the GVL and an owned batch; the consumer mutex must be released.
-miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(VALUE serializer);
+miteruby_serializer_exit_reason_t serializer_step2_serialize_with_gvl_no_consumer_lock(VALUE serializer);
 // Called with the GVL after successful preparation and after releasing the consumer mutex.
-miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE serializer);
+miteruby_serializer_exit_reason_t serializer_step3_serialize_no_gvl_no_consumer_lock(VALUE serializer);
 void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason);

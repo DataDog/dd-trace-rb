@@ -426,8 +426,8 @@ void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
   mutex_lock(&consumer_state.mutex);
   rb_ensure(handoff_batch_locked, (VALUE) &args, handoff_batch_ensure, (VALUE) &args);
 
-  miteruby_serializer_raise_if_failed(miteruby_serializer_prepare_serialize(serializer_instance));
-  miteruby_serializer_raise_if_failed(miteruby_serializer_serialize_no_gvl(serializer_instance));
+  miteruby_serializer_raise_if_failed(serializer_step2_serialize_with_gvl_no_consumer_lock(serializer_instance));
+  miteruby_serializer_raise_if_failed(serializer_step3_serialize_no_gvl_no_consumer_lock(serializer_instance));
   RB_GC_GUARD(serializer_instance);
 }
 
@@ -455,7 +455,7 @@ static VALUE handoff_batch_locked(VALUE args_pointer) {
   if (args->new_locations == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.location_array");
 
   // Transfer GC ownership before any Ruby call can observe the detached references.
-  miteruby_serializer_raise_if_failed(miteruby_serializer_take_batch(
+  miteruby_serializer_raise_if_failed(serializer_step1_serialize_with_gvl_with_consumer_lock(
     args->serializer, consumer_state.interned_events_queue, interned_events_pos,
     &consumer_state.mark_frame_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   ));

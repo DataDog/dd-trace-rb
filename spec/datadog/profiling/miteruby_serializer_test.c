@@ -90,8 +90,8 @@ static miteruby_serializer_exit_reason_t prepare_batch(
   VALUE serializer, uint8_t *queue, size_t size,
   miteruby_mark_frame_array_t *frames, miteruby_location_array_t *locations, verstable_mark_threads_set *threads
 ) {
-  miteruby_serializer_exit_reason_t reason = miteruby_serializer_take_batch(serializer, queue, size, frames, locations, threads);
-  return reason == MITERUBY_SERIALIZER_OK ? miteruby_serializer_prepare_serialize(serializer) : reason;
+  miteruby_serializer_exit_reason_t reason = serializer_step1_serialize_with_gvl_with_consumer_lock(serializer, queue, size, frames, locations, threads);
+  return reason == MITERUBY_SERIALIZER_OK ? serializer_step2_serialize_with_gvl_no_consumer_lock(serializer) : reason;
 }
 
 static void test_sample_values(void) {
@@ -300,7 +300,7 @@ static void test_working_status(void) {
   assert(prepare_batch(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
   assert(state->interned_events_queue == queue);
   assert(state->status == SERIALIZER_NO_GVL);
-  assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_OK);
+  assert(serializer_step3_serialize_no_gvl_no_consumer_lock(serializer) == MITERUBY_SERIALIZER_OK);
   assert(state->interned_events_queue == NULL);
   assert(state->status == SERIALIZER_FINISHED);
   assert(miteruby_allocator_alloc_size(state->compressed_serialization_buffer) == MAX_COMPRESSED_BUFFER_BYTES);
@@ -330,7 +330,7 @@ static void test_missing_thread_context(void) {
   assert(prepare_batch(
     serializer, (uint8_t *)event, sizeof(*event), &frames, &locations, &threads
   ) == MITERUBY_SERIALIZER_OK);
-  assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
+  assert(serializer_step3_serialize_no_gvl_no_consumer_lock(serializer) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
   assert(verstable_serializer_thread_contexts_map_size(&state->thread_contexts) == 0);
   assert(state->thread_contexts.buckets == NULL);
   assert(state->status == SERIALIZER_EMPTY);
@@ -354,7 +354,7 @@ static VALUE prepare_empty_profile_with_gvl(VALUE serializer) {
 
 static VALUE prepare_empty_profile(VALUE serializer) {
   prepare_empty_profile_with_gvl(serializer);
-  assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_OK);
+  assert(serializer_step3_serialize_no_gvl_no_consumer_lock(serializer) == MITERUBY_SERIALIZER_OK);
   return Qnil;
 }
 

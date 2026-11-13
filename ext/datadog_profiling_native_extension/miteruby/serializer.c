@@ -553,7 +553,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t miteruby_serializer_take_batch(
+miteruby_serializer_exit_reason_t serializer_step1_serialize_with_gvl_with_consumer_lock(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   miteruby_mark_frame_array_t *frame_array, miteruby_location_array_t *location_array,
   verstable_mark_threads_set *threads_set
@@ -574,7 +574,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_take_batch(
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(VALUE serializer) {
+miteruby_serializer_exit_reason_t serializer_step2_serialize_with_gvl_no_consumer_lock(VALUE serializer) {
   serialization_args args = {.state = get_state(serializer), .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
   rb_ensure(prepare_serialize_body, (VALUE) &args, prepare_serialize_ensure, (VALUE) &args);
   return args.exit_reason;
@@ -715,7 +715,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE serializer) {
+miteruby_serializer_exit_reason_t serializer_step3_serialize_no_gvl_no_consumer_lock(VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   serialization_args args = {.state = state, .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
 
