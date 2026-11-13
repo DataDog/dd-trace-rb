@@ -28,9 +28,10 @@ module Datadog
         end
 
         # Returns whether the given dogstatsd-ruby version can be used by
-        # the tracer: at least 3.3.0, and outside the 5.0-5.2 range, which
-        # has known issues with process forks and does not support the
-        # single thread mode the tracer uses to avoid them.
+        # the tracer: at least 3.3.0, and not a 5.0.x, 5.1.x or 5.2.x
+        # release. dogstatsd-ruby 5.0.x and 5.1.x have known issues with
+        # process forks and do not support the single thread mode the
+        # tracer uses to avoid them.
         #
         # @param version [Gem::Version, nil]
         # @return [Boolean]
