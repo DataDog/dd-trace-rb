@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [2.49.0] - 2026-11-13
+
+### Added
+
+* Tracing: Add a `web_service_name` option to the Rails integration, customizing the service name of frontend server request queuing spans; it defaults to `'web-server'`. ([#2716][]) ([@Surgo][])
+* Open Feature: Add per-subject experimentation opt-out with `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE=immediate|future_experiments_only` and the `dd_experimentation_opt_out_at` evaluation context attribute. ([#6521][])
+* Open Feature: Add `Datadog::OpenFeature::ExposureHook`, which passes each flag evaluation with its exposure decision and the selected split's features to application code; register it with `config.hooks << hook` in `OpenFeature::SDK.configure`. ([#6610][])
+* Open Feature: Add `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` (default `true`); set it to `false` to stop sending exposures to Datadog while `Datadog::OpenFeature::ExposureHook` keeps receiving them. ([#6610][])
+
+### Changed
+
+* Core: Shorten the path in debug and error log lines from the default logger. ([#6650][])
+* Tracing: Enable partial flushing by default so unfinished traces flush completed spans at the 500-span threshold. Restore complete-trace flushing with `c.tracing.partial_flush.enabled = false` in `Datadog.configure`. ([#6572][])
+* Dynamic Instrumentation: Live Debugger snapshots now capture all or no probes within one APM trace. ([#6118][])
+* Dynamic Instrumentation: Send the probed method name of snapshots as `logger.method_name` instead of `logger.method`, so the Logger Method facet in Log Management shows it; update queries, monitors, and dashboards that filter to use `[@logger][].method_name`. ([#6539][])
+* Dynamic Instrumentation: Send snapshots larger than 1 MB with their largest, most deeply nested captured values marked as pruned; snapshots that still exceed 1 MB after pruning are dropped. ([#6655][])
+* Open Feature: Send an exposure only after a flag evaluation succeeds, so a result rejected by an `after` hook is not reported; exposures now require `openfeature-sdk` 0.5.1 or later and the Datadog provider registered directly. ([#6610][])
+
+### Fixed
+
+* Tracing: Fix a thread stuck at 100% CPU when `Rack::Timeout` or another non-`StandardError` exception interrupts a starting span. ([#6607][])
+* Tracing: Fix the Rails integration replacing `service_name`, `middleware_names`, `distributed_tracing` and `request_queuing` set on the Rack integration when they are not set on the Rails integration. ([#6644][])
+* Tracing: Add support for the `on_error` option to the `trilogy` integration. ([#6424][]) ([@ctotheameron][])
+* Profiling: Fix a rare crash when a profiled method is refined. ([#6680][])
+* AppSec: Fix missing RASP SQL injection checks for `mysql2` adapter on `ActiveRecord` before 7.1 and `postgresql` adapter before 7.0. ([#6630][])
+* AppSec: Fix `WAF::InstanceFinalizedError` from `ActiveRecord` queries that run in `ActionController::Live` threads with RASP enabled. ([#6648][])
+* Open Feature: Prevent evaluation context keys containing NUL from matching ordinary feature flag targeting attributes, including when experimentation opt-out is disabled. ([#6521][])
+
 ## [2.48.0] - 2026-11-03
 
 ### Added
@@ -3890,7 +3918,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.48.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.49.0...master
+[2.49.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.48.0...v2.49.0
 [2.48.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.47.0...v2.48.0
 [2.47.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.46.0...v2.47.0
 [2.46.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.45.0...v2.46.0
@@ -4999,6 +5028,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2705]: https://github.com/DataDog/dd-trace-rb/issues/2705
 [#2710]: https://github.com/DataDog/dd-trace-rb/issues/2710
 [#2711]: https://github.com/DataDog/dd-trace-rb/issues/2711
+[#2716]: https://github.com/DataDog/dd-trace-rb/issues/2716
 [#2720]: https://github.com/DataDog/dd-trace-rb/issues/2720
 [#2726]: https://github.com/DataDog/dd-trace-rb/issues/2726
 [#2727]: https://github.com/DataDog/dd-trace-rb/issues/2727
@@ -5715,6 +5745,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6104]: https://github.com/DataDog/dd-trace-rb/issues/6104
 [#6111]: https://github.com/DataDog/dd-trace-rb/issues/6111
 [#6116]: https://github.com/DataDog/dd-trace-rb/issues/6116
+[#6118]: https://github.com/DataDog/dd-trace-rb/issues/6118
 [#6126]: https://github.com/DataDog/dd-trace-rb/issues/6126
 [#6130]: https://github.com/DataDog/dd-trace-rb/issues/6130
 [#6132]: https://github.com/DataDog/dd-trace-rb/issues/6132
@@ -5755,6 +5786,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6412]: https://github.com/DataDog/dd-trace-rb/issues/6412
 [#6418]: https://github.com/DataDog/dd-trace-rb/issues/6418
 [#6419]: https://github.com/DataDog/dd-trace-rb/issues/6419
+[#6424]: https://github.com/DataDog/dd-trace-rb/issues/6424
 [#6427]: https://github.com/DataDog/dd-trace-rb/issues/6427
 [#6433]: https://github.com/DataDog/dd-trace-rb/issues/6433
 [#6441]: https://github.com/DataDog/dd-trace-rb/issues/6441
@@ -5768,14 +5800,25 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6488]: https://github.com/DataDog/dd-trace-rb/issues/6488
 [#6500]: https://github.com/DataDog/dd-trace-rb/issues/6500
 [#6519]: https://github.com/DataDog/dd-trace-rb/issues/6519
+[#6521]: https://github.com/DataDog/dd-trace-rb/issues/6521
 [#6532]: https://github.com/DataDog/dd-trace-rb/issues/6532
 [#6537]: https://github.com/DataDog/dd-trace-rb/issues/6537
+[#6539]: https://github.com/DataDog/dd-trace-rb/issues/6539
 [#6543]: https://github.com/DataDog/dd-trace-rb/issues/6543
 [#6547]: https://github.com/DataDog/dd-trace-rb/issues/6547
 [#6548]: https://github.com/DataDog/dd-trace-rb/issues/6548
+[#6572]: https://github.com/DataDog/dd-trace-rb/issues/6572
 [#6581]: https://github.com/DataDog/dd-trace-rb/issues/6581
 [#6596]: https://github.com/DataDog/dd-trace-rb/issues/6596
 [#6601]: https://github.com/DataDog/dd-trace-rb/issues/6601
+[#6607]: https://github.com/DataDog/dd-trace-rb/issues/6607
+[#6610]: https://github.com/DataDog/dd-trace-rb/issues/6610
+[#6630]: https://github.com/DataDog/dd-trace-rb/issues/6630
+[#6644]: https://github.com/DataDog/dd-trace-rb/issues/6644
+[#6648]: https://github.com/DataDog/dd-trace-rb/issues/6648
+[#6650]: https://github.com/DataDog/dd-trace-rb/issues/6650
+[#6655]: https://github.com/DataDog/dd-trace-rb/issues/6655
+[#6680]: https://github.com/DataDog/dd-trace-rb/issues/6680
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -5796,6 +5839,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@Redapted]: https://github.com/Redapted
 [@Sticksword]: https://github.com/Sticksword
 [@Supy]: https://github.com/Supy
+[@Surgo]: https://github.com/Surgo
 [@Yurokle]: https://github.com/Yurokle
 [@ZimbiX]: https://github.com/ZimbiX
 [@agirlnamedsophia]: https://github.com/agirlnamedsophia
@@ -5825,6 +5869,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@components]: https://github.com/components
 [@coneill-enhance]: https://github.com/coneill-enhance
 [@cswatt]: https://github.com/cswatt
+[@ctotheameron]: https://github.com/ctotheameron
 [@cwoodcox]: https://github.com/cwoodcox
 [@danhodge]: https://github.com/danhodge
 [@dasch]: https://github.com/dasch
@@ -5877,6 +5922,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@letiesperon]: https://github.com/letiesperon
 [@link04]: https://github.com/link04
 [@lloeki]: https://github.com/lloeki
+[@logger]: https://github.com/logger
 [@mantrala]: https://github.com/mantrala
 [@marcotc]: https://github.com/marcotc
 [@marocchino]: https://github.com/marocchino

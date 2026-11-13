@@ -1,6 +1,0 @@
-{
-  "type": "Added",
-  "product": "Open Feature",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6610",
-  "message": "Add `Datadog::OpenFeature::ExposureHook`, which passes each flag evaluation with its exposure decision and the selected split's features to application code; register it with `config.hooks << hook` in `OpenFeature::SDK.configure`."
-}
