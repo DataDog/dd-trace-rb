@@ -15,6 +15,8 @@ variables:
   # pipelines pulled.
   BASE_CI_IMAGE_SUFFIX: dd-trace-rb-${CI_PIPELINE_ID}
   BASE_CI_IMAGE_CONTAINER_DIR: .gitlab/benchmarks/container
+  # The dd-trace-rb-base image is amd64 only; the template defaults to multi-arch.
+  BASE_CI_IMAGE_PLATFORM: linux/amd64
 
 # -----------------------------------------------------
 # Macrobenchmarks
