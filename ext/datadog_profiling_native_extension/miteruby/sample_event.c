@@ -7,7 +7,7 @@
 
 #include <errno.h>
 
-#define MITERUBY_BYTES_PER_FRAME (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t))
+#define MITERUBY_BYTES_PER_FRAME (sizeof(miteruby_function_t) + sizeof(miteruby_bytecode_pos_t))
 #define MITERUBY_MAX_SIZE_BYTES \
   MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME)
 
@@ -80,7 +80,7 @@ static bool miteruby_sample_event_publish_internal(
 
   miteruby_bytecode_pos_t *bytecode_positions = (miteruby_bytecode_pos_t *)&event->frames[count];
   for (uint16_t i = 0; i < count; i++) {
-    event->frames[i] = (miteruby_frame_t) {
+    event->frames[i] = (miteruby_function_t) {
       .cme = frames[i].cme,
       .iseq = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.iseq : NULL,
     };

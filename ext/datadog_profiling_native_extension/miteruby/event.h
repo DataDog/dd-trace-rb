@@ -34,7 +34,7 @@ typedef struct {
 typedef struct {
   const rb_callable_method_entry_t *cme;
   const rb_iseq_t *iseq;
-} miteruby_frame_t;
+} miteruby_function_t;
 
 typedef struct {
   uint16_t value;
@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
   miteruby_event_header_t header;
   value_thread_t thread;
-  miteruby_frame_t frames[];
+  miteruby_function_t frames[];
 } miteruby_event_stack_sample_t;
 
 #define MITERUBY_ROUND_UP_TO_8_BYTES(size_bytes) (((size_t) (size_bytes) + 7) & ~(size_t) 7)
@@ -53,10 +53,10 @@ _Static_assert(sizeof(cpu_time_t) == 8, "cpu_time_t must be 8 bytes");
 _Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes");
 _Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
 _Static_assert(
-  offsetof(miteruby_frame_t, cme) == 0 &&
-    offsetof(miteruby_frame_t, iseq) == sizeof(VALUE) &&
-    sizeof(miteruby_frame_t) == 2 * sizeof(VALUE),
-  "Bulk marking requires contiguous VALUE-sized frame references without padding"
+  offsetof(miteruby_function_t, cme) == 0 &&
+    offsetof(miteruby_function_t, iseq) == sizeof(VALUE) &&
+    sizeof(miteruby_function_t) == 2 * sizeof(VALUE),
+  "Bulk marking requires contiguous VALUE-sized function references without padding"
 );
 _Static_assert(sizeof(miteruby_bytecode_pos_t) == 2, "miteruby_bytecode_pos_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, frames) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");

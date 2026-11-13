@@ -11,24 +11,24 @@
 #define HEADER_MODE
 #include "hashtable/verstable.h"
 
-// Index of an interned (cme, iseq) pair in the consumer's frame array.
+// Index of an interned (cme, iseq) pair in the consumer's function array.
 typedef struct {
   uint16_t value;
-} miteruby_frame_id_t;
+} miteruby_function_id_t;
 
-// Index of an interned (frame ID, bytecode position) pair in the consumer's location array.
+// Index of an interned (function ID, bytecode position) pair in the consumer's location array.
 typedef struct {
   uint20_t value;
 } miteruby_location_id_t;
 
 typedef struct {
-  miteruby_frame_t *entries;
+  miteruby_function_t *entries;
   size_t count;
   size_t capacity;
-} miteruby_mark_frame_array_t;
+} miteruby_mark_function_array_t;
 
 typedef struct {
-  miteruby_frame_id_t frame_id;
+  miteruby_function_id_t function_id;
   miteruby_bytecode_pos_t bytecode_pos;
 } miteruby_location_t;
 
@@ -38,7 +38,7 @@ typedef struct {
   size_t capacity;
 } miteruby_location_array_t;
 
-_Static_assert(sizeof(miteruby_frame_id_t) == 2, "miteruby_frame_id_t must be 2 bytes");
+_Static_assert(sizeof(miteruby_function_id_t) == 2, "miteruby_function_id_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_location_id_t) == 4, "miteruby_location_id_t must be 4 bytes");
 _Static_assert(sizeof(miteruby_location_t) == 4, "miteruby_location_t must be 4 bytes");
 
