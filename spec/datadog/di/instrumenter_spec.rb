@@ -1651,6 +1651,17 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(metric_emitter).to have_received(:emit).with(probe, 42)
         end
+
+        it "evaluates the value expression without a CPU-time deadline" do
+          expect(metric_value_expression).to receive(:evaluate)
+            .with(an_instance_of(Datadog::DI::Context), evaluation_deadline: Float::INFINITY)
+            .and_call_original
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:emit).with(probe, 42)
+        end
       end
 
       context "with a duration expression" do
@@ -1690,6 +1701,15 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(metric_emitter).to_not have_received(:emit)
           expect(emitted_probes).to be_empty
+        end
+
+        it "evaluates the condition without a CPU-time deadline" do
+          expect(condition_expression).to receive(:satisfied?)
+            .with(an_instance_of(Datadog::DI::Context), evaluation_deadline: Float::INFINITY)
+            .and_call_original
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
         end
       end
 
