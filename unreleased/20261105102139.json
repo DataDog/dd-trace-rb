@@ -1,7 +1,0 @@
-{
-  "type": "Added",
-  "product": "Tracing",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/2716",
-  "message": "Add a `web_service_name` option to the Rails integration, customizing the service name of frontend server request queuing spans; it defaults to `'web-server'`.",
-  "author": "@Surgo"
-}

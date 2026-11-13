@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "Open Feature",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6610",
-  "message": "Send an exposure only after a flag evaluation succeeds, so a result rejected by an `after` hook is not reported; exposures now require `openfeature-sdk` 0.5.1 or later and the Datadog provider registered directly."
-}
