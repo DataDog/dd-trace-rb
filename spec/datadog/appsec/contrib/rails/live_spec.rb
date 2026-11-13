@@ -155,18 +155,19 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         get_live
         live_signals[:resumed].push(true)
         live_signals[:result].pop
-        wait_for_controller_thread
       end
     end
 
     it "runs the query without error" do
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.last).to eq(1)
+      wait_for_controller_thread
     end
 
     it "keeps AppSec context in the live thread" do
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.first).to be_a(Datadog::AppSec::Context)
+      wait_for_controller_thread
     end
 
     context "when request thread returns before live thread ends" do
@@ -177,6 +178,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         end
 
         after_action_result
+        wait_for_controller_thread
       end
 
       let(:finalized_threads) { [] }
@@ -388,9 +390,6 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         get_live
       end
 
-      # One wait per live request: each get_live above spawns a controller
-      # thread, and every one of them must finish detaching before the
-      # example ends.
       2.times { wait_for_controller_thread }
     end
 
