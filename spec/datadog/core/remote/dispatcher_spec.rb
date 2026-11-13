@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
 
         expect(receiver).to receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
 
         expect(receiver).to_not receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
@@ -160,13 +160,13 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
     let(:skipped_receiver) do
       described_class::Receiver.new(
         described_class::Matcher.new { |_path| false },
-        initial_reconcile: true
+        initial_reconcile: true,
       ) { |_repository, changes| invocations << [:skipped, changes] }
     end
 
     let(:non_participating_receiver) do
       described_class::Receiver.new(
-        described_class::Matcher.new { |_path| false }
+        described_class::Matcher.new { |_path| false },
       ) { |_repository, changes| invocations << [:non_participating, changes] }
     end
 

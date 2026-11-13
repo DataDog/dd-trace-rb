@@ -25,7 +25,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::RedactionChangeSet do
         RubyLLM::Message.new(
           role: :assistant,
           content: "Running the command",
-          tool_calls: {"call_1" => tool_call}
+          tool_calls: {"call_1" => tool_call},
         )
       end
       let(:tool_call) do

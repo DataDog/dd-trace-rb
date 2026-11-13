@@ -48,7 +48,7 @@ module Datadog
           #
           # This wrapper prevents this by initializing the fork PID when the object is created.
           if RubyVersion.is?(">= 3")
-            def initialize(*args, **kwargs, &block)
+            def initialize(*args, **kwargs, &block) # steep:ignore DifferentMethodParameterKind
               super
               update_fork_pid!
             end

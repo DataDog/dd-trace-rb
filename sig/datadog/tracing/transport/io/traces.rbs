@@ -8,13 +8,21 @@ module Datadog
 
             include Transport::Traces::Response
 
-            def initialize: (untyped result, ?::Integer trace_count) -> void
+            def initialize: (untyped result, ?Integer trace_count) -> void
           end
           module Client
-            def send_traces: (untyped traces) ?{ (untyped, untyped) -> untyped } -> ::Array[untyped]
+            include Encoder
+            interface _IOClientHost
+              def send_request: (untyped request) ?{ (untyped out, untyped request) -> untyped } -> untyped
+
+              def write_data: (untyped out, untyped data) -> untyped
+            end
+            include _IOClientHost
+
+            def send_traces: (untyped traces) ?{ (untyped, untyped) -> untyped } -> Array[untyped]
           end
           module Encoder
-            ENCODED_IDS: ::Array[:trace_id | :span_id | :parent_id]
+            ENCODED_IDS: Array[:trace_id | :span_id | :parent_id]
             def encode_traces: (untyped traces) -> untyped
 
             private

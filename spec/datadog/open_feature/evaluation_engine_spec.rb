@@ -17,8 +17,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     allow(evaluator).to receive(:observe_full_evaluation_data).and_return(false)
   end
 
-  let(:engine) { described_class.new(reporter, telemetry: telemetry, logger: logger) }
-  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
+  let(:engine) { described_class.new(telemetry: telemetry, logger: logger) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true, warn: nil) }
   let(:evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
@@ -56,10 +55,22 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   describe "#fetch_value" do
     let(:result) { engine.fetch_value("test", default_value: "fallback", expected_type: :string) }
 
-    context "when binding evaluator is not ready" do
-      it "returns evaluation error and reports exposure" do
-        expect(reporter).to receive(:report).with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil)
+    it "passes the provider mode to the native evaluator for this evaluation" do
+      engine.reconfigure!(configuration)
+      details = Datadog::OpenFeature::ResolutionDetails.build_error(
+        value: "fallback", error_code: "INVALID_CONTEXT", error_message: "Invalid timestamp",
+      )
+      expect(evaluator).to receive(:get_assignment).with(
+        "test", default_value: "fallback", context: {}, expected_type: :string,
+        experimentation_opt_out_mode: :future_experiments_only,
+      ).and_return(details)
+      engine.fetch_value(
+        "test", default_value: "fallback", expected_type: :string, experimentation_opt_out_mode: :future_experiments_only,
+      )
+    end
 
+    context "when binding evaluator is not ready" do
+      it "returns evaluation error" do
         expect(result.value).to eq("fallback")
         expect(result.error_code).to eq("PROVIDER_NOT_READY")
         expect(result.error_message).to eq("Waiting for flags configuration")
@@ -83,13 +94,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           flag_metadata: {},
           extra_logging: {},
           error?: true,
-          log?: false
+          log?: false,
         )
       end
 
-      it "returns evaluation error and reports exposure" do
-        expect(reporter).to receive(:report).with(error, flag_key: "test", context: nil)
-
+      it "returns evaluation error" do
         expect(result.value).to eq("something")
         expect(result.error_code).to eq("PROVIDER_FATAL")
         expect(result.error_message).to eq("Ooops")
@@ -108,15 +117,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         Datadog::OpenFeature::ResolutionDetails.build_error(
           value: "fallback",
           error_code: Datadog::OpenFeature::Ext::PARSE_ERROR,
-          error_message: "invalid configuration"
+          error_message: "invalid configuration",
         )
       end
 
       it "preserves the error and stamps the evaluation metadata" do
-        expect(reporter).to receive(:report).with(
-          kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil
-        )
-
         expect(result.error_code).to eq("PARSE_ERROR")
         expect(result.error_message).to eq("invalid configuration")
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
@@ -133,9 +138,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       let(:error) { RuntimeError.new("Crash") }
 
-      it "returns evaluation error and does not report exposure" do
-        expect(reporter).not_to receive(:report)
-
+      it "returns evaluation error" do
         expect(result.value).to eq("fallback")
         expect(result.error_code).to eq("GENERAL")
         expect(result.error_message).to eq("RuntimeError: Crash")
@@ -154,7 +157,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           [
             described_class::RAW_DATA_WARNING,
             'Feature Flags: provider failed to resolve "test": RuntimeError: Crash; returning the default value',
-          ]
+          ],
         )
       end
     end
@@ -177,7 +180,6 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it "uses the policy snapshot from the evaluator that performed the evaluation" do
         expect(evaluator).to receive(:observe_full_evaluation_data).once.and_return(false)
         expect(replacement_evaluator).not_to receive(:observe_full_evaluation_data)
-        expect(reporter).not_to receive(:report)
 
         expect(result.error_code).to eq("GENERAL")
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
@@ -215,9 +217,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       let(:result) { engine.fetch_value("test", default_value: "x", expected_type: :whatever) }
 
-      it "returns evaluation error and does not report exposure" do
-        expect(reporter).not_to receive(:report)
-
+      it "returns evaluation error" do
         expect(result.value).to eq("x")
         expect(result.error_code).to eq("UNKNOWN_TYPE")
         expect(result.error_message).to start_with("unknown type :whatever, allowed types")
@@ -244,25 +244,21 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           flag_metadata: {},
           extra_logging: {},
           error?: true,
-          log?: false
+          log?: false,
         )
       end
       let(:result) do
         engine.fetch_value(
-          "test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context
+          "test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context,
         )
       end
 
-      it "returns resolved value and reports exposure" do
-        expect(reporter).to receive(:report)
-          .with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: evaluation_context)
-
+      it "returns resolved value" do
         expect(result.value).to eq("hello")
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
 
       it "logs the raw provider resolution while debug logging is enabled" do
-        allow(reporter).to receive(:report)
         messages = []
         allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
 
@@ -270,12 +266,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(messages).to include(
           'Feature Flags: provider resolved "test": type=string, value="hello", variant="blue", ' \
-            'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil'
+            'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil',
         )
       end
 
       it "warns once about raw evaluation data before the first raw provider resolution" do
-        allow(reporter).to receive(:report)
         messages = []
         allow(logger).to receive(:warn) { |message| messages << message }
         allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
@@ -293,12 +288,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
               "personal or sensitive information. Unset DD_TRACE_DEBUG when you no longer need it.",
             resolution_message,
             resolution_message,
-          ]
+          ],
         )
       end
 
       it "does not warn about raw evaluation data while debug logging is disabled" do
-        allow(reporter).to receive(:report)
         allow(logger).to receive(:debug?).and_return(false)
 
         result
@@ -308,7 +302,6 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       it "stamps an enabled policy from the evaluator" do
         allow(evaluator).to receive(:observe_full_evaluation_data).and_return(true)
-        expect(reporter).to receive(:report)
 
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => true)
       end
@@ -333,7 +326,6 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
         allow(logger).to receive(:error)
         allow(telemetry).to receive(:report)
-        allow(reporter).to receive(:report)
         engine.reconfigure!(configuration)
       end
 
@@ -357,14 +349,13 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     [true, false].each do |include_valid|
       it "accepts invalid flags alongside #{include_valid ? "valid flags" : "no valid flags"} and reports per-flag errors" do
         allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
-        allow(reporter).to receive(:report)
         payload = JSON.parse(configuration)
         payload["flags"].clear unless include_valid
         payload["flags"]["invalid"] = {}
         engine.reconfigure!(JSON.generate(payload))
         expect(debug_messages).to eq(
           ["Feature Flags: configuration applied; received payload: flag_count=#{include_valid ? 2 : 1}, " \
-            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation']
+            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation'],
         )
         result = engine.fetch_value("invalid", default_value: "fallback", expected_type: :string)
         expect(result.value).to eq("fallback")
@@ -400,7 +391,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(messages).to eq(
           ["Feature Flags: configuration applied; received payload: flag_count=1, " \
-            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation']
+            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation'],
         )
       end
 
@@ -412,13 +403,12 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(messages).to eq(
           ["Feature Flags: configuration applied; received payload: flag_count is not specified, " \
-            "environment is not specified, created_at is not specified; individual flags may still fail evaluation"]
+            "environment is not specified, created_at is not specified; individual flags may still fail evaluation"],
         )
       end
 
       it "installs the evaluator before logging successful application" do
         allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
-        allow(reporter).to receive(:report)
         value_when_logged = nil
         allow(logger).to receive(:debug) do |message, &block|
           message = block.call if block
@@ -434,7 +424,6 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       it "keeps an accepted configuration that exceeds the diagnostic parser's nesting limit" do
         allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
-        allow(reporter).to receive(:report)
         payload = JSON.parse(configuration)
         nested_metadata = {}
         101.times { nested_metadata = {"nested" => nested_metadata} }
@@ -447,7 +436,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect { engine.reconfigure!(deeply_nested_configuration) }.not_to raise_error
 
         expect(messages).to eq(
-          ["Feature Flags: configuration applied; received payload metadata unavailable: JSON nesting exceeds the diagnostic parser limit"]
+          ["Feature Flags: configuration applied; received payload metadata unavailable: JSON nesting exceeds the diagnostic parser limit"],
         )
         expect(engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string).value).to eq("hello")
       end

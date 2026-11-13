@@ -21,8 +21,9 @@ module Datadog
           module InstanceMethods
             def query(sql)
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+              on_error = Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
 
-              Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|
+              Tracing.trace(Ext::SPAN_QUERY, service: service, on_error: on_error) do |span, trace_op|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = sql
                 span.type = Tracing::Metadata::Ext::SQL::TYPE
@@ -30,7 +31,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 
@@ -55,7 +56,7 @@ module Datadog
                 propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
                   comment_propagation,
                   datadog_configuration[:append_comment],
-                  datadog_configuration[:inject_sql_basehash]
+                  datadog_configuration[:inject_sql_basehash],
                 )
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
@@ -63,7 +64,7 @@ module Datadog
                   sql,
                   span,
                   trace_op,
-                  propagation_mode
+                  propagation_mode,
                 )
 
                 super(sql)

@@ -12,7 +12,7 @@ module Datadog
 
             include Datadog::Tracing::Transport::Traces::Response
 
-            def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+            def initialize: (untyped http_response, ?Hash[untyped, untyped] options) -> void
           end
           class Client < Core::Transport::HTTP::Client
           end
@@ -27,7 +27,7 @@ module Datadog
 
               SERVICE_RATE_KEY: "rate_by_service"
 
-              def initialize: (untyped path, untyped encoder, ?::Hash[untyped, untyped] options) -> void
+              def initialize: (untyped path, untyped encoder, ?Hash[untyped, untyped] options) -> void
 
               def service_rates?: () -> untyped
 

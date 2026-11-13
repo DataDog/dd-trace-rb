@@ -44,7 +44,7 @@ module Datadog
           endpoint_collection_enabled: false,
           otel_context_enabled: false,
           native_filenames_enabled: true,
-          show_classes: false,
+          show_classes: true,
           trigger_global_reset: true,
           **options
         )

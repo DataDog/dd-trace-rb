@@ -5,11 +5,13 @@ module Datadog
         class Settings
           include Core::Configuration::Base
 
-          def configure: (?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+          def configure: (?Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
 
           def []: (untyped name) -> untyped
 
           def []=: (untyped name, untyped value) -> untyped
+
+          def copy_configured_options: (Settings source_settings, Array[Symbol] option_names) -> void
         end
       end
     end

@@ -34,7 +34,7 @@ RSpec.describe "Rails trace analytics" do
           def index
             # Do nothing
           end
-        end
+        end,
       )
     end
     let(:name) { :index }

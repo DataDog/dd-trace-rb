@@ -30,6 +30,12 @@ class FfeFixtures
     new(repository_root, sha).download
   end
 
+  def self.applicable?(test_case, platform:)
+    return false if test_case.fetch("_skip", []).any? { |entry| entry.fetch("platform") == platform }
+
+    !test_case.key?("_include") || test_case.fetch("_include").any? { |entry| entry.fetch("platform") == platform }
+  end
+
   def initialize(repository_root, sha)
     @repository_root = repository_root
     @sha = sha
@@ -89,7 +95,7 @@ class FfeFixtures
     uri = URI(url)
     Net::HTTP.start(
       uri.host, uri.port, use_ssl: uri.scheme == "https",
-      open_timeout: HTTP_TIMEOUT_SECONDS, read_timeout: HTTP_TIMEOUT_SECONDS
+      open_timeout: HTTP_TIMEOUT_SECONDS, read_timeout: HTTP_TIMEOUT_SECONDS,
     ) do |http|
       request = Net::HTTP::Get.new(uri)
       request["User-Agent"] = "dd-trace-rb-ffe-fixtures"

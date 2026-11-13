@@ -1,7 +1,15 @@
 module Datadog
   module Core
     class Worker
-      def initialize: () ?{ () -> void } -> void
+      @task: Proc?
+
+      attr_reader task: Proc?
+
+      def initialize: () ?{ () -> untyped } -> void
+
+      def perform: (*untyped args) -> untyped
+
+      attr_writer task: Proc?
     end
   end
 end

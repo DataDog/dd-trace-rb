@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
           value: value,
           origin: origin,
           seq_id: 6,
-        }]
+        }],
       )
     end
 
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
             value: "X-Test-Header:test_header_rc,Content-Length:",
             origin: origin,
             seq_id: 6,
-          }
+          },
         )
       end
     end
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
             value: "service:web-*,env:prod",
             origin: origin,
             seq_id: 6,
-          }
+          },
         )
       end
     end
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
             value: 0.2,
             origin: origin,
             seq_id: 6,
-          }
+          },
         )
       end
     end
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
           [
             {name: name, value: value, origin: origin, seq_id: 6},
             {name: "appsec.sca_enabled", value: false, origin: "code", seq_id: 5},
-          ]
+          ],
         )
       end
     end

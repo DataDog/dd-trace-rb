@@ -5,7 +5,7 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION: ::Gem::Version
+          MINIMUM_VERSION: Gem::Version
 
           def self.register_as: (untyped name, ?registry: untyped, ?auto_patch: bool, **untyped options) -> untyped
 

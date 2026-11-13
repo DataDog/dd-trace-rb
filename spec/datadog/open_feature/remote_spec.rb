@@ -45,7 +45,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
           "custom" => {"v" => 1},
           "hashes" => {"sha256" => Digest::SHA256.hexdigest(content_data)},
           "length" => content_data.length,
-        }
+        },
       )
     end
     let(:content) do
@@ -53,7 +53,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         {
           path: "datadog/1/FFE_FLAGS/latest/config",
           content: content_data,
-        }
+        },
       )
     end
     let(:content_data) do
@@ -105,7 +105,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         receiver.call(repository, transaction)
 
         expect(messages).to eq(
-          ["Feature Flags: received Remote Configuration insert for datadog/1/FFE_FLAGS/latest/config (version 1)"]
+          ["Feature Flags: received Remote Configuration insert for datadog/1/FFE_FLAGS/latest/config (version 1)"],
         )
       end
     end
@@ -140,7 +140,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
       let(:new_content) do
         Datadog::Core::Remote::Configuration::Content.parse(
-          {path: content.path.to_s, content: new_content_data}
+          {path: content.path.to_s, content: new_content_data},
         )
       end
       let(:new_content_data) do
@@ -223,7 +223,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         receiver.call(repository, changes)
 
         expect(messages.last).to eq(
-          "Feature Flags: ignored Remote Configuration update for datadog/1/FFE_FLAGS/other/config: content is missing"
+          "Feature Flags: ignored Remote Configuration update for datadog/1/FFE_FLAGS/other/config: content is missing",
         )
       end
     end

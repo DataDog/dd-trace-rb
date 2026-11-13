@@ -177,7 +177,7 @@ module Datadog
             "ruby.runtime.platform:#{RUBY_PLATFORM}",
             "ruby.runtime.version:#{RUBY_VERSION}",
             "ruby.runtime.engine.name:#{RUBY_ENGINE}",
-            "ruby.runtime.engine.version:#{ruby_engine_version}",
+            "ruby.runtime.engine.version:#{RUBY_ENGINE_VERSION}",
             "ruby.rubygems.platform.local:#{Gem::Platform.local}",
             "ruby.gem.libddwaf.version:#{gem_spec("libddwaf").version}",
             "ruby.gem.libddwaf.platform:#{gem_spec("libddwaf").platform}",
@@ -238,10 +238,6 @@ module Datadog
 
         def tracer_version
           @tracer_version ||= Core::Environment::Identity.gem_datadog_version_semver2
-        end
-
-        def ruby_engine_version
-          @ruby_engine_version ||= defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
         end
 
         def gem_spec(name)

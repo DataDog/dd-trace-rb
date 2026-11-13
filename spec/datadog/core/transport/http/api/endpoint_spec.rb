@@ -13,7 +13,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Endpoint do
     it do
       is_expected.to have_attributes(
         verb: verb,
-        path: path
+        path: path,
       )
     end
   end

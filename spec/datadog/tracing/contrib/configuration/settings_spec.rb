@@ -47,4 +47,74 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Settings do
       end
     end
   end
+
+  describe "#copy_configured_options" do
+    subject(:copy_configured_options) { target_settings.copy_configured_options(source_settings, [:example_option]) }
+
+    let(:source_settings) do
+      Class.new(described_class) do
+        option :example_option do |o|
+          o.type :string
+          o.env "TEST_ENV_VAR"
+          o.default "default value"
+        end
+      end.new
+    end
+
+    let(:target_settings) do
+      Class.new(described_class) do
+        option :example_option do |o|
+          o.type :string
+          o.default "default value"
+        end
+      end.new
+    end
+
+    context "when the source option is at its default" do
+      before { target_settings.example_option = "target value" }
+
+      it "leaves the target option unchanged" do
+        expect { copy_configured_options }.to_not(change { target_settings.example_option })
+      end
+    end
+
+    context "when the source option is set in code" do
+      before { source_settings.example_option = "source value" }
+
+      context "and the target option is at its default" do
+        it "copies the value" do
+          expect { copy_configured_options }
+            .to change { target_settings.example_option }.from("default value").to("source value")
+        end
+      end
+
+      context "and the target option is set in code" do
+        before { target_settings.example_option = "target value" }
+
+        it "replaces the target value" do
+          expect { copy_configured_options }
+            .to change { target_settings.example_option }.from("target value").to("source value")
+        end
+      end
+    end
+
+    context "when the source option is set by environment variable" do
+      with_env "TEST_ENV_VAR" => "source value"
+
+      context "and the target option is at its default" do
+        it "copies the value" do
+          expect { copy_configured_options }
+            .to change { target_settings.example_option }.from("default value").to("source value")
+        end
+      end
+
+      context "and the target option is set in code" do
+        before { target_settings.example_option = "target value" }
+
+        it "leaves the target value set in code" do
+          expect { copy_configured_options }.to_not(change { target_settings.example_option })
+        end
+      end
+    end
+  end
 end

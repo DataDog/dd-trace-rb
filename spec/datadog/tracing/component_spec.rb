@@ -49,7 +49,9 @@ RSpec.describe Datadog::Tracing::Component do
       shared_examples_for "new tracer" do
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-        let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
+        let(:trace_flush) do
+          be_a(Datadog::Tracing::Flush::Partial) & have_attributes(min_spans_for_partial: 500)
+        end
         let(:sampler) do
           if defined?(super)
             super()
@@ -116,7 +118,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -138,7 +140,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -220,6 +222,15 @@ RSpec.describe Datadog::Tracing::Component do
         end
       end
 
+      context "with :partial_flush disabled" do
+        before { settings.tracing.partial_flush.enabled = false }
+
+        it_behaves_like "new tracer" do
+          let(:options) { {trace_flush: be_a(Datadog::Tracing::Flush::Finished)} }
+          it_behaves_like "event publishing writer and priority sampler"
+        end
+      end
+
       context "with :sampler" do
         before do
           allow(settings.tracing)
@@ -267,9 +278,9 @@ RSpec.describe Datadog::Tracing::Component do
                 span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
                   rules: [
                     Datadog::Tracing::Sampling::Span::Rule.new(
-                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo")
+                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo"),
                     ),
-                  ]
+                  ],
                 ),
               }
             end

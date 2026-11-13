@@ -10,9 +10,7 @@ module Datadog
       module ActiveRecord
         # AppSec module that will be prepended to ActiveRecord adapter
         module Instrumentation
-          module_function
-
-          def detect_sql_injection(sql, adapter_name)
+          def self.detect_sql_injection(sql, adapter_name)
             return unless AppSec.rasp_enabled?
 
             context = AppSec.active_context
@@ -36,10 +34,20 @@ module Datadog
               TraceKeeper.keep!(context.trace) if result.keep?
 
               context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
               )
 
               AppSec::ActionsHandler.handle(result.actions)
+            end
+          end
+
+          module PreprocessQueryAdapterPatch
+            private
+
+            def preprocess_query(sql)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
+
+              super
             end
           end
 

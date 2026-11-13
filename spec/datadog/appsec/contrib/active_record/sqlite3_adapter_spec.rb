@@ -43,9 +43,8 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
         t.timestamps
       end
 
-      # prevent internal sql requests from showing up
-      klass.count
-      klass.first
+      # trigger schema queries before the AppSec context is activated.
+      klass.columns_hash
     end
   end
 
@@ -102,8 +101,8 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
             "server.db.statement" => 'SELECT "users".* FROM "users" WHERE "users"."name" = ?',
             "server.db.system" => "sqlite",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.where(name: "Bob").to_a
@@ -118,8 +117,8 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "sqlite",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
@@ -135,7 +134,7 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -146,6 +145,33 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
       it "adds an event to context events" do
         expect { User.where(name: "Bob").to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
       end
+    end
+
+    context "when query runs in a thread that copied the context before it was deactivated" do
+      before do
+        query_thread
+        User.where(name: "Alice").to_a
+        Datadog::AppSec::Context.deactivate
+        deactivated.push(true)
+      end
+
+      after { FileUtils.rm_rf(db_dir) }
+
+      let(:db_config) { {adapter: "sqlite3", database: File.join(db_dir, "test.db")} }
+      let(:db_dir) { Dir.mktmpdir }
+      let(:deactivated) { Queue.new }
+      let(:query_thread) do
+        locals = Thread.current.keys.map { |key| [key, Thread.current[key]] }
+
+        Thread.new do
+          locals.each { |key, value| Thread.current[key] = value }
+          deactivated.pop
+
+          User.where(name: "Bob").to_a
+        end.tap { |thread| thread.report_on_exception = false }
+      end
+
+      it { expect { query_thread.join }.not_to raise_error }
     end
   end
 end

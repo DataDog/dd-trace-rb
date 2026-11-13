@@ -14,14 +14,14 @@ module DIHelpers
           value_json = value.to_json
 
           target = Datadog::Core::Remote::Configuration::Target.parse(
-            target_payload_for_value(value_json)
+            target_payload_for_value(value_json),
           )
 
           content = Datadog::Core::Remote::Configuration::Content.parse(
             {
               path: key,
               content: value_json,
-            }
+            },
           )
 
           transaction.insert(content.path, target, content)
@@ -147,8 +147,14 @@ module DIHelpers
 
       let(:di_settings) do
         double("di settings").tap do |settings|
-          allow(settings).to receive(:internal).and_return(di_internal_settings)
-          allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
+          # Default to a large evaluation budget so existing DI specs preserve
+          # their pre-timeout behavior; specs exercising the cooperative bound
+          # override this with a real value.
+          allow(settings).to receive_messages(
+            internal: di_internal_settings,
+            redaction_excluded_identifiers: [],
+            max_time_to_evaluate_ms: 1_000_000,
+          )
         end
       end
 
@@ -225,10 +231,12 @@ module DIHelpers
     end
 
     # Stubs the dynamic instrumentation settings accessors read by the
-    # serialization paths, with per-spec overrides for the values that differ.
+    # serialization and evaluation paths, with per-spec overrides for the
+    # values that differ.
     def stub_di_settings(settings, enabled: true, max_capture_depth: 2,
       max_capture_attribute_count: 2, max_capture_string_length: 100,
       max_capture_collection_size: 100, max_time_to_serialize_ms: 200,
+      max_time_to_evaluate_ms: 1_000_000,
       redacted_type_names: [], redacted_identifiers: [], redaction_excluded_identifiers: [])
       allow(settings).to receive_messages(
         enabled: enabled,
@@ -237,6 +245,7 @@ module DIHelpers
         max_capture_string_length: max_capture_string_length,
         max_capture_collection_size: max_capture_collection_size,
         max_time_to_serialize_ms: max_time_to_serialize_ms,
+        max_time_to_evaluate_ms: max_time_to_evaluate_ms,
         redacted_type_names: redacted_type_names,
         redacted_identifiers: redacted_identifiers,
         redaction_excluded_identifiers: redaction_excluded_identifiers,
@@ -250,8 +259,35 @@ module DIHelpers
     def instance_double_agent_settings_with_stubs
       instance_double(
         Datadog::Core::Configuration::AgentSettings,
-        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false
+        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false,
       )
+    end
+
+    # Stub the active APM trace that the correlation gate and the snapshot
+    # builder read through the Datadog::DI seam, plus the active span the
+    # builder reports.
+    def stub_active_trace(trace_id, span_id: nil)
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace)
+      if span_id
+        span = instance_double(Datadog::Tracing::SpanOperation, id: span_id)
+        allow(Datadog::DI).to receive(:active_span).and_return(span)
+      end
+    end
+
+    # Stub the absence of an active APM trace.
+    def stub_no_trace
+      allow(Datadog::DI).to receive(:active_trace).and_return(nil)
+      allow(Datadog::DI).to receive(:active_span).and_return(nil)
+    end
+
+    # Freeze the time provider the rate limiters refill from, so their
+    # buckets hold a fixed balance for the rest of the example: the current
+    # time is captured before the stub takes effect, so every refill adds
+    # zero tokens.
+    def freeze_rate_limiter_clock
+      frozen_time = Datadog::Core::Utils::Time.get_time
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
     end
   end
 end

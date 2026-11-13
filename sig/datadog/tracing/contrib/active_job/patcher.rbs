@@ -5,13 +5,13 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          def self?.target_version: () -> untyped
+          def self.target_version: () -> untyped
 
-          def self?.patch: () -> untyped
+          def self.patch: () -> untyped
 
-          def self?.inject_log_correlation: () -> untyped
+          def self.inject_log_correlation: () -> untyped
 
-          def self?.inject_data_streams: () -> void
+          def self.inject_data_streams: () -> void
         end
       end
     end

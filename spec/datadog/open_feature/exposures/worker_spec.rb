@@ -24,7 +24,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       telemetry: telemetry,
       logger: logger,
       flush_interval_seconds: 0.1,
-      buffer_limit: 2
+      buffer_limit: 2,
     )
   end
 
@@ -301,7 +301,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
         expect(Array.new(messages.size) { messages.pop }).to include(
           "Feature Flags: flushing 1 exposure event(s) to Datadog",
           "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=false, wait_budget=0.2s; no queued exposure events remain",
-          "Feature Flags: exposure worker stopped"
+          "Feature Flags: exposure worker stopped",
         )
       end
 

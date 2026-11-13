@@ -54,6 +54,180 @@ RSpec.describe Datadog::Core::FeatureFlags do
   end
 
   describe "Configuration" do
+    describe "attribute keys containing NUL" do
+      let(:configuration) do
+        config = JSON.parse(flags_json)
+        allocation = config.fetch("flags").fetch("test-flag").fetch("allocations").first
+        allocation["doLog"] = false
+        allocation["rules"] = [{"conditions" => [
+          {"attribute" => "email", "operator" => "ONE_OF", "value" => ["user@example.com"]},
+        ]}]
+        described_class::Configuration.new(JSON.generate(config))
+      end
+
+      it "does not alias an ordinary attribute with a NUL-suffixed key" do
+        result = configuration.get_assignment(
+          "test-flag", :object, {"targeting_key" => "subject", "email\0suffix" => "user@example.com"},
+        )
+
+        expect(result.variant).to be_nil
+      end
+
+      it "still matches the ordinary attribute" do
+        result = configuration.get_assignment(
+          "test-flag", :object, {"targeting_key" => "subject", "email" => "user@example.com"},
+        )
+
+        expect(result.variant).to eq("treatment")
+        expect(result.log?).to be(false)
+      end
+    end
+
+    describe "#get_assignment_with_options" do
+      let(:configuration) { described_class::Configuration.new(JSON.generate(config)) }
+      let(:config) { JSON.parse(flags_json) }
+      let(:context) { {"targeting_key" => "subject", "email" => "user@example.com"} }
+
+      before do
+        unless described_class::Configuration.method_defined?(:get_assignment_with_options)
+          skip "Requires a libdatadog build with evaluation options"
+        end
+        flag = config.fetch("flags").fetch("test-flag")
+        flag["variations"]["ordinary"] = {"key" => "ordinary", "value" => {"feature" => "ordinary"}}
+        flag["allocations"] << {
+          "key" => "ordinary", "doLog" => false,
+          "splits" => [{"variationKey" => "ordinary", "shards" => []}],
+        }
+      end
+
+      [
+        [{}, true, "treatment", true, nil],
+        [{"dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"}, true, "ordinary", false, nil],
+        [{"dd_experimentation_opt_out_at" => "2099-01-01T01:02:03.123456789+05:30"}, true, "ordinary", false, nil],
+        [{"dd_experimentation_opt_out_at" => ""}, true, nil, false, "INVALID_CONTEXT"],
+        [{"dd_experimentation_opt_out_at" => "not-a-timestamp"}, true, nil, false, "INVALID_CONTEXT"],
+        [{"dd_experimentation_opt_out_at" => true}, true, nil, false, "INVALID_CONTEXT"],
+        [{"dd_experimentation_opt_out_at" => "not-a-timestamp"}, false, "treatment", true, nil],
+      ].each do |attributes, immediate, variant, log_exposure, error_code|
+        it "evaluates #{attributes.inspect} with immediate=#{immediate}" do
+          result = configuration.get_assignment_with_options("test-flag", :object, context.merge(attributes), immediate)
+          expect(result.variant).to eq(variant)
+          expect(result.log?).to eq(log_exposure)
+          expect(result.error_code).to eq(error_code)
+        end
+      end
+
+      it "treats omitted doLog as an experiment allocation" do
+        config["flags"]["test-flag"]["allocations"].first.delete("doLog")
+        result = configuration.get_assignment_with_options(
+          "test-flag", :object, context.merge("dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"), true,
+        )
+        expect(result.variant).to eq("ordinary")
+        expect(result.log?).to be(false)
+      end
+
+      it "returns the default state when no ordinary allocation matches" do
+        config["flags"]["test-flag"]["allocations"].pop
+        result = configuration.get_assignment_with_options(
+          "test-flag", :object, context.merge("dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"), true,
+        )
+        expect(result.variant).to be_nil
+        expect(result.reason).to eq("DEFAULT")
+        expect(result.log?).to be(false)
+      end
+    end
+
+    describe "#get_assignment_with_opt_out_mode" do
+      let(:configuration) { described_class::Configuration.new(JSON.generate(config)) }
+      let(:config) { JSON.parse(flags_json) }
+      let(:context) do
+        {"targeting_key" => "subject", "email" => "user@example.com",
+         "dd_experimentation_opt_out_at" => "2026-10-19T12:00:00Z"}
+      end
+
+      before do
+        unless described_class::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+          skip "Requires a libdatadog build with opt-out modes"
+        end
+        flag = config.fetch("flags").fetch("test-flag")
+        flag["variations"]["ordinary"] = {"key" => "ordinary", "value" => {"feature" => "ordinary"}}
+        flag["allocations"] << {
+          "key" => "ordinary", "doLog" => false,
+          "splits" => [{"variationKey" => "ordinary", "shards" => []}],
+        }
+      end
+
+      [
+        ["2026-10-19T11:59:59.999999999Z", true],
+        ["2026-10-19T12:00:00Z", false],
+        ["2026-10-19T12:00:00.000000001Z", false],
+        ["2026-10-19T17:30:00+05:30", false],
+        [nil, false],
+      ].product([:disabled, :immediate, :future_experiments_only]).each do |(activation, older), mode|
+        it "evaluates activation #{activation.inspect} in #{mode}" do
+          config["flags"]["test-flag"]["allocations"].first["randomizationActivatedAt"] = activation
+          result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, mode)
+          experiment = mode == :disabled || (mode == :future_experiments_only && older)
+
+          expect(result.variant).to eq(experiment ? "treatment" : "ordinary")
+          expect(result.allocation_key).to eq(experiment ? "test-allocation" : "ordinary")
+          expect(result.log?).to eq(experiment)
+          expect(result.error_code).to be_nil
+        end
+      end
+
+      it "excludes unknown activation but evaluates an absent subject attribute normally" do
+        result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+        expect(result.variant).to eq("ordinary")
+        expect(result.log?).to be(false)
+
+        context.delete("dd_experimentation_opt_out_at")
+        result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+        expect(result.variant).to eq("treatment")
+        expect(result.log?).to be(true)
+      end
+
+      it "returns the default state when no ordinary allocation matches" do
+        config["flags"]["test-flag"]["allocations"].pop
+        result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+        expect(result.variant).to be_nil
+        expect(result.reason).to eq("DEFAULT")
+        expect(result.log?).to be(false)
+      end
+
+      ["", "invalid", true, 123].each do |input|
+        it "rejects invalid subject input #{input.inspect}" do
+          context["dd_experimentation_opt_out_at"] = input
+          result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+          expect(result.error_code).to eq("INVALID_CONTEXT")
+          expect(result.log?).to be(false)
+        end
+      end
+
+      [:disabled, :immediate, :future_experiments_only].each do |mode|
+        it "isolates malformed activation in #{mode}" do
+          config["flags"]["neighbor"] = Marshal.load(Marshal.dump(config["flags"]["test-flag"]))
+          config["flags"]["neighbor"]["key"] = "neighbor"
+          config["flags"]["test-flag"]["allocations"].first["randomizationActivatedAt"] = "invalid"
+          result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, mode)
+          expect(result.error_code).to eq((mode == :future_experiments_only) ? "PARSE_ERROR" : nil)
+          expect(result.variant).to eq({disabled: "treatment", immediate: "ordinary", future_experiments_only: nil}.fetch(mode))
+          expect(result.log?).to eq(mode == :disabled)
+          neighbor = configuration.get_assignment_with_opt_out_mode("neighbor", :object, context, mode)
+          expect(neighbor.error_code).to be_nil
+        end
+      end
+
+      it "rejects unsupported modes before native evaluation" do
+        expect do
+          configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :unknown)
+        end.to raise_error(ArgumentError, /Unsupported experimentation opt-out mode/)
+        expect do
+          configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, "future_experiments_only")
+        end.to raise_error(TypeError)
+      end
+    end
+
     describe ".new" do
       it "creates a new configuration from valid JSON" do
         expect { described_class::Configuration.new(flags_json) }.not_to raise_error
@@ -94,7 +268,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
       context "when flag eveluatino was successfull" do
         let(:result) do
           configuration.get_assignment(
-            "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"}
+            "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"},
           )
         end
 
@@ -116,7 +290,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
       context "when flag is missing" do
         let(:result) do
           configuration.get_assignment(
-            "non-existent-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"}
+            "non-existent-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"},
           )
         end
 
@@ -130,7 +304,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
       context "when falling through all allocations" do
         let(:result) do
           configuration.get_assignment(
-            "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@different-domain.com"}
+            "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@different-domain.com"},
           )
         end
 
@@ -148,7 +322,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
       context "when expected type is unknown" do
         let(:result) do
           configuration.get_assignment(
-            "test-flag", :unknown_type, {"targeting_key" => "test-user", "email" => "user@example.com"}
+            "test-flag", :unknown_type, {"targeting_key" => "test-user", "email" => "user@example.com"},
           )
         end
 
@@ -162,12 +336,138 @@ RSpec.describe Datadog::Core::FeatureFlags do
 
         let(:result) do
           configuration.get_assignment(
-            "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"}
+            "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"},
           )
         end
 
         it "raises error for JSON parsing error" do
           expect { result.value }.to raise_error(described_class::Error, /Failed to parse JSON value/)
+        end
+      end
+    end
+
+    describe "ResolutionDetails#features" do
+      subject(:features) do
+        described_class::Configuration.new(JSON.generate(config))
+          .get_assignment("split-flag", :string, {"targeting_key" => "subject"})
+          .features
+      end
+
+      let(:split) { {"variationKey" => "on", "shards" => []} }
+      let(:config) do
+        {
+          "createdAt" => "2024-04-17T19:40:53.716Z",
+          "environment" => {"name" => "Test"},
+          "flags" => {
+            "split-flag" => {
+              "key" => "split-flag",
+              "enabled" => true,
+              "variationType" => "STRING",
+              "variations" => {"on" => {"key" => "on", "value" => "enabled"}},
+              "allocations" => [{"key" => "allocation", "splits" => [split], "doLog" => true}],
+            },
+          },
+        }
+      end
+
+      context "when the split has features of every supported value type" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [
+              {"key" => "holdout.key", "value" => "h-1", "destinations" => ["HOOK"]},
+              {"key" => "holdout.share", "value" => 0.25, "destinations" => ["EXPOSURE", "EVALUATION"]},
+              {"key" => "holdout.should_include_in_holdout_analysis", "value" => false, "destinations" => ["HOOK"]},
+            ],
+          }
+        end
+
+        it "returns key, typed value and destinations in configuration order" do
+          expect(features).to eq(
+            [
+              ["holdout.key", "h-1", ["HOOK"]],
+              ["holdout.share", 0.25, ["EXPOSURE", "EVALUATION"]],
+              ["holdout.should_include_in_holdout_analysis", false, ["HOOK"]],
+            ],
+          )
+          expect(features.first.first.encoding).to eq(Encoding::UTF_8)
+          expect(features.first[1]).to be_frozen
+        end
+      end
+
+      context "when a feature has an unsupported value type" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [
+              {"key" => "object", "value" => {"nested" => true}, "destinations" => ["HOOK"]},
+              {"key" => "kept", "value" => "yes", "destinations" => ["HOOK"]},
+            ],
+          }
+        end
+
+        it "skips only that feature" do
+          expect(features).to eq([["kept", "yes", ["HOOK"]]])
+        end
+      end
+
+      context "when a key repeats" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [
+              {"key" => "holdout.key", "value" => {"invalid" => true}, "destinations" => ["HOOK"]},
+              {"key" => "holdout.key", "value" => "first-valid", "destinations" => ["HOOK"]},
+              {"key" => "holdout.key", "value" => "second-valid", "destinations" => ["HOOK", "EXPOSURE"]},
+            ],
+          }
+        end
+
+        it "keeps the first valid feature" do
+          expect(features).to eq([["holdout.key", "first-valid", ["HOOK"]]])
+        end
+      end
+
+      context "when destinations are unknown to the SDK" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [{"key" => "holdout.key", "value" => "h-1", "destinations" => ["hook", "FUTURE"]}],
+          }
+        end
+
+        it "passes them through unchanged" do
+          expect(features).to eq([["holdout.key", "h-1", ["hook", "FUTURE"]]])
+        end
+      end
+
+      [
+        ["missing", nil],
+        ["null", :null],
+        ["not a list", {"key" => "holdout.key"}],
+        ["a list of malformed entries", ["holdout.key", 1, nil, {"key" => "no-value"}]],
+      ].each do |description, raw_features|
+        context "when the features field is #{description}" do
+          let(:split) do
+            base = {"variationKey" => "on", "shards" => []}
+            base["features"] = (raw_features == :null) ? nil : raw_features unless raw_features.nil?
+            base
+          end
+
+          it "evaluates the flag and returns the shared frozen empty array" do
+            result = described_class::Configuration.new(JSON.generate(config))
+              .get_assignment("split-flag", :string, {"targeting_key" => "subject"})
+
+            expect(result.value).to eq("enabled")
+            expect(result.error_code).to be_nil
+            expect(result.features).to eq([])
+            expect(result.features).to be_frozen
+            expect(result.features).to be(features)
+          end
         end
       end
     end

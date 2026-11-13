@@ -15,23 +15,21 @@ module Datadog
         # Add adapters to registry
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::Net,
-          Core::Configuration::Ext::Agent::HTTP::ADAPTER
+          Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         )
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::Test,
-          Core::Transport::Ext::Test::ADAPTER
+          Core::Transport::Ext::Test::ADAPTER,
         )
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::UnixSocket,
-          Core::Transport::Ext::UnixSocket::ADAPTER
+          Core::Transport::Ext::UnixSocket::ADAPTER,
         )
-
-        module_function
 
         # Helper function that delegates to Builder.new
         # but is under HTTP namespace so that client code requires this file
         # to get the adapters configured, and not the builder directly.
-        def build(
+        def self.build(
           agent_settings:,
           logger: Datadog.logger,
           headers: nil,
@@ -49,7 +47,7 @@ module Datadog
           end
         end
 
-        def default_headers
+        def self.default_headers
           {
             Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => "1",
             Core::Transport::Ext::HTTP::HEADER_META_LANG =>

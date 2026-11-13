@@ -32,7 +32,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             "test_flag",
             variant: "control",
             reason: "TARGETING_MATCH",
-            allocation_key: "rollout-1"
+            allocation_key: "rollout-1",
           )
         end.not_to raise_error
       end
@@ -43,7 +43,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         metrics.record(
           "test_flag",
           variant: "control",
-          reason: "TARGETING_MATCH"
+          reason: "TARGETING_MATCH",
         )
       end
     end
@@ -61,7 +61,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             "test_flag",
             variant: "control",
             reason: "TARGETING_MATCH",
-            allocation_key: "rollout-1"
+            allocation_key: "rollout-1",
           )
         end.not_to raise_error
       end
@@ -143,14 +143,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
               "feature_flag.result.variant" => "treatment",
               "feature_flag.result.reason" => "targeting_match",
               "feature_flag.result.allocation_key" => "rollout-1",
-            }
+            },
           )
 
           metrics.record(
             "my_flag",
             variant: "treatment",
             reason: "TARGETING_MATCH",
-            allocation_key: "rollout-1"
+            allocation_key: "rollout-1",
           )
         end
       end
@@ -159,14 +159,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "records metric with reason=static" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("feature_flag.result.reason" => "static")
+            attributes: hash_including("feature_flag.result.reason" => "static"),
           )
 
           metrics.record(
             "flag",
             variant: "on",
             reason: "STATIC",
-            allocation_key: "default-allocation"
+            allocation_key: "default-allocation",
           )
         end
       end
@@ -177,15 +177,15 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             1,
             attributes: hash_including(
               "feature_flag.result.reason" => "split",
-              "feature_flag.result.allocation_key" => "split-allocation"
-            )
+              "feature_flag.result.allocation_key" => "split-allocation",
+            ),
           )
 
           metrics.record(
             "flag",
             variant: "on",
             reason: "SPLIT",
-            allocation_key: "split-allocation"
+            allocation_key: "split-allocation",
           )
         end
       end
@@ -199,14 +199,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
               "feature_flag.result.variant" => "",
               "feature_flag.result.reason" => "error",
               "error.type" => "flag_not_found",
-            }
+            },
           )
 
           metrics.record(
             "missing_flag",
             variant: nil,
             reason: "ERROR",
-            error_code: "FLAG_NOT_FOUND"
+            error_code: "FLAG_NOT_FOUND",
           )
         end
       end
@@ -215,14 +215,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "maps error code to type_mismatch" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("error.type" => "type_mismatch")
+            attributes: hash_including("error.type" => "type_mismatch"),
           )
 
           metrics.record(
             "flag",
             variant: nil,
             reason: "ERROR",
-            error_code: "TYPE_MISMATCH"
+            error_code: "TYPE_MISMATCH",
           )
         end
       end
@@ -231,14 +231,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "maps error code to parse_error" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("error.type" => "parse_error")
+            attributes: hash_including("error.type" => "parse_error"),
           )
 
           metrics.record(
             "flag",
             variant: nil,
             reason: "ERROR",
-            error_code: "PARSE_ERROR"
+            error_code: "PARSE_ERROR",
           )
         end
       end
@@ -247,14 +247,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "maps error code to provider_not_ready" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("error.type" => "provider_not_ready")
+            attributes: hash_including("error.type" => "provider_not_ready"),
           )
 
           metrics.record(
             "flag",
             variant: nil,
             reason: "ERROR",
-            error_code: "PROVIDER_NOT_READY"
+            error_code: "PROVIDER_NOT_READY",
           )
         end
       end
@@ -263,28 +263,28 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "defaults UNKNOWN_TYPE to general" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("error.type" => "general")
+            attributes: hash_including("error.type" => "general"),
           )
 
           metrics.record(
             "flag",
             variant: nil,
             reason: "ERROR",
-            error_code: "UNKNOWN_TYPE"
+            error_code: "UNKNOWN_TYPE",
           )
         end
 
         it "defaults arbitrary unmapped codes to general" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("error.type" => "general")
+            attributes: hash_including("error.type" => "general"),
           )
 
           metrics.record(
             "flag",
             variant: nil,
             reason: "ERROR",
-            error_code: "SOME_FUTURE_ERROR_CODE"
+            error_code: "SOME_FUTURE_ERROR_CODE",
           )
         end
       end
@@ -297,14 +297,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
               "feature_flag.key" => "disabled_flag",
               "feature_flag.result.variant" => "",
               "feature_flag.result.reason" => "disabled",
-            }
+            },
           )
 
           metrics.record(
             "disabled_flag",
             variant: nil,
             reason: "DISABLED",
-            allocation_key: "should-not-appear"
+            allocation_key: "should-not-appear",
           )
         end
       end
@@ -317,14 +317,14 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
               "feature_flag.key" => "flag",
               "feature_flag.result.variant" => "",
               "feature_flag.result.reason" => "default",
-            }
+            },
           )
 
           metrics.record(
             "flag",
             variant: nil,
             reason: "DEFAULT",
-            allocation_key: "should-not-appear"
+            allocation_key: "should-not-appear",
           )
         end
       end
@@ -333,13 +333,13 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "uses empty string for variant" do
           expect(counter).to receive(:add).with(
             1,
-            attributes: hash_including("feature_flag.result.variant" => "")
+            attributes: hash_including("feature_flag.result.variant" => ""),
           )
 
           metrics.record(
             "flag",
             variant: nil,
-            reason: "TARGETING_MATCH"
+            reason: "TARGETING_MATCH",
           )
         end
       end
@@ -354,7 +354,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             "flag",
             variant: "on",
             reason: "TARGETING_MATCH",
-            allocation_key: ""
+            allocation_key: "",
           )
         end
       end
@@ -368,7 +368,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         it "catches the error and reports via telemetry" do
           expect(telemetry).to receive(:report).with(
             kind_of(StandardError),
-            description: "OpenFeature: Failed to record evaluation metric"
+            description: "OpenFeature: Failed to record evaluation metric",
           )
           expect_lazy_log(logger, :debug, /Failed to record evaluation metric/)
 
@@ -377,7 +377,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             metrics.record(
               "flag",
               variant: "on",
-              reason: "TARGETING_MATCH"
+              reason: "TARGETING_MATCH",
             )
           end.not_to raise_error
         end

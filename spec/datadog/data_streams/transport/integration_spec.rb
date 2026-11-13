@@ -12,7 +12,7 @@ RSpec.describe Datadog::DataStreams::Transport do
   end
   let(:agent_settings) do
     Datadog::Core::Configuration::AgentSettings.new(
-      adapter: :net_http, hostname: "localhost", port: http_server_port
+      adapter: :net_http, hostname: "localhost", port: http_server_port,
     )
   end
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }

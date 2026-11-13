@@ -17,9 +17,9 @@ module Datadog
 
       attr_reader span: Tracing::SpanOperation?
 
-      SCHEMA_KEY_PREFIX: ::String
+      SCHEMA_KEY_PREFIX: String
 
-      FINGERPRINT_KEY_PREFIX: ::String
+      FINGERPRINT_KEY_PREFIX: String
 
       def initialize: (SecurityEngine::result waf_result, trace: Tracing::TraceOperation?, span: Tracing::SpanOperation?) -> void
 

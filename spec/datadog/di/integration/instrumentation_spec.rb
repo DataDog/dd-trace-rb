@@ -788,6 +788,47 @@ RSpec.describe "Instrumentation integration" do
         end
       end
 
+      context "with capture expressions whose evaluation outlasts the per-fire time budget" do
+        before do
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(5)
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
+            captureExpressions: [
+              {name: "count", expr: {dsl: "len(arg1)", json: {len: {ref: "arg1"}}}},
+              {name: "filtered", expr: {dsl: "arg1.filter(@it >= 0)",
+                                        json: {filter: [{ref: "arg1"}, {ge: [{ref: "@it"}, 0]}]}}},
+            ],
+          }
+        end
+
+        it "captures the expression evaluated within the budget and stops the one evaluating when it runs out" do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(Array.new(2_000_000) { |i| i })).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "count" => {type: "Integer", value: "2000000"},
+            "filtered" => {notCapturedReason: "timeout"},
+          )
+        end
+      end
+
       context "with snapshot capture and an exhausted per-fire time budget" do
         before do
           allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
@@ -1831,7 +1872,7 @@ RSpec.describe "Instrumentation integration" do
           type: :log,
           type_name: "InstrumentationSpecTestClass",
           method_name: "binary_data_param_method",
-          capture_snapshot: true
+          capture_snapshot: true,
         )
       end
 
@@ -1920,7 +1961,7 @@ RSpec.describe "Instrumentation integration" do
           type: :log,
           type_name: "InstrumentationSpecTestClass",
           method_name: "binary_data_method",
-          capture_snapshot: true
+          capture_snapshot: true,
         )
       end
 
@@ -2029,7 +2070,7 @@ RSpec.describe "Instrumentation integration" do
       let(:agent_settings) do
         instance_double(
           Datadog::Core::Configuration::AgentSettings,
-          hostname: "localhost", port: http_server_port, timeout_seconds: 1, ssl: false
+          hostname: "localhost", port: http_server_port, timeout_seconds: 1, ssl: false,
         )
       end
 
@@ -2077,6 +2118,46 @@ RSpec.describe "Instrumentation integration" do
         let(:captured_value) { "あ" * 700 }
 
         include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
+      end
+
+      context "when pruning the captured argument fits the snapshot within the limit" do
+        let(:payload_limit) { 40_000 }
+
+        let(:settings) do
+          super().tap do |settings|
+            settings.agent.host = "localhost"
+            settings.agent.port = http_server_port
+            settings.agent.use_ssl = false
+            settings.agent.timeout_seconds = 1
+          end
+        end
+
+        let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+        before do
+          stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", payload_limit)
+          settings.dynamic_instrumentation.max_capture_string_length = 50_000
+        end
+
+        it "sends the snapshot with the argument pruned and emits the payloadTooLarge capture.incomplete metric" do
+          expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect(telemetry).not_to receive(:inc).with("debugger", "events.dropped", any_args)
+
+          probe_manager.add_probe(probe)
+
+          InstrumentationSpecTestClass.new.test_method("A" * 50_000)
+          component.probe_notifier_worker.flush
+
+          expect(input_requests.size).to eq 1
+          snapshots = JSON.parse(input_requests.first)
+          expect(snapshots.size).to eq 1
+          snapshot = snapshots.first
+          expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments", "arg1")).to eq("pruned" => true)
+          expect(snapshot.dig("debugger", "snapshot", "probe", "id")).to eq "payload-too-large-test"
+          expect(JSON.dump(snapshot).bytesize).to be <= payload_limit
+          expect(probe.enabled?).to be true
+        end
       end
     end
   end

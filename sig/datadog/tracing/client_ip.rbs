@@ -9,7 +9,7 @@ module Datadog
 
       private
 
-      def self.configuration: () -> Core::Configuration
+      def self.configuration: () -> Datadog::Core::Configuration::Settings::_ApmTracingClientIp
     end
   end
 end

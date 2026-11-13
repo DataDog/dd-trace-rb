@@ -25,7 +25,9 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
       abort("Could not refresh the ruby-advisory-db (needs git + network)") if updated == false
       database = Bundler::Audit::Database.new
 
-      lockfiles = Dir.glob("gemfiles/*.gemfile.lock").select { |path| Lockfile.new(path).audit_eligible? }.sort
+      # Base lockfiles only; appraisal variants pin deliberate test targets,
+      # often vulnerable by design.
+      lockfiles = Dir.glob("gemfiles/ruby-*.gemfile.lock").select { |path| Lockfile.new(path).audit_eligible? }.sort
       ignore = DependencyAuditing.load_ignore_list
       ignore_gem_versions = DependencyAuditing.load_ignore_gem_versions
 
@@ -52,7 +54,7 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
         puts
         puts Thor::Shell::Basic.new.print_table(
           [%w[Lockfile Gem Version Advisory]] + findings.map { |f| [f.lockfile, f.gem, f.version, f.id] },
-          {borders: true}
+          {borders: true},
         )
         exit(1)
       end

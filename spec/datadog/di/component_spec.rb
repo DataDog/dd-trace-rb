@@ -34,10 +34,10 @@ RSpec.describe Datadog::DI::Component do
       it "wires the guardrails telemetry emitter into every consumer" do
         component = described_class.build(settings, agent_settings, logger)
         expect(component.instrumenter.guardrails_telemetry).to equal(component.guardrails_telemetry)
-        expect(component.probe_manager.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
           .to equal(component.guardrails_telemetry)
+        expect(component.probe_notification_builder.guardrails_telemetry).to equal(component.guardrails_telemetry)
         component.shutdown!
       end
 
@@ -66,7 +66,7 @@ RSpec.describe Datadog::DI::Component do
 
         it "returns nil and warns with the docs URL" do
           expect(logger).to receive(:warn).with(
-            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
+            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config}),
           )
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
@@ -75,7 +75,7 @@ RSpec.describe Datadog::DI::Component do
       context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
         it "returns nil and logs the RC-disabled reason at debug" do
           expect(logger).to receive(:debug).with(
-            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
+            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config}),
           )
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -168,7 +168,7 @@ RSpec.describe Datadog::DI::Component do
 
       it "returns nil and logs at debug without building a component" do
         expect(logger).to receive(:debug).with(
-          a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/)
+          a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/),
         )
         expect(logger).not_to receive(:warn)
         expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -396,6 +396,37 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe "#after_fork" do
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.dynamic_instrumentation.internal.development = true
+        settings.remote.enabled = true
+      end
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
+    end
+
+    let(:logger) do
+      instance_double(Logger)
+    end
+
+    let(:component) do
+      described_class.build(settings, agent_settings, logger)
+    end
+
+    after do
+      component&.shutdown!
+    end
+
+    it "rebuilds the correlation sampler's process-scoped state" do
+      expect(component.correlation_sampler).to receive(:after_fork!)
+
+      component.after_fork
+    end
+  end
+
   describe "RC enablement state" do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
@@ -480,7 +511,7 @@ RSpec.describe Datadog::DI::Component do
             {
               path: "datadog/1/APM_TRACING/carrier/lib_config",
               content: "{not json",
-            }
+            },
           )
         end
         let(:unrelated_content) do
@@ -488,7 +519,7 @@ RSpec.describe Datadog::DI::Component do
             {
               path: "datadog/1/APM_TRACING/unrelated/lib_config",
               content: "{not json",
-            }
+            },
           )
         end
 
@@ -555,7 +586,7 @@ RSpec.describe Datadog::DI::Component do
             expect(component.rc_enablement_signal_withdrawn?([])).to be true
 
             expect(messages).to eq(
-              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"]
+              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"],
             )
           end
 

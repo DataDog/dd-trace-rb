@@ -153,7 +153,7 @@ module Contrib
               # remake syncwriter instance for each flush to prevent headers from being overrwritten
               sync_writer = Datadog::Tracing::SyncWriter.new(
                 agent_settings: tracer.writer.agent_settings,
-                transport_options: {headers: {"X-Datadog-Trace-Env-Variables" => parse_tracer_config}}
+                transport_options: {headers: {"X-Datadog-Trace-Env-Variables" => parse_tracer_config}},
               )
               sync_writer.write(trace)
             end

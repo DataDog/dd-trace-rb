@@ -28,8 +28,8 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
         expect(
           described_class.libdatadog_folder_relative_to_native_lib_folder(
             extconf_folder: extension_folder,
-            libdatadog_pkgconfig_folder: nil
-          )
+            libdatadog_pkgconfig_folder: nil,
+          ),
         ).to be nil
       end
     end
@@ -65,7 +65,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     context "when libdatadog is unsupported" do
       it do
         expect(
-          described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil)
+          described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil),
         ).to be nil
       end
     end
@@ -76,7 +76,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
       # the version on the `libdatadog_extconf_helpers.rb` file. Kindly keep them in sync! :)
       expect(described_class::LIBDATADOG_VERSION).to eq(
-        Gem.loaded_specs["datadog"].dependencies.find { |dependency| dependency.name == "libdatadog" }.requirement.to_s
+        Gem.loaded_specs["datadog"].dependencies.find { |dependency| dependency.name == "libdatadog" }.requirement.to_s,
       )
     end
   end
@@ -187,7 +187,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       it "returns an error message about missing platform binaries" do
         expect(load_libdatadog_or_get_issue).to eq(
           "The `libdatadog` gem installed on your system is missing binaries for your platform variant. " \
-          "Your platform: `testplatform`; available binaries: `testbinary1`, `testbinary2`"
+          "Your platform: `testplatform`; available binaries: `testbinary1`, `testbinary2`",
         )
       end
     end
@@ -241,7 +241,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
             a_string_including("There was an issue setting up extension build")
               .and(including("Full failure log is at #{log_path}"))
               .and(including("have_header: checking for missing.h"))
-              .and(including("fake gcc invocation; fake fatal error"))
+              .and(including("fake gcc invocation; fake fatal error")),
           ).to_stderr
         end
 

@@ -99,6 +99,24 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
     end
 
+    describe "#rasp_enabled=" do
+      it "sets value to true when given true" do
+        settings.appsec.rasp_enabled = true
+
+        expect(settings.appsec.rasp_enabled).to eq(true)
+      end
+
+      it "sets value to false when given false" do
+        settings.appsec.rasp_enabled = false
+
+        expect(settings.appsec.rasp_enabled).to eq(false)
+      end
+
+      it "raises ArgumentError when given nil" do
+        expect { settings.appsec.rasp_enabled = nil }.to raise_error(ArgumentError)
+      end
+    end
+
     describe "#instrument" do
       let(:registry) { {} }
       let(:integration_name) { :fake }
@@ -231,7 +249,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it "logs a deprecation warning when set to a non-default value" do
           expect { settings.appsec.ip_passlist = ["1.1.1.1"] }.to log_deprecation(
-            "ip_passlist setting is deprecated and will be removed in the next release"
+            "ip_passlist setting is deprecated and will be removed in the next release",
           )
         end
       end
@@ -257,7 +275,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it "logs a deprecation warning when set to a non-default value" do
           expect { settings.appsec.ip_denylist = ["1.1.1.1"] }.to log_deprecation(
-            "ip_denylist setting is deprecated and will be removed in the next release"
+            "ip_denylist setting is deprecated and will be removed in the next release",
           )
         end
       end
@@ -283,7 +301,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it "logs a deprecation warning when set to a non-default value" do
           expect { settings.appsec.user_id_denylist = ["1"] }.to log_deprecation(
-            "user_id_denylist setting is deprecated and will be removed in the next release"
+            "user_id_denylist setting is deprecated and will be removed in the next release",
           )
         end
       end

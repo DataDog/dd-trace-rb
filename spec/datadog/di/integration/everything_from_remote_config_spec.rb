@@ -204,15 +204,14 @@ RSpec.describe "DI integration from remote config" do
       duration: Integer,
       host: nil,
       logger: {
-        method: "target_method",
+        method_name: "target_method",
         name: nil,
         thread_id: nil,
         thread_name: "Thread.main",
-        version: 2,
       },
       message: nil,
       process_tags: String,
-      runtime_id: String,
+      runtime_id: be_valid_uuid,
       service: "rspec",
       timestamp: Integer,
     }
@@ -409,7 +408,7 @@ RSpec.describe "DI integration from remote config" do
               parentId: nil,
               probeId: "11",
               probeVersion: 0,
-              runtimeId: String,
+              runtimeId: be_valid_uuid,
               status: "ERROR",
               exception: {
                 type: "Datadog::DI::Error::InvalidExpression",
@@ -477,17 +476,16 @@ RSpec.describe "DI integration from remote config" do
           duration: Integer,
           host: nil,
           logger: {
-            method: "target_method",
+            method_name: "target_method",
             name: nil,
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           # false is the result of first expression evaluation
           # second expression fails evaluation
           message: "hello false[evaluation error]",
           process_tags: String,
-          runtime_id: String,
+          runtime_id: be_valid_uuid,
           service: "rspec",
           timestamp: Integer,
         }
@@ -656,16 +654,15 @@ RSpec.describe "DI integration from remote config" do
           duration: Integer,
           host: nil,
           logger: {
-            method: nil,
+            method_name: nil,
             name: "instrumentation_integration_test_class.rb",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           # No message since we stopped execution at condition evaluation.
           message: nil,
           process_tags: String,
-          runtime_id: String,
+          runtime_id: be_valid_uuid,
           service: "rspec",
           timestamp: Integer,
         }
@@ -743,15 +740,14 @@ RSpec.describe "DI integration from remote config" do
             duration: Integer,
             host: nil,
             logger: {
-              method: nil,
+              method_name: nil,
               name: "instrumentation_integration_test_class.rb",
               thread_id: nil,
               thread_name: "Thread.main",
-              version: 2,
             },
             message: nil,
             process_tags: String,
-            runtime_id: String,
+            runtime_id: be_valid_uuid,
             service: "rspec",
             timestamp: Integer,
           }

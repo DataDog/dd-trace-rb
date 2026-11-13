@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           "sample_rate" => nil,
           "sampling_rules" => nil,
           "integrations_loaded" => nil,
-          "partial_flushing_enabled" => false,
+          "partial_flushing_enabled" => true,
         )
       end
     end
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           sample_rate: nil,
           sampling_rules: nil,
           integrations_loaded: nil,
-          partial_flushing_enabled: false,
+          partial_flushing_enabled: true,
         )
       end
 
@@ -154,8 +154,8 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         before do
           expect(Datadog.configuration.tracing).to receive(:writer).and_return(
             Datadog::Tracing::SyncWriter.new(
-              transport: Datadog::Tracing::Transport::IO.default
-            )
+              transport: Datadog::Tracing::Transport::IO.default,
+            ),
           )
         end
 
@@ -201,10 +201,10 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           is_expected.to include integrations_loaded: end_with("@#{RUBY_VERSION}")
         end
 
-        context "with partial flushing enabled" do
-          before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
+        context "with partial flushing disabled" do
+          before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(false) }
 
-          it { is_expected.to include partial_flushing_enabled: true }
+          it { is_expected.to include partial_flushing_enabled: false }
         end
       end
     end
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
 
       it "with a default tracer" do
         is_expected.to match(
-          agent_error: nil
+          agent_error: nil,
         )
       end
 

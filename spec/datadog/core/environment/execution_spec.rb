@@ -235,7 +235,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
     context "when given WebMock", skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new("2") do
       it do
         out, err, status = Bundler.with_unbundled_env do
-          Open3.capture3("ruby", stdin_data: <<-RUBY
+          Open3.capture3("ruby", stdin_data: <<-RUBY,
             require 'webmock'
             WebMock.enable!
 

@@ -59,7 +59,7 @@ module Datadog
         otel_thread_context: nil,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
-          post_sampler: Sampling::RuleSampler.new
+          post_sampler: Sampling::RuleSampler.new,
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
@@ -76,11 +76,12 @@ module Datadog
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+        @profiling_enabled = nil
 
         @otel_thread_context = otel_thread_context
 
         @provider = context_provider || DefaultContextProvider.new(
-          otel_thread_context: otel_thread_context
+          otel_thread_context: otel_thread_context,
         )
       end
 
@@ -195,7 +196,7 @@ module Datadog
             tags: tags,
             type: type,
             _trace: trace,
-            id: id
+            id: id,
           )
         end
       end
@@ -351,6 +352,11 @@ module Datadog
         @otel_thread_context&.after_fork
       end
 
+      # For when the profiler is replaced, as it can be enabled or disabled after the tracer is built.
+      def reset_profiling_enabled
+        @profiling_enabled = nil
+      end
+
       # Shorthand that calls the `shutdown!` method of a registered worker.
       # It's useful to ensure that the Trace Buffer is properly flushed before
       # shutting down the application.
@@ -406,7 +412,7 @@ module Datadog
             distributed_sampling_priority: !!sampling_priority,
             tracer: self,
             baggage: digest.baggage,
-            auto_finish: auto_finish
+            auto_finish: auto_finish,
           )
         else
           TraceOperation.new(
@@ -416,7 +422,7 @@ module Datadog
             apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
             tracer: self,
-            auto_finish: auto_finish
+            auto_finish: auto_finish,
           )
         end
       end
@@ -516,7 +522,7 @@ module Datadog
             start_time: start_time,
             tags: resolve_tags(tags, service),
             type: type,
-            id: id
+            id: id,
           )
 
           span.start(start_time)
@@ -651,7 +657,9 @@ module Datadog
       end
 
       def profiling_enabled
-        @profiling_enabled ||=
+        return @profiling_enabled unless @profiling_enabled.nil?
+
+        @profiling_enabled =
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
       end
 

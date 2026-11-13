@@ -170,9 +170,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Describe this",
         attachments: [
           RubyLLM::Attachment.new(
-            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
+            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png",
           ),
-        ]
+        ],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -195,7 +195,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :user,
         content: "Summarize this file",
-        attachments: [RubyLLM::Attachment.new(StringIO.new("some notes"), filename: "notes.txt")]
+        attachments: [RubyLLM::Attachment.new(StringIO.new("some notes"), filename: "notes.txt")],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -269,7 +269,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :user,
         content: "Transcribe this",
-        attachments: [RubyLLM::Attachment.new(StringIO.new("\xFF\xFB".b), filename: "audio.mp3")]
+        attachments: [RubyLLM::Attachment.new(StringIO.new("\xFF\xFB".b), filename: "audio.mp3")],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -293,9 +293,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: nil,
         attachments: [
           RubyLLM::Attachment.new(
-            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
+            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png",
           ),
-        ]
+        ],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -418,7 +418,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
           raise Datadog::AIGuard::AIGuardAbortError.new(
             action: "DENY",
             reason: "Dangerous tool call",
-            tags: ["shell-injection"]
+            tags: ["shell-injection"],
           )
         end
 
@@ -447,9 +447,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Here is how to list files under root directory:",
         tool_calls: {
           "tool_call_1" => RubyLLM::ToolCall.new(
-            id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"}
+            id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"},
           ),
-        }
+        },
       )
     end
 
@@ -476,9 +476,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
           "tool_call_1" => RubyLLM::ToolCall.new(
             id: "tool_call_1",
             name: "shell",
-            arguments: {"command" => "ls /"}
+            arguments: {"command" => "ls /"},
           ),
-        }
+        },
       )
     end
 
@@ -502,7 +502,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Running the command",
         tool_calls: {
           "tool_call_1" => RubyLLM::ToolCall.new(id: "tool_call_1", name: "shell", arguments: []),
-        }
+        },
       )
     end
 
@@ -530,7 +530,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :assistant,
         content: "Running the command",
-        tool_calls: {"tool_call_1" => tool_call}
+        tool_calls: {"tool_call_1" => tool_call},
       )
     end
     let(:tool_call) do
@@ -586,7 +586,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :assistant,
         content: "Running the command",
-        tool_calls: {"tool_call_1" => tool_call}
+        tool_calls: {"tool_call_1" => tool_call},
       )
     end
     let(:tool_call) do
@@ -622,7 +622,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :assistant,
         content: "Running the command",
-        tool_calls: {"tool_call_1" => tool_call}
+        tool_calls: {"tool_call_1" => tool_call},
       )
     end
     let(:tool_call) do

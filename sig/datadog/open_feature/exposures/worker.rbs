@@ -8,34 +8,34 @@ module Datadog
         include Core::Workers::Async::Thread
         include Core::Workers::IntervalLoop
 
-        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS: ::Integer
+        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS: Integer
 
-        DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
+        DEFAULT_FLUSH_INTERVAL_SECONDS: Integer
 
-        DEFAULT_BUFFER_LIMIT: ::Integer
+        DEFAULT_BUFFER_LIMIT: Integer
 
         @logger: Core::Logger
         @transport: Transport::HTTP | Transport::Agentless
         @telemetry: Core::Telemetry::Component
         @batch_builder: BatchBuilder
-        @buffer_limit: ::Integer
+        @buffer_limit: Integer
 
         def initialize: (
           settings: Core::Configuration::Settings,
           transport: Transport::HTTP | Transport::Agentless,
           telemetry: Core::Telemetry::Component,
           logger: Core::Logger,
-          ?flush_interval_seconds: ::Integer,
-          ?buffer_limit: ::Integer
+          ?flush_interval_seconds: Integer,
+          ?buffer_limit: Integer
         ) -> void
 
         def start: () -> void
 
-        def stop: (?bool, ?::Integer) -> bool
+        def stop: (?bool, ?Integer) -> bool
 
         def enqueue: (Event::t event) -> bool
 
-        def dequeue: () -> [::Array[Event::t], ::Integer]
+        def dequeue: () -> [Array[Event::t], Integer]
 
         def graceful_shutdown: () -> bool
 
@@ -45,7 +45,7 @@ module Datadog
 
         private
 
-        def loop_base_interval=: (::Integer) -> ::Integer
+        def loop_base_interval=: (Integer) -> Integer
 
         def running?: () -> bool
 
@@ -53,7 +53,7 @@ module Datadog
 
         def perform: (*untyped) -> void
 
-        def send_events: (::Array[Event::t], ::Integer) -> Core::Transport::Response?
+        def send_events: (Array[Event::t], Integer) -> Core::Transport::Response?
 
         def log_shutdown_outcome: (Numeric wait_time) -> void
       end

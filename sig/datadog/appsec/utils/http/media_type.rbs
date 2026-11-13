@@ -3,31 +3,31 @@ module Datadog
     module Utils
       module HTTP
         class MediaType
-          WILDCARD: ::String
+          WILDCARD: String
 
-          TOKEN_RE: ::Regexp
+          TOKEN_RE: Regexp
 
-          PARAMETER_RE: ::Regexp
+          PARAMETER_RE: Regexp
 
-          MEDIA_TYPE_RE: ::Regexp
+          MEDIA_TYPE_RE: Regexp
 
-          @type: ::String
+          @type: String
 
-          @subtype: ::String
+          @subtype: String
 
-          @parameters: ::Hash[::String, ::String]
+          @parameters: Hash[String, String]
 
-          attr_reader type: ::String
+          attr_reader type: String
 
-          attr_reader subtype: ::String
+          attr_reader subtype: String
 
-          attr_reader parameters: ::Hash[::String, ::String]
+          attr_reader parameters: Hash[String, String]
 
-          def self.parse: (::String? media) -> MediaType?
+          def self.parse: (String? media) -> MediaType?
 
-          def initialize: (type: ::String, subtype: ::String, ?parameters: ::Hash[::String, ::String]) -> void
+          def initialize: (type: String, subtype: String, ?parameters: Hash[String, String]) -> void
 
-          def to_s: () -> ::String
+          def to_s: () -> String
         end
       end
     end

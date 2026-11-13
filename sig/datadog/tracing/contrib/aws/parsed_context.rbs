@@ -7,7 +7,7 @@ module Datadog
 
           def safely: (untyped attr, ?untyped? fallback) -> untyped
 
-          def resource: () -> ::String
+          def resource: () -> String
 
           def operation: () -> untyped
 

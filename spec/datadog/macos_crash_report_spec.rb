@@ -51,7 +51,7 @@ RSpec.describe MacosCrashReport do
 
       # Interpolated rather than written out, because `Hash#inspect` only puts spaces around `=>` from Ruby 3.4 on
       expect(described_class.describe(report.path)).to eq(
-        <<~REPORT + File.read(report.path)
+        <<~REPORT + File.read(report.path),
           macOS crash report #{report.path}:
             exception: #{exception.inspect}
             termination: #{termination.inspect}
@@ -68,7 +68,7 @@ RSpec.describe MacosCrashReport do
       write_report("pid" => 4242, "renamedException" => {"type" => "EXC_BREAKPOINT"})
 
       expect(described_class.describe(report.path)).to eq(
-        <<~REPORT + File.read(report.path)
+        <<~REPORT + File.read(report.path),
           macOS crash report #{report.path} is not in the expected format (no exception, termination, faultingThread, threads, usedImages, frames of the faulting thread):
             raw report:
         REPORT
@@ -81,7 +81,7 @@ RSpec.describe MacosCrashReport do
       write_report("pid" => 4242, "parentPid" => Process.pid)
 
       expect(described_class.newest_report_summary).to eq(
-        %(Newest crash report is #{report.path}, with top-level keys ["parentPid", "pid"])
+        %(Newest crash report is #{report.path}, with top-level keys ["parentPid", "pid"]),
       )
     end
   end

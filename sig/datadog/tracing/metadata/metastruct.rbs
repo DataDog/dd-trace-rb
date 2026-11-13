@@ -6,13 +6,13 @@ module Datadog
 
         extend Forwardable
 
-        @metastruct: ::Hash[::String | ::Symbol, ::MessagePack::serializable]
+        @metastruct: Hash[String | Symbol, ::MessagePack::serializable]
 
         def []: (String | Symbol key) -> untyped
 
         def []=: (String | Symbol key, untyped value) -> untyped
 
-        def to_h: () -> ::Hash[String | Symbol, untyped]
+        def to_h: () -> Hash[String | Symbol, untyped]
 
         def pretty_print: (untyped q) -> void
       end
