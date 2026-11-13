@@ -2835,6 +2835,8 @@ To configure your application for metrics collection:
 1. [Configure your Datadog Agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
 2. Add `gem 'dogstatsd-ruby', '~> 5.3'` to your Gemfile
 
+When `dogstatsd-ruby` is available, the tracer creates a `Datadog::Statsd` client for each configuration, connected to `DD_AGENT_HOST` (default `127.0.0.1`) and `DD_METRIC_AGENT_PORT` (default `8125`), and the tracer's metrics share it unless you configure a client for a feature. Before a process forks, the tracer flushes its `Datadog::Statsd` clients, so a forked child sends none of the metrics of its parent. When `Datadog::Statsd.new` raises, for example with `dogstatsd-ruby` 5.7.0 and later for an invalid `DD_CARDINALITY` value, `Datadog.configure` raises the same exception.
+
 #### For application runtime
 
 If runtime metrics are configured, the trace library will automatically collect and send metrics about the health of your application.
