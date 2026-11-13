@@ -1900,17 +1900,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "when miteruby is enabled" do
       let(:options) { {miteruby_enabled: true} }
 
-      it "exposes storage limits before starting the worker" do
-        expect(cpu_and_wall_time_worker.stats).to include(
-          miteruby_raw_events_queue_max_size_bytes: 1024 * 1024, # 1 MiB
-          miteruby_interned_events_queue_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
-          miteruby_mark_threads_max_size_bytes: 100 * 1024,
-          miteruby_mark_function_max_size_bytes: 1024 * 1024,
-          miteruby_mark_function_array_max_size_bytes: 65_535 * 16,
-          miteruby_location_set_max_size_bytes: 13 * 1024 * 1024,
-          miteruby_location_array_max_size_bytes: 1_048_575 * 4,
-          miteruby_unique_stacks_map_max_size_bytes: 10 * 1024 * 1024,
-        )
+      it "omits storage limits" do
+        expect(cpu_and_wall_time_worker.stats.keys.grep(/^miteruby_.*max_size/)).to be_empty
       end
     end
   end

@@ -93,7 +93,7 @@ RSpec.describe Datadog::Profiling::Exporter do
     context "when miteruby stats are present" do
       let(:miteruby_stats) do
         {
-          miteruby_interned_events_queue_max_size_bytes: 16_777_200,
+          miteruby_interned_events_queue_used_size_bytes: 1024,
           miteruby_unique_stacks_map_entries: 42,
         }
       end
