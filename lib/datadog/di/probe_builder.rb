@@ -32,6 +32,9 @@ module Datadog
         "COUNT" => :count,
         "GAUGE" => :gauge,
         "HISTOGRAM" => :histogram,
+        # DISTRIBUTION submits with the DogStatsD type d, as Java, Python
+        # and PHP do; .NET fails to deserialize a DISTRIBUTION metric
+        # probe and installs no probe.
         "DISTRIBUTION" => :distribution,
       }.freeze
 
