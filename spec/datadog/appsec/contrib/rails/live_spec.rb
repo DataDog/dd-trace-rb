@@ -100,6 +100,13 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     get("/live", params, {"SERVER_PROTOCOL" => "HTTP/1.1", "HTTP_VERSION" => "HTTP/1.1"})
   end
 
+  # Blocks until a live request thread finishes detaching the AppSec context.
+  #
+  # Every example that makes a live request must wait for that request's
+  # thread with this method before the example ends. While RSpec restores
+  # `allow_any_instance_of` stubs it briefly removes `Context#detach` from
+  # the class, and a live thread calling `detach` in that window fails the
+  # run with NoMethodError.
   def wait_for_controller_thread
     Timeout.timeout(5) do
       loop { break unless live_signals[:detached].pop == Thread.current }
@@ -148,6 +155,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         get_live
         live_signals[:resumed].push(true)
         live_signals[:result].pop
+        wait_for_controller_thread
       end
     end
 
@@ -169,7 +177,6 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         end
 
         after_action_result
-        wait_for_controller_thread
       end
 
       let(:finalized_threads) { [] }
@@ -380,6 +387,8 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         get_live
         get_live
       end
+
+      2.times { wait_for_controller_thread }
     end
 
     it "sees the context of the current request" do
