@@ -120,7 +120,10 @@ and a metric name you choose.
   entry, where method arguments and `@` variables are available. Line
   probes always evaluate at the line, before it runs. A line metric probe
   targets the first line of its definition, and a definition whose first
-  line is a range, such as `10-12`, shows an ERROR status.
+  line is a range, such as `10-12`, shows an ERROR status. A method probe
+  that evaluates at exit also reports a point when the method raises,
+  with `@exception` holding the exception. When a log probe and a metric
+  probe are on the same line, the probe created last runs first.
 - **Tags:** your probe tags are attached to every metric point together
   with the `debugger.probeid:<probe id>` tag, so metrics can be queried
   per probe.
