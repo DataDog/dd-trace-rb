@@ -227,6 +227,33 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
     end
   end
 
+  context "when connection establishment fails" do
+    let(:http) { Net::HTTP.new("localhost", 8126, nil) }
+
+    before { allow(client).to receive(:connection).with(false).and_return(http) }
+
+    [Errno::EHOSTUNREACH, Errno::ENETUNREACH, Net::OpenTimeout, Timeout::Error].each do |error|
+      it "classifies #{error} before the request starts as pre-send" do
+        allow(http).to receive(:start).and_raise(error)
+
+        result = client.request("/evp_proxy/v4/api/v2/exposures", payload: "{}", timeout: 1)
+
+        expect(result).to be_internal_error
+        expect(result).to be_pre_send
+      end
+
+      it "keeps #{error} after the request starts ambiguous" do
+        allow(http).to receive(:start).and_yield(http)
+        allow(http).to receive(:request).and_raise(error)
+
+        result = client.request("/evp_proxy/v4/api/v2/exposures", payload: "{}", timeout: 1)
+
+        expect(result).to be_internal_error
+        expect(result).not_to be_pre_send
+      end
+    end
+  end
+
   context "using real sockets" do
     before { WebMock.disable! }
 

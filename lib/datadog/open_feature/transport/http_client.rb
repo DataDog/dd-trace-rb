@@ -70,10 +70,8 @@ module Datadog
             end
           end
         # Network libraries expose version-specific exceptions. Telemetry must not interrupt the worker.
-        rescue => error
-          pre_send = !connected && (error.is_a?(Errno::ECONNREFUSED) ||
-            error.is_a?(Errno::ENOENT) || error.is_a?(SocketError))
-          Response.new(pre_send: pre_send)
+        rescue
+          Response.new(pre_send: !connected)
         end
 
         private

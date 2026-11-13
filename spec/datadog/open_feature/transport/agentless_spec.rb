@@ -250,14 +250,15 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
     allow(client).to receive(:request).with("/evp_proxy/v4/api/v2/flagevaluation", anything)
       .and_return(response_class.new(code: 404))
     sender = Thread.new { transport.send_exposures(payload) }
-    entered.pop
+    Timeout.timeout(1) { entered.pop }
     transport.send_flag_evaluations(payload)
     release << true
-    sender.join
+    expect(sender.join(1)).to eq(sender)
     transport.send_exposures(payload)
     expect(client).to have_received(:request).with("/api/v2/exposures", payload: encoded, direct: true, timeout: 5).once
   ensure
     release << true
+    sender&.kill
     sender&.join(1)
   end
 
@@ -289,7 +290,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
         Thread.current[:pause_fork_reset] = true
         selector.send_exposures(payload)
       end
-      entered.pop
+      Timeout.timeout(1) { entered.pop }
       selector.send_flag_evaluations(payload)
       release << true
       expect(delayed.join(1)).to eq(delayed)
@@ -314,7 +315,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
       response_class.new(code: 200, info: info)
     end
     parent_sender = Thread.new { selector.send_exposures(payload) }
-    entered.pop
+    Timeout.timeout(1) { entered.pop }
     expect_in_fork do
       allow(client).to receive(:request).with("/info", timeout: 5).and_return(response_class.new(code: 200, info: info))
       children = [Thread.new { selector.send_exposures(payload) }, Thread.new { selector.send_flag_evaluations(payload) }]
