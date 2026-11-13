@@ -1,7 +1,7 @@
 module Datadog
   module SymbolDatabase
     class Uploader
-      MAX_PAYLOAD_SIZE: Integer
+      MAX_PAYLOAD_SIZE_BYTES: Integer
 
       @settings: Datadog::Core::Configuration::Settings
 
