@@ -23,5 +23,7 @@ module Datadog
       ?container_id: String?,
       ?cardinality: String?
     ) -> void
+
+    def close: (?flush: bool) -> void
   end
 end

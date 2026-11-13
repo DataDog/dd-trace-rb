@@ -6,7 +6,7 @@ require "datadog/core/workers/runtime_metrics"
 RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(telemetry: telemetry, **options) }
 
-  let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
+  let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
   let(:options) { {metrics: metrics, enabled: true} }
 
   let(:logger) { logger_allowing_debug }
@@ -224,32 +224,15 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
   end
 
   describe "#stop" do
-    subject(:stop) { worker.stop(*args, **kwargs) }
+    subject(:stop) { worker.stop(*args) }
 
     let(:args) { %w[foo bar] }
-    let(:kwargs) { {} }
 
-    before do
-      allow(worker.metrics).to receive(:close)
-    end
-
-    it "closes metrics and stops worker" do
+    it "disables and stops the worker" do
       stop
 
       expect(worker.enabled?).to be(false)
       expect(worker.running?).to be(false)
-      expect(worker.metrics).to have_received(:close)
-    end
-
-    context "with close_metrics: false" do
-      let(:kwargs) { {close_metrics: false} }
-
-      it "does not close metrics, but stops worker" do
-        stop
-
-        expect(worker.running?).to be(false)
-        expect(worker.metrics).to_not have_received(:close)
-      end
     end
 
     context "with async thread not started" do

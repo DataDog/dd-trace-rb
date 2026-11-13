@@ -65,6 +65,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
+    let(:statsd) { instance_double(Datadog::Statsd) }
 
     before do
       expect(described_class).to receive(:build_logger)
@@ -90,12 +91,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
         logger: logger,
       ).and_return([profiler, environment_logger_extra])
 
+      expect(described_class).to receive(:build_statsd).and_return(statsd)
+
       expect(described_class).to receive(:build_runtime_metrics_worker)
-        .with(settings, logger, telemetry)
+        .with(settings, logger, telemetry, statsd: statsd)
         .and_return(runtime_metrics)
 
       expect(described_class).to receive(:build_health_metrics)
-        .with(settings, logger, telemetry)
+        .with(settings, logger, telemetry, statsd: statsd)
         .and_return(health_metrics)
 
       expect(Datadog::Core::Configuration::Deprecations).to receive(:log_deprecations_from_all_sources)
@@ -108,6 +111,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(components.profiler).to be profiler
       expect(components.runtime_metrics).to be runtime_metrics
       expect(components.health_metrics).to be health_metrics
+      expect(components.statsd).to be statsd
       expect(components.agent_info).to eq agent_info
     end
 
@@ -328,12 +332,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe "::build_health_metrics" do
-    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
+    subject(:build_health_metrics) do
+      described_class.build_health_metrics(settings, logger, telemetry, statsd: components_statsd)
+    end
+
+    let(:components_statsd) { instance_double(Datadog::Statsd) }
 
     context "given settings" do
       shared_examples_for "new health metrics" do
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
-        let(:default_options) { {enabled: settings.health_metrics.enabled} }
+        let(:default_options) { {enabled: settings.health_metrics.enabled, statsd: components_statsd} }
         let(:options) { {} }
 
         before do
@@ -375,6 +383,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it_behaves_like "new health metrics" do
           let(:options) { {statsd: statsd} }
         end
+      end
+
+      context "without a components-built client" do
+        let(:components_statsd) { nil }
+
+        it_behaves_like "new health metrics"
       end
     end
   end
@@ -470,13 +484,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe "::build_runtime_metrics" do
-    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger, telemetry) }
+    subject(:build_runtime_metrics) do
+      described_class.build_runtime_metrics(settings, logger, telemetry, statsd: components_statsd)
+    end
+
+    let(:components_statsd) { instance_double(Datadog::Statsd) }
 
     context "given settings" do
       shared_examples_for "new runtime metrics" do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
         let(:default_options) do
           {enabled: settings.runtime_metrics.enabled,
+           statsd: components_statsd,
            services: [settings.service],
            experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,
            experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled}
@@ -538,6 +557,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
+      context "without a components-built client" do
+        let(:components_statsd) { nil }
+
+        it_behaves_like "new runtime metrics"
+      end
+
       context "with :experimental_runtime_id_enabled" do
         let(:experimental_runtime_id_enabled) { double("experimental_runtime_id_enabled") }
 
@@ -555,7 +580,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe "::build_runtime_metrics_worker" do
-    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings, logger, telemetry) }
+    subject(:build_runtime_metrics_worker) do
+      described_class.build_runtime_metrics_worker(settings, logger, telemetry, statsd: components_statsd)
+    end
+
+    let(:components_statsd) { instance_double(Datadog::Statsd) }
 
     context "given settings" do
       shared_examples_for "new runtime metrics worker" do
@@ -571,7 +600,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           allow(described_class).to receive(:build_runtime_metrics)
-            .with(settings, logger, telemetry)
+            .with(settings, logger, telemetry, statsd: components_statsd)
             .and_return(runtime_metrics)
 
           expect(Datadog::Core::Workers::RuntimeMetrics).to receive(:new)
@@ -1279,12 +1308,22 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
         expect(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
         expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
-        expect(components.runtime_metrics).to receive(:stop)
-          .with(true, close_metrics: false)
-        expect(components.runtime_metrics.metrics.statsd).to receive(:close)
-        expect(components.health_metrics.statsd).to receive(:close)
+        expect(components.runtime_metrics).to receive(:stop).with(true)
+        expect(components.statsd).to receive(:close)
         expect(components.telemetry).to receive(:emit_closing!)
         expect(components.telemetry).to receive(:shutdown!)
+
+        shutdown!
+      end
+
+      it "closes the DogStatsD client after the shutdown of dynamic instrumentation" do
+        dynamic_instrumentation = instance_double(Datadog::DI::Component)
+        allow(Datadog::DI::Component).to receive(:build).and_return(dynamic_instrumentation)
+        allow(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
+        allow(components.telemetry).to receive(:shutdown!)
+
+        expect(dynamic_instrumentation).to receive(:shutdown!).ordered
+        expect(components.statsd).to receive(:close).ordered
 
         shutdown!
       end
@@ -1311,14 +1350,22 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
           expect(components.tracer).to receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
-          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.runtime_metrics).to receive(:stop).with(true)
+          expect(components.statsd).to receive(:close)
           expect(components.telemetry).to receive(:emit_closing!)
           expect(components.telemetry).to receive(:shutdown!)
 
           expect { shutdown! }.not_to raise_error
+        end
+      end
+
+      context "when closing a DogStatsD client raises" do
+        let(:error) { IOError.new("closed stream") }
+
+        it "raises the exception to the caller" do
+          allow(components.statsd).to receive(:close).and_raise(error)
+
+          expect { shutdown! }.to raise_error(error)
         end
       end
     end
@@ -1331,10 +1378,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:remote) { instance_double(Datadog::Core::Remote::Component) }
         let(:appsec) { instance_double(Datadog::AppSec::Component) }
         let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
-        let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
-        let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
-        let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
-        let(:statsd) { instance_double(::Datadog::Statsd) }
+        let(:replacement_statsd_clients) { [instance_double(::Datadog::Statsd)] }
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
@@ -1342,8 +1386,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(replacement).to receive(:appsec).and_return(appsec)
           allow(replacement).to receive(:dynamic_instrumentation).and_return(dynamic_instrumentation)
           allow(replacement).to receive(:remote).and_return(remote)
-          allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
-          allow(replacement).to receive(:health_metrics).and_return(health_metrics)
+          allow(replacement).to receive(:statsd_clients).and_return(replacement_statsd_clients)
           allow(replacement).to receive(:telemetry).and_return(telemetry)
         end
       end
@@ -1356,29 +1399,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
           expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
-          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.runtime_metrics).to receive(:stop).with(true)
+          expect(components.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:shutdown!)
 
           shutdown!
         end
 
-        context "and Statsd is not initialized" do
+        context "and dogstatsd-ruby is unavailable" do
           before do
-            allow(components.runtime_metrics.metrics)
-              .to receive(:statsd)
-              .and_return(nil)
+            allow(described_class).to receive(:build_statsd).and_return(nil)
           end
 
           it "shuts down all components" do
+            expect(components.statsd).to be nil
             expect(components.tracer).to receive(:shutdown!)
             expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-            expect(components.runtime_metrics).to receive(:stop)
-              .with(true, close_metrics: false)
-            expect(components.health_metrics.statsd).to receive(:close)
+            expect(components.runtime_metrics).to receive(:stop).with(true)
             expect(components.remote).to receive(:shutdown!)
             expect(components.telemetry).to receive(:shutdown!)
 
@@ -1395,10 +1433,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it "shuts down all components but the tracer" do
           expect(components.tracer).to_not receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
-          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.runtime_metrics).to receive(:stop).with(true)
+          expect(components.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:shutdown!)
 
@@ -1406,18 +1442,21 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context "when one of Statsd instances are reused" do
+      context "when the customer-supplied runtime metrics client is reused" do
         include_context "replacement" do
-          let(:runtime_metrics_worker) { components.runtime_metrics }
+          let(:replacement_statsd_clients) { [runtime_metrics_statsd] }
         end
 
-        it "shuts down all components but the tracer" do
+        let(:runtime_metrics_statsd) { instance_double(::Datadog::Statsd) }
+
+        before { settings.runtime_metrics.statsd = runtime_metrics_statsd }
+
+        it "closes the client that the components built and keeps the reused client open" do
+          expect(components.runtime_metrics.metrics.statsd).to be runtime_metrics_statsd
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
-          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.runtime_metrics).to receive(:stop).with(true)
+          expect(runtime_metrics_statsd).to_not receive(:close)
+          expect(components.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:shutdown!)
 
@@ -1425,24 +1464,145 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context "when both Statsd instances are reused" do
+      context "when both customer-supplied clients are reused" do
         include_context "replacement" do
-          let(:runtime_metrics_worker) { components.runtime_metrics }
-          let(:health_metrics) { components.health_metrics }
+          let(:replacement_statsd_clients) { [runtime_metrics_statsd, health_metrics_statsd] }
         end
 
-        it "shuts down all components but the tracer" do
+        let(:runtime_metrics_statsd) { instance_double(::Datadog::Statsd) }
+        let(:health_metrics_statsd) { instance_double(::Datadog::Statsd) }
+
+        before do
+          settings.runtime_metrics.statsd = runtime_metrics_statsd
+          settings.health_metrics.statsd = health_metrics_statsd
+        end
+
+        it "closes only the client that the components built" do
           expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
-          expect(components.health_metrics.statsd).to_not receive(:close)
+          expect(components.runtime_metrics).to receive(:stop).with(true)
+          expect(runtime_metrics_statsd).to_not receive(:close)
+          expect(health_metrics_statsd).to_not receive(:close)
+          expect(components.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:shutdown!)
 
           shutdown!
         end
+      end
+    end
+  end
+
+  describe "#statsd_clients" do
+    subject(:statsd_clients) { components.statsd_clients }
+
+    it "lists the client that the components built once" do
+      expect(components.runtime_metrics.metrics.statsd).to be components.statsd
+      expect(components.health_metrics.statsd).to be components.statsd
+
+      is_expected.to eq([components.statsd])
+    end
+
+    context "with customer-supplied clients" do
+      let(:runtime_metrics_statsd) { instance_double(::Datadog::Statsd) }
+      let(:health_metrics_statsd) { instance_double(::Datadog::Statsd) }
+
+      before do
+        settings.runtime_metrics.statsd = runtime_metrics_statsd
+        settings.health_metrics.statsd = health_metrics_statsd
+      end
+
+      it { is_expected.to eq([components.statsd, runtime_metrics_statsd, health_metrics_statsd]) }
+    end
+
+    context "when dogstatsd-ruby is unavailable" do
+      before do
+        allow(described_class).to receive(:build_statsd).and_return(nil)
+      end
+
+      it { is_expected.to eq([]) }
+    end
+  end
+
+  describe "::build_statsd" do
+    subject(:build_statsd) { described_class.build_statsd }
+
+    let(:statsd) { instance_double(::Datadog::Statsd) }
+
+    before do
+      allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(version)
+    end
+
+    context "with a dogstatsd-ruby version that supports the single-thread client" do
+      let(:version) { Gem::Version.new("5.7.1") }
+
+      it "builds a single-thread client for the agent endpoint" do
+        expect(Datadog::Statsd).to receive(:new)
+          .with(
+            Datadog::Core::Metrics::Dogstatsd.default_hostname,
+            Datadog::Core::Metrics::Dogstatsd.default_port,
+            single_thread: true,
+          )
+          .and_return(statsd)
+
+        is_expected.to be statsd
+      end
+
+      context "with DD_AGENT_HOST and DD_METRIC_AGENT_PORT" do
+        with_env "DD_AGENT_HOST" => "dogstatsd.example", "DD_METRIC_AGENT_PORT" => "18125"
+
+        it "builds the client for that endpoint" do
+          expect(Datadog::Statsd).to receive(:new)
+            .with("dogstatsd.example", 18125, single_thread: true)
+            .and_return(statsd)
+
+          is_expected.to be statsd
+        end
+      end
+    end
+
+    context "with a dogstatsd-ruby version before the single-thread client" do
+      let(:version) { Gem::Version.new("4.8.3") }
+
+      it "builds a client without the single_thread option" do
+        expect(Datadog::Statsd).to receive(:new)
+          .with(
+            Datadog::Core::Metrics::Dogstatsd.default_hostname,
+            Datadog::Core::Metrics::Dogstatsd.default_port,
+          )
+          .and_return(statsd)
+
+        is_expected.to be statsd
+      end
+    end
+
+    context "with an incompatible dogstatsd-ruby version" do
+      let(:version) { Gem::Version.new("5.1.0") }
+
+      it "builds no client" do
+        expect(Datadog::Statsd).to_not receive(:new)
+
+        is_expected.to be nil
+      end
+    end
+
+    context "without dogstatsd-ruby" do
+      let(:version) { nil }
+
+      it "builds no client" do
+        expect(Datadog::Statsd).to_not receive(:new)
+
+        is_expected.to be nil
+      end
+    end
+
+    context "when the client constructor raises" do
+      let(:version) { Gem::Version.new("5.7.1") }
+      let(:error) { ArgumentError.new("Unknown cardinality: lowest") }
+
+      it "raises the exception to the caller" do
+        allow(Datadog::Statsd).to receive(:new).and_raise(error)
+
+        expect { build_statsd }.to raise_error(error)
       end
     end
   end
