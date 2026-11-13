@@ -31,7 +31,7 @@
  * in the COPYING file in the root directory of this source tree).
  * You may select, at your option, one of the above-listed licenses.
  */
-// @ivoanjo: The BSD-style license is included in this repository at tools/zstd-update/LICENSE.
+// @ivoanjo: The BSD-style license is included alongside zstd.c as zstd.LICENSE.txt.
 /*
  * Settings to bake for the single library file.
  *
