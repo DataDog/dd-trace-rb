@@ -454,6 +454,8 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   consumer_state.interned_events_queue = new_queue;
   consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
 
+  // TODO: look into release consumer lock here
+
   miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
     serializer_instance, interned_events_queue, interned_events_pos,
     &consumer_state.mark_frame_array, &consumer_state.location_array, &consumer_state.mark_threads_set
