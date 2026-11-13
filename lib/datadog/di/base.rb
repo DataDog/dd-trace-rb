@@ -54,7 +54,7 @@ module Datadog
           # Activate code tracking by default because line trace points will not work
           # without it.
           Datadog::DI.activate_tracking!
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           if defined?(Datadog.logger)
             Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}" }

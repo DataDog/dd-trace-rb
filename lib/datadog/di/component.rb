@@ -312,7 +312,7 @@ module Datadog
 
       def parse_probe_spec_and_notify(probe_spec)
         probe = ProbeBuilder.build_from_remote_config(probe_spec, logger: logger)
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         begin
           probe = Struct.new(:id).new(
@@ -320,7 +320,7 @@ module Datadog
           )
           payload = probe_notification_builder.build_errored(probe, exc)
           probe_notifier_worker.add_status(payload)
-        rescue Exception => nested_exc # standard:disable Lint/RescueException
+        rescue Exception => nested_exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(nested_exc)
           logger.debug { "di: failed to build error notification: #{nested_exc.class}: #{nested_exc.message}" }
           telemetry&.report(nested_exc, description: "Error building probe error notification")

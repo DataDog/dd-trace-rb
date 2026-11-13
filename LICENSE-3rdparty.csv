@@ -6,3 +6,6 @@
 "lib/datadog/tracing/contrib/utils/quantization/http.rb","https://github.com/ruby/uri","BSD-2-Clause","Copyright (C) 1993-2013 Yukihiro Matsumoto. All rights reserved."
 "msgpack","https://rubygems.org/gems/msgpack","Apache-2.0","Copyright (c) 2008-2015 Sadayuki Furuhashi"
 "rubocop/custom_cops/trailing_comma_in_arguments_cop.rb","https://github.com/rubocop/rubocop","MIT","Copyright (c) 2012-25 Bozhidar Batsov"
+"rubocop/vendor/standard","https://github.com/standardrb/standard","MIT","Copyright (c) 2023 Test Double, Inc. Portions Copyright (c) Bozhidar Batsov."
+"rubocop/vendor/standard-custom","https://github.com/standardrb/standard-custom","MIT","Copyright (c) 2023 Test Double, Inc. Portions Copyright (c) 2012-18 Bozhidar Batsov."
+"rubocop/vendor/standard-performance","https://github.com/standardrb/standard-performance","MIT","Copyright (c) 2023 Test Double, Inc."

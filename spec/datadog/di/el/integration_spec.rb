@@ -2,7 +2,7 @@ require "spec_helper"
 require_relative "../spec_helper"
 require "datadog/di/el"
 
-# standard:disable Lint/AssignmentInCondition
+# rubocop:disable Lint/AssignmentInCondition
 
 class ELTestIvarClass
   def initialize
@@ -116,4 +116,4 @@ RSpec.describe Datadog::DI::EL do
   end
 end
 
-# standard:enable Lint/AssignmentInCondition
+# rubocop:enable Lint/AssignmentInCondition

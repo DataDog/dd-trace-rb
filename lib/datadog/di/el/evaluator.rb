@@ -177,7 +177,7 @@ module Datadog
         end
 
         def contains(haystack, needle)
-          if String === haystack && String === needle or # standard:disable Style/AndOr
+          if String === haystack && String === needle or # rubocop:disable Style/AndOr
               Array === haystack
             haystack.include?(needle)
           else
@@ -430,7 +430,7 @@ module Datadog
             if cls.name == cls_name
               return true
             end
-            if supercls = cls.superclass # standard:disable Lint/AssignmentInCondition
+            if supercls = cls.superclass # rubocop:disable Lint/AssignmentInCondition
               cls = supercls
             else
               return false

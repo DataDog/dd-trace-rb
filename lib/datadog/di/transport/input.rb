@@ -110,7 +110,7 @@ module Datadog
                 encoded = pruned
               end
               encoded_snapshots << encoded
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
               # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
@@ -121,7 +121,7 @@ module Datadog
               if probe_id
                 begin
                   on_serialization_error.call(probe_id, exc)
-                rescue Exception => callback_exc # standard:disable Lint/RescueException
+                rescue Exception => callback_exc # rubocop:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(callback_exc)
                   logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc.message}" }
                   telemetry&.report(callback_exc, description: "Error in serialization error callback")
@@ -158,7 +158,7 @@ module Datadog
               # subsequent chunks are attempted to be sent.
               begin
                 send_input_chunk(chunked_payload, serialized_tags)
-              rescue Exception => exc # standard:disable Lint/RescueException
+              rescue Exception => exc # rubocop:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(exc)
                 logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
                 telemetry&.report(exc, description: "Error sending snapshot chunk")
@@ -189,7 +189,7 @@ module Datadog
                 "(#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
             end
             pruned
-          rescue Exception => exc # standard:disable Lint/RescueException
+          rescue Exception => exc # rubocop:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             logger.debug { "di: snapshot pruning failed: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
             telemetry&.report(exc, description: "Snapshot pruning failed")

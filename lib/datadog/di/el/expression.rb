@@ -26,7 +26,7 @@ module Datadog
 
           cls = Class.new(Evaluator)
           cls.class_exec do
-            eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
+            eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # rubocop:disable Security/Eval
               # Evaluates the compiled expression against +context+ within
               # the cooperative evaluation +evaluation_deadline+.
               #

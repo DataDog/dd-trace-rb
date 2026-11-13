@@ -87,7 +87,7 @@ module Datadog
         end
 
         perform_http_upload(compressed_data, scopes.size, upload_id: upload_id, batch_num: batch_num)
-      rescue Exception => e # standard:disable Lint/RescueException
+      rescue Exception => e # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: "symdb: upload failed")

@@ -86,7 +86,7 @@ module Datadog
               collection_size: limits[:collection_size],
               deadline: deadline,
             )
-          rescue Exception => exc # standard:disable Lint/RescueException
+          rescue Exception => exc # rubocop:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             if exc.is_a?(DI::Error::EvaluationTimeout) && capture_deadline_passed?(deadline)
               record_capture_timeout(output, name, probe)

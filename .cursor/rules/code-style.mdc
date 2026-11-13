@@ -32,8 +32,8 @@ alwaysApply: true
 
 ## Code Quality
 
-- @standardrb is used for code style enforcement
-- Run `STANDARDOPTS="path/file.rb spec/whole_dir" bundle exec rake standard` to check specific paths, and `STANDARDOPTS="..." rake standard:fix` to fix violations.
+- RuboCop enforces the vendored Standard ruleset with project overrides and custom cops.
+- Run `bundle exec rubocop path/file.rb spec/whole_dir` to check specific paths, and add `--autocorrect` to fix violations.
 - `bundle exec rake lint:frozen_string_literal`: on new `lib/` files only.
 - `yamllint --strict .`: on any `.yml` edit.
 - `actionlint`: on `.github/*.yml` edits.

@@ -84,7 +84,7 @@ RSpec.describe Datadog::ErrorTracking::Component do
       end
     end
 
-    # standard:disable Lint/UselessRescue
+    # rubocop:disable Lint/UselessRescue
     context "with a simple begin-rescue block" do
       let(:expected_exceptions) do
         [[{type: "RuntimeError", message: "this is an exception"}]]
@@ -240,7 +240,7 @@ RSpec.describe Datadog::ErrorTracking::Component do
 
       include_examples "span event validation"
     end
-    # standard:enable Lint/UselessRescue
+    # rubocop:enable Lint/UselessRescue
   end
 
   shared_examples "error tracking behavior" do |instrument_setting = nil, handled_errors_include = [], expected_errors = []|
