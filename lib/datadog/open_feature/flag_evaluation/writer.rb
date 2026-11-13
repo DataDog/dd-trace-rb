@@ -87,6 +87,8 @@ module Datadog
           runtime_default: nil, targeting_key: nil, attrs: nil, observe_full_evaluation_data: false,
           features: Aggregator::NO_FEATURES, **_event
         )
+          return if @stopped
+
           start_background_thread if forked?
 
           # Avoid snapshot work when the queue is already full.

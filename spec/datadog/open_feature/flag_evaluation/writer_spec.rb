@@ -1220,4 +1220,35 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         .to eq(::OpenFeature::SDK::EvaluationContext::TARGETING_KEY.to_s)
     end
   end
+  describe "shutdown after fork" do
+    let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    before { allow(transport).to receive(:send_flag_evaluations) }
+
+    it "rejects a late event after shutdown in a forked child" do
+      writer = described_class.new(transport: transport, logger: logger)
+      expect_in_fork do
+        writer.stop
+        writer.enqueue(flag_key: "late-child", eval_time_ms: 1_760_000_000_000, targeting_key: "synthetic-user")
+        restarted = writer.send(:running?)
+        writer.stop
+        expect(restarted).to eq(false)
+        expect(transport).not_to have_received(:send_flag_evaluations)
+      end
+    ensure
+      writer&.stop
+    end
+
+    it "restarts a live inherited writer in a forked child" do
+      writer = described_class.new(transport: transport, logger: logger)
+      expect_in_fork do
+        writer.enqueue(flag_key: "live-child", eval_time_ms: 1_760_000_000_000, targeting_key: "synthetic-user")
+        writer.stop
+        expect(transport).to have_received(:send_flag_evaluations)
+      end
+    ensure
+      writer&.stop
+    end
+  end
 end

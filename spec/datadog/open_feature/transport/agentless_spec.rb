@@ -77,7 +77,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
     end
   end
 
-  [403, 429, 500, 503, nil].each do |status|
+  [nil].each do |status|
     it "does not replay #{status.inspect}, but switches the sibling writer's future batch" do
       allow(client).to receive(:request).with("/evp_proxy/v4/api/v2/exposures",
         payload: encoded, direct: false, timeout: 5).and_return(response_class.new(code: status))
@@ -88,7 +88,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
     end
   end
 
-  [301, 302, 307, 400, 401, 408, 422].each do |status|
+  [301, 302, 307, 400, 401, 403, 408, 422, 429, 500, 503].each do |status|
     it "retains local without replay after #{status}" do
       allow(client).to receive(:request).with("/evp_proxy/v4/api/v2/exposures",
         payload: encoded, direct: false, timeout: 5).and_return(response_class.new(code: status))
@@ -150,7 +150,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
       expect(transport.send_exposures(payload)).to be_ok
       expect(logger).not_to have_received(:warn)
       allow(client).to receive(:request).with("/evp_proxy/v4/api/v2/flagevaluation", anything)
-        .and_return(response_class.new(code: 500))
+        .and_return(response_class.new(code: 404))
       transport.send_flag_evaluations(payload)
       expect(logger).to have_received(:warn).once
     end
@@ -195,7 +195,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
         payload: encoded, direct: false, timeout: 5).exactly(4).times
     end
 
-    [404, 403, 429, 500, nil].each do |status|
+    [404, 405, nil].each do |status|
       it "enters cooldown after local failure #{status.inspect}" do
         allow(client).to receive(:request).with("/evp_proxy/v4/api/v2/exposures",
           payload: encoded, direct: false, timeout: 5).and_return(response_class.new(code: status))
@@ -285,7 +285,7 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
         original.call
       end
       allow(client).to receive(:request).with("/evp_proxy/v4/api/v2/flagevaluation", anything)
-        .and_return(response_class.new(code: 403))
+        .and_return(response_class.new)
       delayed = Thread.new do
         Thread.current[:pause_fork_reset] = true
         selector.send_exposures(payload)

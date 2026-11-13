@@ -53,8 +53,7 @@ module Datadog
           return Response.new unless route
 
           response = send_once(route, path, encoded)
-          if route != :direct && (response.internal_error? || [403, 404, 405, 429].include?(response.code) ||
-              response.code&.between?(500, 599))
+          if route != :direct && (response.internal_error? || [404, 405].include?(response.code))
             fallback = leave_local(route)
             if fallback && (response.pre_send? || [404, 405].include?(response.code))
               response = send_once(:direct, path, encoded)

@@ -287,6 +287,44 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
       receiver&.join(1)
     end
 
+    it "closes a connection when exposure shutdown starts during TLS setup" do
+      require "datadog/open_feature/transport/agentless"
+      require "datadog/open_feature/exposures/worker"
+      settings = Datadog::Core::Configuration::Settings.new
+      local = Datadog::Core::Configuration::AgentSettings.new(adapter: :net_http,
+        hostname: "127.0.0.1", port: server.addr[1], ssl: true)
+      logger = instance_double(Datadog::Core::Logger, debug: nil, warn: nil)
+      telemetry = instance_double(Datadog::Core::Telemetry::Component)
+      transport = Datadog::OpenFeature::Transport::Agentless.new(agent_settings: local,
+        site: nil, api_key: nil, logger: logger)
+      worker = Datadog::OpenFeature::Exposures::Worker.new(settings: settings,
+        transport: transport, logger: logger, telemetry: telemetry)
+      entered = Queue.new
+      receiver = Thread.new do
+        socket = server.accept
+        begin
+          socket.readpartial(4096)
+          entered << true
+          socket.read
+        ensure
+          socket.close
+        end
+      end
+      previously_disabled = GC.disable
+      worker.enqueue(timestamp: 1_735_689_600_000, allocation: {key: "control"},
+        flag: {key: "demo-flag"}, variant: {key: "v1"}, subject: {id: "synthetic-user", attributes: {}})
+      Timeout.timeout(1) { entered.pop }
+      worker.graceful_shutdown
+      expect(worker).not_to be_running
+      expect(receiver.join(1)).to eq(receiver)
+    ensure
+      GC.enable unless previously_disabled
+      worker&.stop(true, 0.1)
+      worker&.join(1)
+      receiver&.kill
+      receiver&.join(1)
+    end
+
     it "closes a connection that times out during TLS negotiation without waiting for GC" do
       settings = Datadog::Core::Configuration::AgentSettings.new(adapter: :net_http,
         hostname: "127.0.0.1", port: server.addr[1], ssl: true)

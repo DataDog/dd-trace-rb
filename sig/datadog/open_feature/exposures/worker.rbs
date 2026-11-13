@@ -10,6 +10,8 @@ module Datadog
 
         GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS: Integer
 
+        GRACEFUL_SHUTDOWN_EXTRA_SECONDS: Integer
+
         DEFAULT_FLUSH_INTERVAL_SECONDS: Integer
 
         DEFAULT_BUFFER_LIMIT: Integer
@@ -31,7 +33,7 @@ module Datadog
 
         def start: () -> void
 
-        def stop: (?bool, ?Integer) -> bool
+        def stop: (?bool, ?Numeric) -> bool
 
         def enqueue: (Event::t event) -> bool
 

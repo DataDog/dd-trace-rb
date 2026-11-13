@@ -195,6 +195,20 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   end
 
   describe "#graceful_shutdown" do
+    it "preserves the Agent transport shutdown wait budget" do
+      agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(settings)
+      agent_transport = Datadog::OpenFeature::Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
+      agent_worker = described_class.new(settings: settings, transport: agent_transport,
+        telemetry: telemetry, logger: logger)
+      allow(agent_worker).to receive(:stop).and_call_original
+      expect(agent_worker).to receive(:stop).with(true, 35).and_call_original
+
+      agent_worker.graceful_shutdown
+    ensure
+      agent_worker&.stop(true, 0.1)
+      agent_worker&.join(1)
+    end
+
     it "bounds shutdown even when a delivery cannot finish" do
       stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS", 0.1)
       entered = Queue.new
@@ -226,9 +240,9 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       allow(worker).to receive(:stop).and_wrap_original { |method, force, _timeout| method.call(force, 0) }
       worker.graceful_shutdown
       expect(worker).not_to be_running
-      expect(debug_messages).to include("Feature Flags: exposure worker stopping; queued=0, upload_in_progress=true, wait_budget=3s")
+      expect(debug_messages).to include("Feature Flags: exposure worker stopping; queued=0, upload_in_progress=true, wait_budget=6s")
       expect(debug_messages.last(2)).to eq([
-        "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=false, wait_budget=3s; no queued exposure events remain",
+        "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=false, wait_budget=6s; no queued exposure events remain",
         "Feature Flags: exposure worker stopped",
       ])
     ensure

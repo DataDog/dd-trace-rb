@@ -15,7 +15,9 @@ module Datadog
         include Core::Workers::Queue
         include Core::Workers::Polling
 
-        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 3
+        # Let the five-second agentless request timeout close sockets before forced termination.
+        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 6
+        GRACEFUL_SHUTDOWN_EXTRA_SECONDS = 5
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -77,12 +79,17 @@ module Datadog
 
         def graceful_shutdown
           buffer.close
+          wait_time = if @transport.is_a?(Transport::HTTP)
+            loop_base_interval + GRACEFUL_SHUTDOWN_EXTRA_SECONDS
+          else
+            GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS
+          end
           @logger.debug do
             "Feature Flags: exposure worker stopping; queued=#{buffer.length}, " \
-              "upload_in_progress=#{!!in_iteration?}, wait_budget=#{GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS}s"
+              "upload_in_progress=#{!!in_iteration?}, wait_budget=#{wait_time}s"
           end
-          stopped = stop(true, GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
-          log_shutdown_outcome(GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
+          stopped = stop(true, wait_time)
+          log_shutdown_outcome(wait_time)
           @logger.debug("Feature Flags: exposure worker stopped") unless running?
           stopped
         ensure
