@@ -86,7 +86,9 @@ module Datadog
           id: config.fetch("id"),
           type: type_symbol,
           file: config["where"]&.[]("sourceFile"),
-          line_no: parse_line_no(config, type_symbol),
+          # Sometimes lines are sometimes received as an array of nil
+          # for some reason.
+          line_no: config["where"]&.[]("lines")&.compact&.map(&:to_i)&.first,
           type_name: config["where"]&.[]("typeName"),
           method_name: config["where"]&.[]("methodName"),
           # We should not be using the template for anything - we instead
@@ -165,33 +167,6 @@ module Datadog
         end
 
         [kind, config["metricName"], value, tags]
-      end
-
-      # Returns the line number of the first entry of the probe's
-      # where.lines, or nil when the probe has no line entry.
-      #
-      # Sometimes lines are received as an array of nil, which yields no
-      # entry. Log probes take the leading digits of the entry. Metric
-      # probes require a decimal integer, so a range such as "10-12"
-      # fails the probe: Java and PHP instrument every entry and both
-      # ends of a range, .NET accepts exactly one entry, and Python fails
-      # the probe when its first entry is a range, as Ruby does.
-      #
-      # @param config [Hash] remote configuration probe specification
-      # @param type_symbol [Symbol] the probe type
-      # @return [Integer, nil] the line number
-      # @raise [ArgumentError] when the first entry of a metric probe holds
-      #   no decimal integer
-      def self.parse_line_no(config, type_symbol)
-        entry = config["where"]&.[]("lines")&.compact&.first
-        return if entry.nil?
-        return entry.to_i unless type_symbol == :metric
-
-        begin
-          Integer(entry.to_s, 10)
-        rescue ArgumentError
-          raise ArgumentError, "Line entry #{entry.inspect} of metric probe #{config["id"]} holds no decimal integer"
-        end
       end
 
       def self.dedup_capture_expressions(capture_expressions, probe_id, logger)

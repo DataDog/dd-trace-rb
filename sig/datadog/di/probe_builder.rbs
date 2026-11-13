@@ -17,8 +17,6 @@ module Datadog
 
       def self.build_metric_fields: (Hash[String, untyped] config) -> [(:count | :gauge | :histogram | :distribution), String?, DI::EL::Expression?, Array[String]]
 
-      def self.parse_line_no: (Hash[String, untyped] config, Symbol type_symbol) -> Integer?
-
       def self.dedup_capture_expressions: (Array[CaptureExpression] capture_expressions, String? probe_id, DI::Logger logger) -> Array[CaptureExpression]
 
       def self.build_capture_limits: (Hash[String, untyped]? raw) -> CaptureLimits?
