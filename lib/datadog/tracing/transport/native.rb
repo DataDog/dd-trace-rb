@@ -113,39 +113,22 @@ module Datadog
             # runtime before forking and restore it afterwards in both the parent
             # and the child (where the inherited runtime is dead).
             #
-            # A libdatadog Rust call must NOT be interrupted by `fork()`. A
-            # native send releases the GVL during the Rust
-            # `ddog_trace_exporter_send_trace_chunks` call, so if another thread
-            # forks while a (typically the writer/`AsyncTransport`) thread is
-            # mid-send, the child would inherit a half-completed send and
-            # Rust-internal locks, deadlocking or crashing. `_native_before_fork`
-            # also tears down and replaces the runtime, so it must not run while
-            # a send is still using that runtime.
+            # A native send releases the GVL. Forking before it unwinds could
+            # leave the child with Rust locks held by a vanished thread.
             #
             # `@fork_mutex` serializes concurrent forks for this exporter. The
             # `:before` hook locks it first, then calls `_native_before_fork`,
             # and finally locks `@send_mutex`, which serializes sends and is
-            # held across the fork. Sends and #close only acquire @send_mutex,
-            # so there is no lock-order inversion.
+            # held across the fork. Close takes the same lock order; sends take
+            # only @send_mutex and cannot close the transport re-entrantly.
             #
-            # `_native_before_fork` must run before locking `@send_mutex` to
-            # pause the runtime before waiting for an in-flight send to drain.
-            # The hook first calls
-            # `_native_before_fork` to pause the runtime, THEN locks the mutex.
-            # This ordering minimizes the serialized section and is safe to run
-            # concurrently with an in-flight send: `block_on` (used by
-            # `send_trace_chunks`) only briefly locks the runtime mutex to clone
-            # the `Arc<Runtime>` (or build a throwaway `current_thread` runtime
-            # if it has been taken) and then drives the send on its own clone
-            # holding no mutex, while `_native_before_fork` just `take()`s the
-            # shared `Arc` and pauses workers -- so neither deadlocks the other.
-            # Locking the mutex AFTER `_native_before_fork` still guarantees the
-            # drain: it BLOCKS until any in-flight send finishes (bounded by the
-            # exporter's request timeout), which drops the send's last `Arc` and
-            # fully shuts the runtime down, and prevents new sends from starting.
-            # The lock is released in the `:parent` and `:child` hooks. In
-            # practice only one writer thread sends, so serializing adds no real
-            # contention.
+            # Cancel before waiting for @send_mutex, so split batches stop
+            # dispatching. Unattempted chunks are discarded; in-flight delivery
+            # is uncertain. The mutex waits for cleanup, not delivery, before
+            # the fork. The send drives its own Arc<Runtime> without holding the
+            # runtime mutex, so worker pause and cancellation can run concurrently.
+            # Parent/child hooks restore admission even after a clean restart
+            # failure: subsequent sends can use libdatadog's temporary runtime.
             #
             # Note: the `:before` block runs before genuine forks (web-server
             # workers, `Process.daemon`) that go through `Process._fork`. It
@@ -168,11 +151,7 @@ module Datadog
               fork_mutex.lock
 
               begin
-                # Pause the runtime first (safe to run concurrently with an
-                # in-flight send), then wait for it to drain by acquiring the
-                # mutex. The lock must happen even if `_native_before_fork` raises, so the
-                # in-flight send has returned before the fork. Held across the
-                # fork; released in :parent/:child.
+                # The send must unwind before fork even if worker pause fails.
                 exporter._native_before_fork
               rescue => e
                 Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
@@ -229,22 +208,29 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
+            raise ThreadError, "Cannot close native transport from its sending thread" if @send_mutex.owned?
             @fork_mutex.synchronize do
-              @send_mutex.synchronize do
-                hooks = @fork_hooks
-                return if hooks.nil?
+              exporter = @exporter
+              begin
+                exporter&._native_cancel_pending
+                @send_mutex.synchronize do
+                  hooks = @fork_hooks
+                  return if hooks.nil?
 
-                begin
-                  @exporter&._native_close
-                ensure
-                  @fork_hooks = nil
-                  @telemetry = nil
-                  @exporter = nil
-                  hooks.each do |stage, block|
-                    Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                  begin
+                    @exporter&._native_close
+                  ensure
+                    @fork_hooks = nil
+                    @telemetry = nil
+                    @exporter = nil
+                    hooks.each do |stage, block|
+                      Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                    end
+                    ObjectSpace.undefine_finalizer(self)
                   end
-                  ObjectSpace.undefine_finalizer(self)
                 end
+              ensure
+                exporter&._native_resume_sends if @exporter.equal?(exporter)
               end
             end
 
@@ -287,18 +273,19 @@ module Datadog
             native_events_supported = native_events_supported?
             apply_legacy_span_events!(chunks, native_events_supported)
 
-            # Serialize the native send and hold the mutex across it so a
-            # concurrent fork's :before hook blocks until this send drains
-            # (and `_native_before_fork` cannot tear down the runtime mid-send).
+            # Fork preparation cancels and pauses first, then acquires this mutex
+            # to ensure the sender has unwound before the process forks.
             # `Mutex#synchronize` releases on exception / `rb_jump_tag` via its
             # ensure, so interrupt propagation stays correct.
             responses = @send_mutex.synchronize do
               # Resolve the exporter under the same lock used by #close, so
-              # close either drains this send or prevents it from starting.
+              # close cannot free the exporter while this sender unwinds.
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
               exporter._native_send_traces(chunks, native_events_supported) do |observations|
+                dropped = observations.fetch(:chunks_dropped_payload_too_large, 0)
+                Datadog.health_metrics.transport_trace_too_large(dropped) if dropped > 0
                 @telemetry&.record(observations)
               end
             end

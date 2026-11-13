@@ -26,6 +26,10 @@ module Datadog
 
           def _native_close: () -> nil
 
+          def _native_cancel_pending: () -> nil
+
+          def _native_resume_sends: () -> nil
+
           def _native_before_fork: () -> void
           def _native_after_fork_in_parent: () -> void
           def _native_after_fork_in_child: () -> void
