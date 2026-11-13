@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6676",
+  "message": "Fix a race that could leave probe snapshots and statuses unsent, or stop them from being sent for the rest of the process."
+}

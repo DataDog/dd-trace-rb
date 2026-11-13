@@ -161,7 +161,7 @@ module Datadog
       #
       # @return [void]
       def start!
-        @lifecycle_mutex.synchronize do
+        lifecycle_mutex.synchronize do
           return if @started
 
           # DI.activate_tracking creates the global code tracker lazily. When DI
@@ -187,7 +187,7 @@ module Datadog
       #
       # @return [void]
       def stop!
-        @lifecycle_mutex.synchronize do
+        lifecycle_mutex.synchronize do
           return unless @started
 
           probe_manager.stop
@@ -302,7 +302,7 @@ module Datadog
         # one another. Without the mutex an in-flight stop! from an RC
         # callback could complete after shutdown!'s probe_manager.close,
         # producing an inconsistent state.
-        @lifecycle_mutex.synchronize do
+        lifecycle_mutex.synchronize do
           @started = false
           probe_manager.clear_hooks
           probe_manager.close
@@ -333,6 +333,11 @@ module Datadog
         probe_notifier_worker.add_status(payload, probe: probe)
         probe
       end
+
+      private
+
+      # @return [Thread::Mutex] the mutex that serializes start!, stop! and shutdown!
+      attr_reader :lifecycle_mutex
     end
   end
 end

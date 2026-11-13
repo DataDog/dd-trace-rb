@@ -50,13 +50,11 @@ module Datadog
         @lock = Mutex.new
         @wake = Core::Semaphore.new
         @io_in_progress = false
-        @sleep_remaining = nil
         @wake_scheduled = false
         @thread = nil
         @status_transport = nil
         @snapshot_transport = nil
         @pid = nil
-        @flush = 0
         @probe_repository = probe_repository
         @probe_notification_builder = probe_notification_builder
         # The worker thread reads these options on every send cycle. Option
@@ -99,26 +97,6 @@ module Datadog
             # and then quit?
             break if @stop_requested
 
-            # If a flush was requested, send immediately and do not
-            # wait for the cooldown period.
-            if @lock.synchronize { @flush } == 0
-              sleep_remaining = @lock.synchronize do
-                if sleep_remaining && sleep_remaining > 0
-                  # Recalculate how much sleep time is remaining, then sleep that long.
-                  set_sleep_remaining
-                else
-                  0
-                end
-              end
-
-              if sleep_remaining > 0
-                # Do not need to update @wake_scheduled here because
-                # wake-up is already scheduled for the earliest possible time.
-                wake.wait(sleep_remaining)
-                next
-              end
-            end
-
             begin
               more = maybe_send
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -131,7 +109,11 @@ module Datadog
             @lock.synchronize do
               @wake_scheduled = more
             end
-            wake.wait(more ? min_send_interval : nil)
+            # Bounded even when idle: add_status and add_snapshot skip the
+            # signal while @wake_scheduled is set, and a signal sent before
+            # this thread starts waiting is lost. An unbounded wait would
+            # leave events queued in either window unsent.
+            wake.wait(min_send_interval)
           end
         end
         @pid = Process.pid
@@ -140,7 +122,8 @@ module Datadog
       # Stops the background thread.
       #
       # Attempts a graceful stop with the specified timeout, then falls back
-      # to killing the thread using Thread#kill.
+      # to killing the thread using Thread#kill and waits up to the same
+      # timeout for the killed thread to finish.
       def stop(timeout = 1)
         @stop_requested = true
         logger.trace { "di: stopping probe notifier: pid #{$$}" }
@@ -148,6 +131,7 @@ module Datadog
         if thread
           unless thread.join(timeout)
             thread.kill
+            thread.join(timeout)
           end
           @thread = nil
         end
@@ -165,35 +149,26 @@ module Datadog
       # been sent out, and could be used for graceful stopping of the
       # worker thread.
       def flush
-        @lock.synchronize do
-          @flush += 1
-        end
-        begin
-          loop do
-            if @thread.nil? || !@thread.alive?
-              return
-            end
-
-            io_in_progress, queues_empty = @lock.synchronize do
-              [io_in_progress?, status_queue.empty? && snapshot_queue.empty?]
-            end
-
-            if io_in_progress
-              # If we just call Thread.pass we could be in a busy loop -
-              # add a sleep.
-              sleep 0.25
-              next
-            elsif queues_empty
-              break
-            else
-              wake.signal
-              sleep 0.25
-              next
-            end
+        loop do
+          if @thread.nil? || !@thread.alive?
+            return
           end
-        ensure
-          @lock.synchronize do
-            @flush -= 1
+
+          io_in_progress, queues_empty = @lock.synchronize do
+            [io_in_progress?, status_queue.empty? && snapshot_queue.empty?]
+          end
+
+          if io_in_progress
+            # If we just call Thread.pass we could be in a busy loop -
+            # add a sleep.
+            sleep 0.25
+            next
+          elsif queues_empty
+            break
+          else
+            wake.signal
+            sleep 0.25
+            next
           end
         end
       end
@@ -212,8 +187,6 @@ module Datadog
       def io_in_progress?
         @io_in_progress
       end
-
-      attr_reader :last_sent
 
       # Builds and memoizes the diagnostics transport for status events.
       #
@@ -359,7 +332,6 @@ module Datadog
             @lock.synchronize do
               unless @wake_scheduled
                 @wake_scheduled = true
-                set_sleep_remaining
                 wake.signal
               end
             end
@@ -394,10 +366,6 @@ module Datadog
             begin
               logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" }
               send("do_send_#{event_type}", batch)
-              time = Core::Utils::Time.get_time
-              @lock.synchronize do
-                @last_sent = time
-              end
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -416,20 +384,6 @@ module Datadog
           @lock.synchronize do
             @io_in_progress = false
           end
-        end
-      end
-
-      # Determine how much longer the worker thread should sleep
-      # so as not to send in less than min send interval since the last send.
-      # Important: this method must be called when @lock is held.
-      #
-      # Returns the time remaining to sleep.
-      def set_sleep_remaining
-        now = Core::Utils::Time.get_time
-        @sleep_remaining = if last_sent
-          [last_sent + min_send_interval - now, 0].max
-        else
-          0
         end
       end
 
