@@ -195,6 +195,20 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       end
     end
 
+    context "when id is not a String" do
+      let(:rc_probe_spec) do
+        {"id" => 42,
+         "type" => "LOG_PROBE",
+         "where" => {"typeName" => "Foo", "methodName" => "bar"}}
+      end
+
+      it "raises Configuration::Error with the offending value" do
+        expect do
+          probe
+        end.to raise_error(Datadog::Core::Remote::Configuration::Error, "Invalid type for id: expected String: 42")
+      end
+    end
+
     context "capture expressions" do
       let(:base_spec) do
         {
@@ -291,8 +305,8 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           base_spec.merge("captureExpressions" => 5)
         end
 
-        it "raises ArgumentError with the offending type" do
-          expect { probe }.to raise_error(ArgumentError, /captureExpressions must be an array, got: Integer/)
+        it "raises Configuration::Error with the offending value" do
+          expect { probe }.to raise_error(Datadog::Core::Remote::Configuration::Error, /Invalid type for captureExpressions: expected Array: 5/)
         end
       end
 
@@ -345,8 +359,8 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           base_spec.merge("captureExpressions" => {"name" => "x"})
         end
 
-        it "raises ArgumentError" do
-          expect { probe }.to raise_error(ArgumentError, /captureExpressions must be an array/)
+        it "raises Configuration::Error" do
+          expect { probe }.to raise_error(Datadog::Core::Remote::Configuration::Error, /Invalid type for captureExpressions: expected Array/)
         end
       end
 
@@ -355,8 +369,8 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           base_spec.merge("captureExpressions" => ["not-a-hash"])
         end
 
-        it "raises ArgumentError" do
-          expect { probe }.to raise_error(ArgumentError, /captureExpressions entry must be a hash/)
+        it "raises Configuration::Error" do
+          expect { probe }.to raise_error(Datadog::Core::Remote::Configuration::Error, /Invalid type for captureExpressions entry: expected Hash/)
         end
       end
 
@@ -367,8 +381,8 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           ])
         end
 
-        it "raises ArgumentError" do
-          expect { probe }.to raise_error(ArgumentError, /capture-expression entry capture must be a hash/)
+        it "raises Configuration::Error" do
+          expect { probe }.to raise_error(Datadog::Core::Remote::Configuration::Error, /Invalid type for capture: expected Hash/)
         end
       end
     end
@@ -432,6 +446,40 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           end
           probe
         end
+      end
+    end
+  end
+
+  describe ".fetch_probe_id" do
+    let(:probe_id) do
+      described_class.fetch_probe_id(probe_spec)
+    end
+
+    context "when id is a String" do
+      let(:probe_spec) { {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe"} }
+
+      it "returns the id" do
+        expect(probe_id).to eq("3ecfd456-2d7c-4359-a51f-d4cc44141ffe")
+      end
+    end
+
+    context "when id is an Integer" do
+      let(:probe_spec) { {"id" => 42} }
+
+      it "raises Configuration::Error with the offending value" do
+        expect do
+          probe_id
+        end.to raise_error(Datadog::Core::Remote::Configuration::Error, "Invalid type for id: expected String: 42")
+      end
+    end
+
+    context "when id is absent" do
+      let(:probe_spec) { {} }
+
+      it "raises KeyError" do
+        expect do
+          probe_id
+        end.to raise_error(KeyError, /id/)
       end
     end
   end
