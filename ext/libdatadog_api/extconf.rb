@@ -46,6 +46,11 @@ append_cflags "-Werror" if ENV["DATADOG_GEM_CI"] == "true"
 # `-Wtypedef-redefinition` errors under C11/gnu11. Keep it a warning until a fixed
 # header lands upstream in libdatadog/libdatadog-rb. Remove this once that ships.
 append_cflags "-Wno-error=typedef-redefinition" if ENV["DATADOG_GEM_CI"] == "true"
+# libdatadog v49 deprecated ddog_trace_exporter_config_* in favour of a new
+# ddog_trace_exporter_builder_* API, but ddog_trace_exporter_config_enable_observations
+# has no builder equivalent yet. We can't migrate trace_exporter.c piecemeal at the
+# current moment because the Config and Builder are separate types.
+append_cflags "-Wno-error=deprecated-declarations" if ENV["DATADOG_GEM_CI"] == "true"
 
 unless try_cflags("-std=gnu11")
   skip_building_extension!(
