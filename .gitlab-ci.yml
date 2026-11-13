@@ -51,13 +51,14 @@ default:
   # where plain "**" does not match nested files like lib/datadog/tracing.rb.
   - lib/**/*
   - ext/**/*
+  - bin/**/*
   - datadog.gemspec
-  - Gemfile.lock
   - .gitlab-ci.yml
   - .gitlab/install_datadog_deps.rb
+  - .gitlab/patch_gem_version.sh
   - .gitlab/prepare-oci-package.sh
   - .gitlab/one-pipeline.locked.yml
-  - lib-injection/requirements.json
+  - lib-injection/**/*
 
 workflow:
   auto_cancel:
