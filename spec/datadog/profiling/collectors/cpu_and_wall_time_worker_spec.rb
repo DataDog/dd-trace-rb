@@ -2772,6 +2772,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       described_class::Testing._native_miteruby_read_sample_headers
 
       empty_usage = {
+        miteruby_allocator_requested_bytes: be > 0,
         miteruby_interned_events_queue_used_size_bytes: 0,
         miteruby_mark_threads_entries: 0,
         miteruby_mark_function_entries: 0,
