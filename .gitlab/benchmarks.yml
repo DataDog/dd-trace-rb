@@ -5,11 +5,28 @@
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
-  BASE_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb
+  # Microbenchmarks CI image, consumed by the microbenchmark jobs below. Repin to the
+  # tag pushed by a `build-benchmark-ci-images` run after changing anything in
+  # `.gitlab/benchmarks/container/` (see `.gitlab/benchmarks/README.md`).
+  MICROBENCHMARKS_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb-152903368
+  # The Dockerfile is located at: .gitlab/benchmarks/container/Dockerfile
+  # Image build, consumed by the included build-ci-images template. The per-pipeline
+  # suffix pins each build to a unique tag so a rebuild can't shift what older
+  # pipelines pulled.
+  BASE_CI_IMAGE_SUFFIX: dd-trace-rb-${CI_PIPELINE_ID}
+  BASE_CI_IMAGE_CONTAINER_DIR: .gitlab/benchmarks/container
+  # The dd-trace-rb-base image is amd64 only; the template defaults to multi-arch.
+  BASE_CI_IMAGE_PLATFORM: linux/amd64
 
 # -----------------------------------------------------
 # Macrobenchmarks
 # -----------------------------------------------------
+
+
+# The template puts this job in the ci-image stage; run it next to the
+# benchmarks it builds for instead.
+build-benchmark-ci-images:
+  stage: microbenchmarks
 
 .macrobenchmarks:
   stage: macrobenchmarks
@@ -211,6 +228,8 @@ ddprof-benchmark:
 # Choose which benchmarks to execute, with how many CPUs, on what CI job
 include:
   - local: benchmarks/execution.yml
+  - project: "DataDog/benchmarking-platform-tools"
+    file: "images/templates/gitlab/build-ci-images.template.yml"
 
 .microbenchmark-rules: &microbenchmark-rules
   # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
@@ -238,7 +257,7 @@ microbenchmarks:
   when: always
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
-  image: $BASE_CI_IMAGE
+  image: $MICROBENCHMARKS_CI_IMAGE
   rules: *microbenchmark-rules
   timeout: 1h
   variables:
@@ -275,13 +294,7 @@ microbenchmarks:
         exit 1
       fi
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - |
-      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
-        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
-        exit 1
-      fi
-    - cd platform
-    - bp-runner ../.gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
+    - bp-runner .gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
   artifacts:
     name: "artifacts"
     when: always
@@ -294,7 +307,7 @@ open-feature-microbenchmarks:
   when: manual
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
-  image: $BASE_CI_IMAGE
+  image: $MICROBENCHMARKS_CI_IMAGE
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
       when: manual
@@ -336,13 +349,7 @@ open-feature-microbenchmarks:
         exit 1
       fi
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - |
-      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
-        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
-        exit 1
-      fi
-    - cd platform
-    - bp-runner ../.gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
+    - bp-runner .gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
   artifacts:
     name: "artifacts"
     when: always
@@ -360,7 +367,7 @@ microbenchmarks-pr-comment:
     - job: open-feature-microbenchmarks
       optional: true
   tags: ["arch:amd64"]
-  image: $BASE_CI_IMAGE
+  image: $MICROBENCHMARKS_CI_IMAGE
   timeout: 30m
   variables:
     # In percent, how much the confidence intervals of
@@ -379,13 +386,7 @@ microbenchmarks-pr-comment:
         exit 1
       fi
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - |
-      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
-        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
-        exit 1
-      fi
-    - cd platform
-    - bp-runner bp-runner.pr-comment.yml --debug
+    - bp-runner .gitlab/benchmarks/bp-runner.pr-comment.yml --debug
   artifacts:
     name: "artifacts"
     when: always
@@ -402,7 +403,7 @@ microbenchmarks-check-big-regressions:
     - job: microbenchmarks
       optional: true
   tags: ["arch:amd64"]
-  image: $BASE_CI_IMAGE
+  image: $MICROBENCHMARKS_CI_IMAGE
   timeout: 30m
   allow_failure: false
   rules: *microbenchmark-rules
