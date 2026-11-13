@@ -1,3 +1,5 @@
+#include <ruby.h>
+
 #include "allocator.h"
 #include "raw_events_queue_marking.h"
 #include "consumer.h"
@@ -81,7 +83,13 @@ typedef struct {
   size_t interned_events_capacity;
 } miteruby_consumer_state_t;
 
-static miteruby_consumer_state_t consumer_state = {0};
+static miteruby_consumer_state_t consumer_state = {
+  #ifdef __APPLE__
+    .mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER,
+  #else
+    .mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,
+  #endif
+};
 
 typedef struct {
   miteruby_raw_events_queue_t *raw_events_queue;
@@ -269,19 +277,6 @@ miteruby_raw_events_queue_t *miteruby_consumer_init(void) {
     int error = errno;
     miteruby_allocator_free(&raw_events_queue);
     raise_syserr(error, "Failed to initialize miteruby raw events queue");
-  }
-
-  pthread_mutexattr_t mutex_attributes;
-  int mutex_error = pthread_mutexattr_init(&mutex_attributes);
-  if (mutex_error == 0) {
-    mutex_error = pthread_mutexattr_settype(&mutex_attributes, PTHREAD_MUTEX_RECURSIVE);
-    if (mutex_error == 0) mutex_error = pthread_mutex_init(&consumer_state.mutex, &mutex_attributes);
-    pthread_mutexattr_destroy(&mutex_attributes);
-  }
-  if (mutex_error != 0) {
-    miteruby_raw_events_queue_destroy(raw_events_queue);
-    miteruby_allocator_free(&raw_events_queue);
-    rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
   }
 
   consumer_state.raw_events_queue = raw_events_queue;
