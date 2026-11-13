@@ -237,8 +237,78 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker.start
       end
 
+      let(:sending) { Queue.new }
+      let(:release_send) { Queue.new }
+      after { release_send << true }
+
       it "stops the thread" do
         worker.stop
+        expect(worker.send(:thread)).to be nil
+      end
+
+      it "sends queued snapshots and statuses immediately when stopping" do
+        allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(3600)
+        allow(input_transport).to receive(:send_input)
+        allow(diagnostics_transport).to receive(:send_diagnostics)
+        worker.add_snapshot({first: true}, probe: probe)
+        worker.flush
+
+        snapshot = {last: true}
+        status = {status: "received"}
+        worker.add_snapshot(snapshot, probe: probe)
+        worker.add_status(status)
+        worker.stop
+
+        expect(input_transport).to have_received(:send_input).with(
+          [an_object_having_attributes(payload: snapshot)], anything, anything,
+        )
+        expect(diagnostics_transport).to have_received(:send_diagnostics).with([status])
+        expect(worker.send(:snapshot_queue)).to be_empty
+        expect(worker.send(:status_queue)).to be_empty
+      end
+
+      it "finishes an in-flight send and drains snapshots queued behind it" do
+        stopping = Queue.new
+        batches = []
+        allow(input_transport).to receive(:send_input) do |snapshots, *_args|
+          batches << snapshots.map(&:payload)
+          if batches.length == 1
+            sending << true
+            release_send.pop
+          end
+        end
+        allow(logger).to receive(:trace) do |&block|
+          stopping << true if block.call.start_with?("di: stopping probe notifier:")
+        end
+
+        worker.add_snapshot({first: true}, probe: probe)
+        Timeout.timeout(2) { sending.pop }
+        worker.add_snapshot({last: true}, probe: probe)
+        stop_thread = Thread.new { worker.stop }
+        Timeout.timeout(2) { stopping.pop }
+        release_send << true
+
+        expect(stop_thread.join(2)).to eq(stop_thread)
+        expect(batches).to eq([[{first: true}], [{last: true}]])
+        expect(worker.send(:thread)).to be nil
+      ensure
+        stop_thread&.kill
+        stop_thread&.join
+      end
+
+      it "bounds shutdown when a send does not finish" do
+        allow(input_transport).to receive(:send_input) do
+          sending << true
+          release_send.pop
+        end
+        worker.add_snapshot({hello: "world"}, probe: probe)
+        Timeout.timeout(2) { sending.pop }
+        worker_thread = worker.send(:thread)
+
+        expect_lazy_log(logger, :debug, /did not stop within/)
+        Timeout.timeout(2) { worker.stop(0.01) }
+
+        expect(worker_thread.join(2)).to eq(worker_thread)
         expect(worker.send(:thread)).to be nil
       end
     end
