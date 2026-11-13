@@ -100,7 +100,7 @@ module Datadog
 
             private
 
-            # Traces connection setup, including the TLS handshake for HTTPS.
+            # Traces connection setup.
             #
             # Net::HTTP declares +connect+ as private; the override keeps that visibility.
             def connect
