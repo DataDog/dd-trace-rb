@@ -13,6 +13,8 @@ static void miteruby_raw_events_queue_mark_event(const uint64_t *data) {
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)data;
 
   // Layout assertions here and in event.h enforce contiguous VALUE-sized slots without padding.
+  //
+  // TODO: Separate out the thread, use marking there
   rb_gc_mark_locations(&event->thread.value, (const VALUE *)&event->frames[event->header.frame_count]);
 }
 
