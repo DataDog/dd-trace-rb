@@ -375,14 +375,6 @@ RSpec.describe Datadog::DI::Remote do
         instance_double_agent_settings
       end
 
-      let(:transport) do
-        instance_double(Datadog::DI::Transport)
-      end
-
-      let(:notifier_worker) do
-        Datadog::DI::ProbeNotifierWorker.new(settings, agent_settings, transport)
-      end
-
       let(:stringified_probe_spec) do
         JSON.parse(probe_spec.to_json)
       end
