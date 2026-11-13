@@ -34,12 +34,6 @@ module Datadog
 
         def enabled=: (untyped enabled) -> void
 
-        def default_hostname: () -> String
-
-        def default_port: () -> Integer
-
-        def default_statsd_client: () -> untyped
-
         def configure: (?Hash[untyped, untyped] options) -> void
 
         def send_stats?: () -> bool
@@ -55,8 +49,6 @@ module Datadog
         def time: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
 
         def send_metrics: (Array[Metric] metrics) -> void
-
-        def close: () -> (untyped | nil)
 
         private
 

@@ -11,7 +11,6 @@ RSpec.describe Datadog::Core::Metrics::Client do
   let(:options) { {statsd: statsd} }
 
   subject(:metrics) { described_class.new(telemetry: telemetry, logger: logger, **options) }
-  after { metrics.close }
 
   it { is_expected.to have_attributes(statsd: statsd) }
 
@@ -42,12 +41,10 @@ RSpec.describe Datadog::Core::Metrics::Client do
       context "when no statsd instance is provided" do
         let(:options) { {} }
 
-        after do
-          metrics.close
-        end
+        it "uses no client" do
+          expect(Datadog::Statsd).to_not receive(:new)
 
-        it "creates a new instance" do
-          expect(metrics.statsd).to_not be nil
+          expect(metrics.statsd).to be nil
         end
       end
 
@@ -214,91 +211,6 @@ RSpec.describe Datadog::Core::Metrics::Client do
       let(:status) { nil }
 
       it { is_expected.to be false }
-    end
-  end
-
-  describe "#default_hostname" do
-    subject(:default_hostname) { metrics.default_hostname }
-
-    context "when environment variable is" do
-      context "set" do
-        let(:value) { "my-hostname" }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => value) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(value) }
-      end
-
-      context "not set" do
-        with_env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil
-
-        it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_HOST) }
-      end
-    end
-  end
-
-  describe "#default_port" do
-    subject(:default_port) { metrics.default_port }
-
-    context "when environment variable is" do
-      context "set" do
-        let(:value) { "1234" }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => value) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(value.to_i) }
-      end
-
-      context "not set" do
-        with_env Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil
-
-        it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_PORT) }
-      end
-    end
-  end
-
-  describe "#default_statsd_client" do
-    subject(:default_statsd_client) { metrics.default_statsd_client }
-
-    let(:statsd_client) { instance_double(Datadog::Statsd) }
-    let(:options) do
-      # This test is run with both ~> 4.0 and latest dogstatsd-ruby.
-      if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new("5.3.0")
-        {single_thread: true}
-      else
-        {}
-      end
-    end
-
-    before do
-      expect(Datadog::Statsd).to receive(:new)
-        .with(metrics.default_hostname, metrics.default_port, **options)
-        .and_return(statsd_client)
-    end
-
-    it { is_expected.to be(statsd_client) }
-
-    context "with Datadog::Statsd not loaded" do
-      before do
-        const = Datadog::Statsd
-        hide_const("Datadog::Statsd")
-
-        expect(metrics).to receive(:require).with("datadog/statsd") do
-          stub_const("Datadog::Statsd", const)
-        end
-      end
-
-      it "loads Datadog::Statsd library" do
-        is_expected.to be(statsd_client)
-      end
     end
   end
 
@@ -790,28 +702,6 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
         expect(metrics).to have_received(:increment)
           .with(inc_name, inc_options)
-      end
-    end
-  end
-
-  describe "#close" do
-    subject(:close) { metrics.close }
-
-    context "with a closeable statsd instance" do
-      let(:statsd) { instance_double(Datadog::Statsd, close: nil) }
-
-      it "closes statsd" do
-        close
-
-        expect(statsd).to have_received(:close)
-      end
-    end
-
-    context "without a non-closeable statsd instance" do
-      let(:statsd) { double }
-
-      it "does not call nonexistent method #close" do
-        close
       end
     end
   end
