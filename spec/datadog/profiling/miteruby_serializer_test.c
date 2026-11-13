@@ -15,8 +15,8 @@ static bool fail_allocations;
 static bool fail_string_allocation;
 static bool fail_preparation_encoding;
 static enum { NO_GATE, GATE_BEFORE, GATE_DURING } no_gvl_mode;
-static pthread_mutex_t gate_mutex;
-static pthread_cond_t gate_condition;
+static pthread_mutex_t gate_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t gate_condition = PTHREAD_COND_INITIALIZER;
 static bool gate_entered, gate_released;
 
 static void *pause_no_gvl(void *unused) {
@@ -350,8 +350,6 @@ static VALUE thread_value(VALUE thread) {
 
 static miteruby_raw_events_queue_t *test_no_gvl_completion(void) {
   enum { SUCCESS, RAISE_DURING, KILL_DURING, RAISE_BEFORE, KILL_BEFORE };
-  assert(pthread_mutex_init(&gate_mutex, NULL) == 0);
-  assert(pthread_cond_init(&gate_condition, NULL) == 0);
   miteruby_raw_events_queue_t *raw_events_queue = miteruby_consumer_init();
   miteruby_consumer_reset();
   VALUE serializer = serializer_new(rb_cObject);
