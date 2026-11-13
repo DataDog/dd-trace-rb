@@ -476,6 +476,11 @@ module Datadog
         else
           [:line]
         end
+        # Each line probe has its own trace point, and Ruby runs the trace
+        # points of a line in the reverse order of their enabling, so at a
+        # line that holds a log probe and a metric probe the probe created
+        # last runs first. Java runs the log probe first, .NET and Python
+        # 3.15 and later run the probes in installation order.
         tp = TracePoint.new(*types) do |tp|
           line_trace_point_callback(probe, iseq, responder, tp)
         end
@@ -1008,7 +1013,10 @@ module Datadog
           else
             # Exit timing: the method runs first, then the condition and
             # value evaluate against the exit scope, which adds the return
-            # value, duration, and exception to the entry scope.
+            # value, duration, and exception to the entry scope. A call
+            # that raises reports a point too, with @exception set, as in
+            # Python, .NET and PHP; Java reports a point for a raising
+            # call only when the value expression reads @duration.
             di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
 
             DI.leave_probe
