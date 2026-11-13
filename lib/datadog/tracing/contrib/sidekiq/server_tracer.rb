@@ -23,6 +23,8 @@ module Datadog
           end
 
           def call(worker, job, queue) # rubocop:disable Metrics/MethodLength
+            return yield unless Datadog::Tracing.enabled?
+
             resource = job_resource(job)
 
             if @distributed_tracing

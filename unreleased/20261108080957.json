@@ -1,0 +1,7 @@
+{
+  "type": "Changed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6657",
+  "author": "@ngan",
+  "message": "Skip building an unused span per call in the `trilogy`, `mysql2`, `redis`, `sidekiq`, and `ActiveSupport::Notifications`-based integrations, such as `active_record`, when tracing is disabled; DBM SQL comments are still added."
+}

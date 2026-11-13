@@ -16,6 +16,8 @@ module Datadog
             def analytics_sample_rate: () -> untyped
 
             def comment_propagation: () -> untyped
+
+            def comment_propagation_enabled?: () -> bool
           end
         end
       end
