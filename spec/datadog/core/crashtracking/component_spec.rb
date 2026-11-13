@@ -37,6 +37,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           agent_base_url: agent_base_url,
           ld_library_path: ld_library_path,
           path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+          collect_otel_thread_contexts: boolean,
           logger: logger,
         ).and_return(component)
 
@@ -314,7 +315,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       # The receiver binary sends the crash report asynchronously after the forked process
       # dies, so message ordering is not guaranteed.
       let(:parsed_messages) do
-        messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
+        messages.map do |msg|
+          body = msg.body.to_s
+          next if body.empty?
+
+          JSON.parse(body, symbolize_names: true)
+        rescue JSON::ParserError
+          nil
+        end.compact
       end
       let(:crash_report_request) do
         parsed_messages.find { |msg| msg.dig(:payload, :logs, 0, :is_crash) == true }
@@ -544,6 +552,47 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           )
         end
       end
+
+      describe "OTel thread context capture" do
+        before do
+          skip "OTel thread context capture is only supported on Linux" if PlatformHelpers.mac?
+        end
+
+        let(:otel_thread_contexts) {
+          crash_report_experimental[:otel_thread_contexts]
+        }
+
+        it "captures thread context when collect_otel_thread_contexts is enabled" do
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
+            require "datadog/tracing/otel_thread_context"
+
+            Datadog.configure do |c|
+              c.tracing.otel_thread_context_enabled = true
+            end
+
+            crash_tracker = build_crashtracker(
+              agent_base_url: agent_base_url,
+              collect_otel_thread_contexts: true,
+            )
+            crash_tracker.start
+
+            Datadog::Tracing.trace("crash.test") do
+              Process.kill("SEGV", Process.pid)
+            end
+          end
+
+          expect(otel_thread_contexts).to be_a(Array)
+          expect(otel_thread_contexts).to_not be_empty
+
+          crashing_thread_ctx = otel_thread_contexts.first
+          # trace_id and span_id should exist for a single context object
+          expect(crashing_thread_ctx[:trace_id]).to be_a(String)
+          expect(crashing_thread_ctx[:span_id]).to be_a(String)
+          # they should be some random values
+          expect(crashing_thread_ctx[:trace_id]).to_not eq("0" * 32)
+          expect(crashing_thread_ctx[:span_id]).to_not eq("0" * 16)
+        end
+      end
     end
   end
 
@@ -555,6 +604,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         {"tag1" => "value1", "tag2" => "value2", "language" => testing_string, "service" => testing_string},
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
+      collect_otel_thread_contexts: options.fetch(:collect_otel_thread_contexts, false),
       logger: options[:logger] || Logger.new($stdout),
     )
   end
