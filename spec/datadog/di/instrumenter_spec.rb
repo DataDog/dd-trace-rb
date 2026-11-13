@@ -1797,13 +1797,51 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "string value" do
-        it "reports the string as an evaluation error" do
+      context "string value that holds no number" do
+        it "reports the string as an evaluation error that names only its class" do
           hook_metric_probe
 
           expect(HookTestClass.new.hook_test_method_with_arg("hello")).to eq "hello"
 
           expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first).to be_a(Datadog::DI::Error::ExpressionEvaluationError)
+          expect(evaluation_errors.first.message).to eq(
+            "Metric value expression evaluated to a value that does not convert to a number: String",
+          )
+          expect(metric_emitter).to_not have_received(:emit)
+        end
+      end
+
+      context "string value that holds a number" do
+        it "converts the string to a Float" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg("2.5")).to eq "2.5"
+
+          expect(metric_emitter).to have_received(:emit).with(probe, 2.5)
+          expect(evaluation_errors).to be_empty
+        end
+      end
+
+      context "Rational value" do
+        it "converts the value to a Float" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(Rational(3, 2))).to eq Rational(3, 2)
+
+          expect(metric_emitter).to have_received(:emit).with(probe, 1.5)
+          expect(evaluation_errors).to be_empty
+        end
+      end
+
+      context "Array value" do
+        it "reports the array as an evaluation error" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg([1])).to eq [1]
+
+          expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first.message).to end_with(": Array")
           expect(metric_emitter).to_not have_received(:emit)
         end
       end

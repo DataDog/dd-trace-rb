@@ -1370,16 +1370,20 @@ module Datadog
       end
 
       # Coerces the evaluated metric value expression result to a numeric
-      # dogstatsd value. Integer and Float pass through unchanged (unlike
-      # Python, which truncates floats for counters, and Java, which
-      # rejects them at instrumentation; dogstatsd count deltas accept
-      # non-integers), true and false coerce to 1 and 0, and any other
-      # value, including nil, is an evaluation error.
+      # dogstatsd value. Integer and Float pass through unchanged for every
+      # kind, because dogstatsd count deltas accept non-integers: Java
+      # rejects a Float COUNT expression at instrumentation, Python and PHP
+      # truncate it, and .NET submits it as a double. true and false
+      # coerce to 1 and 0. Any other result converts with Kernel#Float, as
+      # Python converts with float(); a result that Kernel#Float rejects,
+      # nil included, is an evaluation error, where PHP converts every
+      # value and .NET submits 0 for a type with no conversion.
       #
       # @param value [Object] the evaluated expression result
       # @return [Integer, Float] the metric value
       # @raise [Error::ExpressionEvaluationError] when the result is not
-      #   numeric or boolean
+      #   numeric or boolean and Kernel#Float rejects it; the message
+      #   names only the class of the result
       def coerce_metric_value(value)
         case value
         when Integer, Float
@@ -1389,8 +1393,12 @@ module Datadog
         when false
           0
         else
-          raise DI::Error::ExpressionEvaluationError,
-            "Metric value expression evaluated to non-numeric value: #{value.class}"
+          begin
+            Float(value)
+          rescue ArgumentError, TypeError
+            raise DI::Error::ExpressionEvaluationError,
+              "Metric value expression evaluated to a value that does not convert to a number: #{value.class}"
+          end
         end
       end
 

@@ -108,10 +108,12 @@ and a metric name you choose.
 
 - **Value expression (optional):** an expression evaluated at each hit and
   submitted as the metric value. Integer and Float results pass through,
-  booleans count as 1 and 0, and any other result is reported as an
-  expression evaluation error. A **COUNT** probe without a value
-  expression increments by 1 per hit; the other kinds emit nothing
-  without a value expression.
+  booleans count as 1 and 0, and other results convert with Ruby's
+  `Float()`, so a String that holds a number submits that number. A
+  result that `Float()` rejects, such as `nil` or a String that holds no
+  number, is reported as an expression evaluation error. A **COUNT**
+  probe without a value expression increments by 1 per hit; the other
+  kinds emit nothing without a value expression.
 - **Evaluation timing:** for method probes, the value expression and the
   optional condition evaluate at method exit by default, where `@return`,
   `@duration` (milliseconds), and `@exception` are available, or at method
