@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../../core/utils"
 require_relative "../../core/workers/polling"
 require_relative "../evaluation_engine"
 require_relative "parser"
@@ -16,6 +17,10 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
+        # The Agent replaces each run of these characters in a service name with one `_`. It keeps letters, decimal
+        # digits and `:./-`.
+        USAGE_SERVICE_REPLACED_CHARACTERS = %r{[^\p{L}\p{Nd}:./-]+}
+        USAGE_SERVICE_MAX_BYTES = 100
 
         include Core::Workers::Polling
 
@@ -31,6 +36,7 @@ module Datadog
           new(
             endpoint: endpoint,
             api_key: api_key.empty? ? nil : api_key,
+            service: usage_service(settings.service, logger),
             poll_interval_seconds: settings.feature_flags.agentless.poll_interval_seconds,
             request_timeout_seconds: settings.feature_flags.agentless.request_timeout_seconds,
             apply: apply,
@@ -38,9 +44,58 @@ module Datadog
           )
         end
 
+        # Returns the DD-Service value: the service name that APM shows, or nil. It converts the service as the tracer
+        # does for spans, then normalizes it as the Agent does. Thus `My Service` becomes `my_service`. If the result is
+        # empty or not printable ASCII (for example `café-api`), the header is not sent. Net::HTTP sends non-ASCII bytes,
+        # but the HTTP clients of some other Datadog tracers reject them. All tracers skip such names, so a service sends
+        # the same header in every language. The CDN alone decides which values it attributes usage to, so this method
+        # does not check the CDN format. Only the header value changes. The tracer's service stays as configured.
+        # Normalization also replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
+        def self.usage_service(service, logger)
+          name = span_service(service.to_s)
+          unless name
+            logger.debug do
+              "Feature Flags: the tracer cannot convert service #{service.inspect} to UTF-8, so spans do not use it; " \
+                "DD-Service header not sent"
+            end
+            return
+          end
+          return if name.strip.empty?
+
+          normalized = normalize_service(name)
+          return normalized if normalized.match?(/\A[\x21-\x7E]+\z/)
+
+          logger.debug do
+            "Feature Flags: service #{service.inspect} has no ASCII APM name; DD-Service header not sent"
+          end
+          nil
+        end
+
+        # Ports NormalizeService from the Agent (pkg/trace/traceutil/normalize, v0.82.3). It cuts the name to 100 bytes
+        # and does not split a character. It lowercases ASCII letters. It replaces each run of characters other than
+        # letters, decimal digits and `:./-` with one `_`, and removes a run at the end. It removes nothing at the
+        # start, so ` svc` becomes `_svc`. The Agent also lowercases some non-ASCII letters. This method does not,
+        # because a name with a non-ASCII letter is not sent.
+        def self.normalize_service(service)
+          (service.byteslice(0, USAGE_SERVICE_MAX_BYTES) || service).scrub("").downcase(:ascii)
+            .gsub(USAGE_SERVICE_REPLACED_CHARACTERS, "_")
+            .delete_suffix("_")
+        end
+
+        # Returns the service as the Agent reads it from a span, or nil if the tracer cannot convert it to UTF-8. The
+        # tracer converts a span service with Core::Utils.utf8_encode. If that fails, the span has no service. For
+        # example, without a locale Ruby reads a non-ASCII DD_SERVICE as ASCII-8BIT, and that conversion fails. The
+        # Agent replaces each invalid UTF-8 byte with U+FFFD, so this method does too. Thus the 100-byte cut falls at the
+        # same place.
+        def self.span_service(service)
+          Core::Utils.utf8_encode(service, placeholder: nil)&.scrub { |bytes| "\uFFFD" * bytes.bytesize }
+        end
+        private_class_method :usage_service, :normalize_service, :span_service
+
         def initialize(
           endpoint:,
           api_key:,
+          service:,
           poll_interval_seconds:,
           request_timeout_seconds:,
           apply:,
@@ -52,6 +107,7 @@ module Datadog
           @transport = transport || Transport.new(
             endpoint: endpoint,
             api_key: api_key,
+            service: service,
             timeout_seconds: request_timeout_seconds,
           )
           @apply = apply

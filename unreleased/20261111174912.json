@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6673",
+  "message": "Send the application's service (`DD_SERVICE`, or the inferred default) with agentless Feature Flags configuration requests (`DD_FEATURE_FLAGS_CONFIGURATION_SOURCE=agentless`), so Feature Flags usage can be broken down by service."
+}
