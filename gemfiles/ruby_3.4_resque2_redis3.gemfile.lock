@@ -4,7 +4,7 @@ PATH
     datadog (2.50.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.6)
-      libdatadog (~> 48.0.0.1.1)
+      libdatadog (~> 49.0.0.1.1)
       libddwaf (~> 1.30.0.1.0)
       logger
       msgpack
@@ -51,10 +51,10 @@ GEM
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
-    libdatadog (48.0.0.1.1)
-    libdatadog (48.0.0.1.1-aarch64-linux)
-    libdatadog (48.0.0.1.1-arm64-darwin)
-    libdatadog (48.0.0.1.1-x86_64-linux)
+    libdatadog (49.0.0.1.1)
+    libdatadog (49.0.0.1.1-aarch64-linux)
+    libdatadog (49.0.0.1.1-arm64-darwin)
+    libdatadog (49.0.0.1.1-x86_64-linux)
     libddwaf (1.30.0.1.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.1.0-arm64-darwin)
@@ -222,10 +222,10 @@ CHECKSUMS
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
-  libdatadog (48.0.0.1.1) sha256=7e1ee34cd7768ea6a20437b9e0f61bcf77f3e832bad1195dc52c694b3c1e42b1
-  libdatadog (48.0.0.1.1-aarch64-linux) sha256=af90bef273927e274a341570550318ff4c11ce47d16f2aa53d971da6e6681ba1
-  libdatadog (48.0.0.1.1-arm64-darwin) sha256=7855af75f918eb474ca96e52b4fd4ab2caccabc4e8f846c60b73e49ee482cf9f
-  libdatadog (48.0.0.1.1-x86_64-linux) sha256=06a776ae896e148cf57fd8f4a1ae1db19f0769f85110b542e41a7ba5a9de9aa3
+  libdatadog (49.0.0.1.1) sha256=491a1e1c32d1bad75ec6d8971926f44b42cea6ad59139f8006c58483f41e9b01
+  libdatadog (49.0.0.1.1-aarch64-linux) sha256=de4f2d18989d83e1e3db49597239d09fc234362394032ef81b57afad6be1677f
+  libdatadog (49.0.0.1.1-arm64-darwin) sha256=bf0b98eec18f83acaeba15f944ce7d56d0f22f20f3dd30d1cabe32122ad5af62
+  libdatadog (49.0.0.1.1-x86_64-linux) sha256=de5c167b5d865390eb2a54c8a3b970022226e9b4e6c47957a428df83ad4dffed
   libddwaf (1.30.0.1.0-aarch64-linux) sha256=c36650249bbbcaf81f0a0715e021d3db37fb1df989390f2744f445d1032d4314
   libddwaf (1.30.0.1.0-arm64-darwin) sha256=68a67d0daf6bcd8f621fb4a5390c1c2c241433fd3b8aa1516b4ef7518d316c2c
   libddwaf (1.30.0.1.0-x86_64-darwin) sha256=722b93006eeeaee42a3a5149bd0ab14bca1246524b87a1f40fb7bdbdfc42a624
