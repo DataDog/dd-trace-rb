@@ -28,7 +28,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
   end
 
   let(:logger) { logger_allowing_debug }

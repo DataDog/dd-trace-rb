@@ -51,7 +51,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   end
 
   let(:redactor) { Datadog::DI::Redactor.new(settings) }
-  let(:serializer) { Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry) }
+  let(:serializer) { Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT) }
 
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }

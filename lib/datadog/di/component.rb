@@ -94,9 +94,16 @@ module Datadog
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, logger: logger,
-          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+          guardrails_telemetry: guardrails_telemetry,
+          event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, telemetry: telemetry)
+        # The capture-expression evaluator runs only for probes that capture
+        # no snapshot, which GuardrailsTelemetry.probe_event_type_tag
+        # classifies as log.
+        @capture_expression_serializer = Serializer.new(settings, redactor, logger: logger,
+          guardrails_telemetry: guardrails_telemetry,
+          event_type: GuardrailsTelemetry::EVENT_TYPE_LOG, telemetry: telemetry)
         @capture_expression_evaluator = CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger,
+          settings: settings, serializer: capture_expression_serializer, logger: logger,
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
         @correlation_sampler = CorrelationSampler.new
@@ -147,7 +154,13 @@ module Datadog
       attr_reader :probe_notification_builder
       attr_reader :probe_manager
       attr_reader :redactor
+      # The serializer for snapshot captures: arguments, locals, return
+      # values and self.
+      # @return [Serializer]
       attr_reader :serializer
+      # The serializer for capture-expression values.
+      # @return [Serializer]
+      attr_reader :capture_expression_serializer
 
       # Starts the DI component: begins accepting probes and
       # processing snapshots.
