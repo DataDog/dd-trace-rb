@@ -450,6 +450,8 @@ RSpec.describe Datadog::DI::Component do
       described_class.build(settings, agent_settings, logger)
     end
 
+    before { allow(logger).to receive(:debug) }
+
     after do
       component&.shutdown!
     end
