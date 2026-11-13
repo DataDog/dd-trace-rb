@@ -500,8 +500,6 @@ RSpec.describe "DI implicit enablement integration" do
       )
     end
 
-    # service/env set at construction (not in-place mutation) so config_matches?
-    # can resolve the service+env target below.
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |s|
         s.remote.enabled = true
@@ -577,6 +575,53 @@ RSpec.describe "DI implicit enablement integration" do
         ),
       )
       expect(component.started?).to be false
+    end
+
+    context "when the local service is not in normalized form" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.remote.enabled = true
+          s.dynamic_instrumentation.internal.development = true
+          s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+          s.service = "Web-App"
+          s.env = "prod"
+        end
+      end
+
+      it "starts the component for a service+env config targeting the normalized service" do
+        expect(component.started?).to be false
+
+        Datadog::Tracing::Remote.merge_and_apply_configs(
+          build_repository({"service_target" => {"service" => "web-app", "env" => "prod"},
+            "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
+        )
+
+        expect(component.started?).to be true
+      end
+    end
+
+    context "when the tracer has no env" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.remote.enabled = true
+          s.dynamic_instrumentation.internal.development = true
+          s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+          s.service = "web"
+        end
+      end
+
+      before { expect(settings.env).to be_nil }
+
+      it "starts the component for a service+env config targeting the env inherited from the agent" do
+        expect(component.started?).to be false
+
+        Datadog::Tracing::Remote.merge_and_apply_configs(
+          build_repository({"service_target" => {"service" => "web", "env" => "prod"},
+            "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
+        )
+
+        expect(component.started?).to be true
+      end
     end
 
     it "inherits dynamic_instrumentation_enabled from org when the service+env config supplies only a sampling rate" do
