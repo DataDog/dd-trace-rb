@@ -18,8 +18,11 @@ class SupportedVersionsGenerator
   # net-http is part of Ruby's standard library, so we use the Ruby version as a proxy.
   RUBY_BUNDLED_GEMS = ["net-http"].freeze
 
-  # Specs that don't run under a Matrixfile task named after the integration directory.
-  MATRIX_TASK_OVERRIDES = {"active_job" => "railsactivejob"}.freeze
+  # Specs that don't run only under a Matrixfile task named after the integration directory.
+  MATRIX_TASKS = {
+    "active_job" => ["railsactivejob"],
+    "active_record" => ["active_record", "rails"],
+  }.freeze
 
   def initialize
     @locked_versions = {}
@@ -80,19 +83,21 @@ class SupportedVersionsGenerator
   end
 
   # Matrixfile tasks follow the integration directory, not the registered name (e.g. `mongodb` for `mongo`).
-  def matrix_task(integration)
+  def matrix_tasks(integration)
     directory = File.basename(File.dirname(Object.const_source_location(integration.class.name).first))
-    MATRIX_TASK_OVERRIDES.fetch(directory, directory)
+    MATRIX_TASKS.fetch(directory, [directory])
   end
 
   def tested_versions(integration, dependency_name)
     tested = {}
-    MATRIX.fetch(matrix_task(integration), {}).each do |group, rubies|
-      tested_rubies(rubies).each do |ruby_version|
-        if RUBY_BUNDLED_GEMS.include?(dependency_name)
-          tested[ruby_version] ||= Set.new
-        elsif (version = locked_versions(lockfile_path(ruby_version, group))[dependency_name])
-          (tested[ruby_version] ||= Set.new) << version
+    matrix_tasks(integration).each do |task|
+      MATRIX.fetch(task, {}).each do |group, rubies|
+        tested_rubies(rubies).each do |ruby_version|
+          if RUBY_BUNDLED_GEMS.include?(dependency_name)
+            tested[ruby_version] ||= Set.new
+          elsif (version = locked_versions(lockfile_path(ruby_version, group))[dependency_name])
+            (tested[ruby_version] ||= Set.new) << version
+          end
         end
       end
     end
