@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ruby/thread.h>
-#include <threads.h>
 
 #define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
 // All 65,535 array entries fit in 131,072 set buckets; 2-byte IDs plus metadata need just over 512 KiB.
@@ -74,8 +73,8 @@ typedef struct {
   verstable_location_set location_set;
   miteruby_location_array_t location_array;
 
-  // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting. (Initialized with `mtx_recursive`)
-  mtx_t mutex;
+  // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting.
+  pthread_mutex_t mutex;
 
   uint8_t *interned_events_queue;
   size_t interned_events_pos;
@@ -148,12 +147,12 @@ static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t r
   return left_location.frame_id.value == right_location.frame_id.value && left_location.bytecode_pos.value == right_location.bytecode_pos.value;
 }
 
-static void mutex_lock(mtx_t *mutex) {
-  if (mtx_lock(mutex) != thrd_success) rb_bug("Failed to lock miteruby consumer mutex");
+static void mutex_lock(pthread_mutex_t *mutex) {
+  if (pthread_mutex_lock(mutex) != 0) rb_bug("Failed to lock miteruby consumer mutex");
 }
 
-static void mutex_unlock(mtx_t *mutex) {
-  if (mtx_unlock(mutex) != thrd_success) rb_bug("Failed to unlock miteruby consumer mutex");
+static void mutex_unlock(pthread_mutex_t *mutex) {
+  if (pthread_mutex_unlock(mutex) != 0) rb_bug("Failed to unlock miteruby consumer mutex");
 }
 
 static void consumer_mark(void *data) {
@@ -272,7 +271,14 @@ miteruby_raw_events_queue_t *miteruby_consumer_init(void) {
     raise_syserr(error, "Failed to initialize miteruby raw events queue");
   }
 
-  if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success) {
+  pthread_mutexattr_t mutex_attributes;
+  int mutex_error = pthread_mutexattr_init(&mutex_attributes);
+  if (mutex_error == 0) {
+    mutex_error = pthread_mutexattr_settype(&mutex_attributes, PTHREAD_MUTEX_RECURSIVE);
+    if (mutex_error == 0) mutex_error = pthread_mutex_init(&consumer_state.mutex, &mutex_attributes);
+    pthread_mutexattr_destroy(&mutex_attributes);
+  }
+  if (mutex_error != 0) {
     miteruby_raw_events_queue_destroy(raw_events_queue);
     miteruby_allocator_free(&raw_events_queue);
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
