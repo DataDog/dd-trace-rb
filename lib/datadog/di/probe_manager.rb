@@ -245,6 +245,9 @@ module Datadog
       private def install_pending_method_probes(cls)
         probe_repository.synchronize do
           # TODO search more efficiently than linearly
+          # Hash#each permits remove_pending below to delete the current
+          # entry. Iterating the pending hash directly saves allocating a
+          # copy of it at every class body end.
           probe_repository.pending_probes.each do |probe_id, probe|
             if probe.method?
               # TODO move this stringification elsewhere
@@ -255,7 +258,6 @@ module Datadog
                   instrumenter.hook(probe, self)
                   probe_repository.add_installed(probe)
                   probe_repository.remove_pending(probe.id)
-                  break
                 rescue Error::DITargetNotDefined
                   # This should not happen... try installing again later?
                 rescue Exception => exc # standard:disable Lint/RescueException
