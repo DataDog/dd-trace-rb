@@ -118,7 +118,9 @@ and a metric name you choose.
   optional condition evaluate at method exit by default, where `@return`,
   `@duration` (milliseconds), and `@exception` are available, or at method
   entry, where method arguments and `@` variables are available. Line
-  probes always evaluate at the line.
+  probes always evaluate at the line, before it runs. A line metric probe
+  targets the first line of its definition, and a definition whose first
+  line is a range, such as `10-12`, shows an ERROR status.
 - **Tags:** your probe tags are attached to every metric point together
   with the `debugger.probeid:<probe id>` tag, so metrics can be queried
   per probe.
