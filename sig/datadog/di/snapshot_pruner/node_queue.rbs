@@ -1,0 +1,25 @@
+module Datadog
+  module DI
+    class SnapshotPruner
+      class NodeQueue
+        @heap: Array[Node]
+
+        def initialize: () -> void
+
+        def push: (Node node) -> void
+
+        def pop: () -> Node?
+
+        def size: () -> Integer
+
+        private
+
+        attr_reader heap: Array[Node]
+
+        def sift_up: (Integer index) -> void
+
+        def sift_down: (Integer index) -> void
+      end
+    end
+  end
+end

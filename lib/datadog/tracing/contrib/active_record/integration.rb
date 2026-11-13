@@ -18,6 +18,7 @@ module Datadog
           include Contrib::Integration
 
           MINIMUM_VERSION = Contrib::Rails::Ext::MINIMUM_VERSION
+          MAKARA_MINIMUM_VERSION = Gem::Version.new("0.3.5")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_record, auto_patch: false

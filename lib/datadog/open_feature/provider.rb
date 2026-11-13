@@ -3,14 +3,18 @@
 require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
+require_relative "../core/utils/only_once"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
+require_relative "split_features"
+require_relative "exposure_hook"
 require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
     # OpenFeature feature flagging provider backed by Datadog configuration delivery.
     #
-    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
+    # Requires openfeature-sdk >= 0.5.1: exposures, evaluation counts and metrics are sent from provider
+    # hooks, and earlier releases run no hooks.
     #
     # Hook lifecycle note: FlagEvalEVPHook is returned from #hooks so EVP uses the SDK-final
     # EvaluationDetails. This matches FlagEvalMetricsHook and records defaults/errors produced
@@ -63,12 +67,22 @@ module Datadog
     class Provider
       include ::OpenFeature::SDK::Provider::EventEmitter
 
-      NAME = "Datadog Feature Flagging Provider"
+      NAME = Ext::PROVIDER_NAME
       INITIALIZATION_CANCELLED_MESSAGE = "Feature Flags provider initialization was cancelled by shutdown"
+      HOOKS_UNSUPPORTED_MESSAGE = "Feature Flags: the installed openfeature-sdk does not run provider hooks, " \
+        "so Datadog exposures and evaluation counts are not sent; upgrade openfeature-sdk to 0.5.1 or later"
+      HOOKS_UNSUPPORTED_WARNING = Core::Utils::OnlyOnce.new
 
       attr_reader :metadata
 
-      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+      def initialize(experimentation_opt_out_mode: nil, enable_evaluation_telemetry_opt_out_parameter: nil)
+        mode = experimentation_opt_out_mode
+        mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
+        # Preserve the requested policy if this provider is activated after configuration changes.
+        @requested_experimentation_opt_out_mode = mode.to_s.dup.freeze
+        @experimentation_opt_out_mode = if OpenFeature.enabled? && Core::LIBDATADOG_API_FAILURE.nil?
+          resolve_experimentation_opt_out_mode(@requested_experimentation_opt_out_mode)
+        end
         @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
         when nil
           Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
@@ -95,6 +109,7 @@ module Datadog
       end
 
       def init
+        warn_if_hooks_unsupported
         @initialization_mutex.synchronize do
           raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
 
@@ -188,7 +203,7 @@ module Datadog
           telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
         end
 
-        [*telemetry_hooks, component&.debug_logging_hook].compact
+        [component&.exposure_logging_hook, *telemetry_hooks, component&.debug_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -216,6 +231,12 @@ module Datadog
       end
 
       private
+
+      def warn_if_hooks_unsupported
+        return if defined?(::OpenFeature::SDK::Hooks::HookExecutor)
+
+        HOOKS_UNSUPPORTED_WARNING.run { Datadog.logger.warn(HOOKS_UNSUPPORTED_MESSAGE) }
+      end
 
       def after_fork(component)
         handler = @initialization_mutex.synchronize do
@@ -467,12 +488,34 @@ module Datadog
       end
 
       def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
+        mode = @experimentation_opt_out_mode ||= resolve_experimentation_opt_out_mode(@requested_experimentation_opt_out_mode)
         engine.fetch_value(
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
           evaluation_context: evaluation_context,
+          experimentation_opt_out_mode: mode,
         )
+      end
+
+      def resolve_experimentation_opt_out_mode(mode)
+        normalized = mode.strip.downcase
+        return :disabled if normalized.empty? || normalized == "disabled"
+
+        case normalized
+        when "immediate"
+          unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_options)
+            raise ArgumentError, "Immediate experimentation opt-out requires a libdatadog build with evaluation options"
+          end
+          :immediate
+        when "future_experiments_only"
+          unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+            raise ArgumentError, "Future experimentation opt-out requires a libdatadog build with opt-out modes"
+          end
+          :future_experiments_only
+        else
+          raise ArgumentError, "Experimentation opt-out mode must be disabled, immediate, or future_experiments_only"
+        end
       end
 
       def sdk_success_details(result, flag_meta)
@@ -500,6 +543,13 @@ module Datadog
           metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
+        if result.log?
+          metadata[Ext::METADATA_DO_LOG] = true
+          serial_id = result.serial_id
+          metadata[Ext::METADATA_SPLIT_SERIAL_ID] = serial_id unless serial_id.nil?
+        end
+        features = result.features
+        SplitFeatures.write(metadata, features) if features && !features.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).

@@ -46,7 +46,8 @@ module Datadog
         QUEUE_HIGH_WATERMARK = "queueHighWatermark"
 
         # Drop reason emitted when a snapshot exceeds the serialized
-        # payload limit.
+        # payload limit and pruning cannot fit it, and capture-incomplete
+        # reason emitted when pruning fits it.
         PAYLOAD_TOO_LARGE = "payloadTooLarge"
 
         # Drop reason naming the batch byte-cap guardrail decision.

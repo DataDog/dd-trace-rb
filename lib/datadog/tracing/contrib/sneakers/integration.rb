@@ -14,6 +14,7 @@ module Datadog
           include Contrib::Integration
 
           MINIMUM_SNEAKERS_VERSION = Gem::Version.new("2.12.0")
+          MINIMUM_VERSION = MINIMUM_SNEAKERS_VERSION
           # All versions are supported. Kicks first version is 3.0.0.
           MINIMUM_KICKS_VERSION = Gem::Version.new("3.0.0")
 

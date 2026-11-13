@@ -532,6 +532,7 @@ target :datadog do
   library "time"
   library "pp"
   library "forwardable"
+  library "strscan"
   library "json"
 
   # Load all dependency signatures from the `vendor/rbs` directory
