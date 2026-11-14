@@ -11,7 +11,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
   let(:telemetry) { nil }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
   end
 
   let(:transport) do
@@ -258,53 +258,18 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         let(:snapshots) { [snapshot_event(oversized_snapshot), snapshot_event(small_snapshot)] }
 
-        it "keeps the drop contained and still sends the other snapshots" do
+        it "raises the telemetry failure out of send_input without disabling the probe" do
           serialization_errors = []
           on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
-          expect(telemetry).to receive(:report).twice
-          expect_lazy_log_many(logger, :debug,
-            "di: dropping too big snapshot (payloadTooLarge)",
-            /error emitting debugger.events.dropped metric.*StandardError.*telemetry down/,
-            /error emitting debugger.guardrails.queue.dropped_bytes metric.*StandardError.*telemetry down/)
-          expect(transport).to receive(:send_input_chunk).once
+          expect_lazy_log(logger, :debug,
+            "di: dropping too big snapshot (payloadTooLarge)")
+          expect(transport).not_to receive(:send_input_chunk)
 
-          transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
+          expect do
+            transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
+          end.to raise_error(StandardError, "telemetry down")
 
           expect(serialization_errors).to be_empty
-        end
-
-        context "and all exceptions propagate" do
-          before do
-            settings.dynamic_instrumentation.internal.propagate_all_exceptions = true
-          end
-
-          it "raises the telemetry failure out of send_input without disabling the probe" do
-            serialization_errors = []
-            on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
-            expect(transport).not_to receive(:send_input_chunk)
-
-            expect do
-              transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
-            end.to raise_error(StandardError, "telemetry down")
-
-            expect(serialization_errors).to be_empty
-          end
-        end
-
-        context "and the emission raises a fatal exception" do
-          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
-
-          it "re-raises the fatal exception out of send_input without disabling the probe" do
-            serialization_errors = []
-            on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
-            expect(transport).not_to receive(:send_input_chunk)
-
-            expect do
-              transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
-            end.to raise_error(SystemExit)
-
-            expect(serialization_errors).to be_empty
-          end
         end
       end
 

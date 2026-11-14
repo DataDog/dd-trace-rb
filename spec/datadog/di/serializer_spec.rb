@@ -104,7 +104,7 @@ RSpec.describe Datadog::DI::Serializer do
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: nil)
   end
 
   let(:serializer) do

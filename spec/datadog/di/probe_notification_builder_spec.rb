@@ -57,7 +57,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
   end
 
   let(:capture_expression_evaluator) do
