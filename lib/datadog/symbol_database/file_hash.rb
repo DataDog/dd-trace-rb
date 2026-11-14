@@ -22,7 +22,7 @@ module Datadog
       # Returns nil on any error (file not found, permission denied, etc.)
       #
       # @param file_path [String] Path to the file
-      # @param logger [#debug] Logger for error reporting
+      # @param logger [SymbolDatabase::Logger] Logger for error reporting
       # @return [String, nil] 40-character hex-encoded SHA-1 hash, or nil if error
       def self.compute(file_path, logger:)
         return nil unless file_path
