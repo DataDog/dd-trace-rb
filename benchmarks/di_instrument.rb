@@ -173,7 +173,7 @@ class DIInstrumentBenchmark
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
     guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
-      settings: settings, logger: di_logger, telemetry: telemetry,
+      logger: di_logger, telemetry: telemetry,
     )
     serializer = Datadog::DI::Serializer.new(settings, redactor, logger: di_logger, guardrails_telemetry: guardrails_telemetry)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
