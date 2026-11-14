@@ -906,14 +906,21 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         .and_raise(RuntimeError.new("simulated hot-load enqueue failure"))
       allow(raw_logger).to receive(:debug).and_raise(RuntimeError.new("logger boom"))
 
-      begin
-        expect do
-          eval("class SymdbHotLoadLoggerRescueTestClass; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
-        end.to raise_error(RuntimeError, "logger boom")
+      # The assertion runs after shutdown: matcher files load lazily, and
+      # their requires open class bodies that would fire this hook while it
+      # is still enabled.
+      raised = begin
+        eval("class SymdbHotLoadLoggerRescueTestClass; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        nil
+      rescue => eval_exc
+        eval_exc
       ensure
         component.shutdown!
-        Object.send(:remove_const, :SymdbHotLoadLoggerRescueTestClass) if Object.const_defined?(:SymdbHotLoadLoggerRescueTestClass)
       end
+
+      expect(raised).to be_a(RuntimeError)
+      expect(raised.message).to eq("logger boom")
+      Object.send(:remove_const, :SymdbHotLoadLoggerRescueTestClass) if Object.const_defined?(:SymdbHotLoadLoggerRescueTestClass)
     end
   end
 
