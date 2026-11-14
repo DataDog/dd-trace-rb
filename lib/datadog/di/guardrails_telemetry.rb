@@ -29,19 +29,14 @@ module Datadog
 
       # Initializes the reporter.
       #
-      # @param logger [DI::Logger] logger for contained emission failures
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
-      def initialize(logger:, telemetry:)
-        @logger = logger
+      def initialize(telemetry:)
         @telemetry = telemetry
         @skipped_tags_memo = {}
         @dropped_tags_memo = {}
         @capture_incomplete_tags_memo = {}
       end
 
-      # The logger.
-      # @return [DI::Logger]
-      attr_reader :logger
       # The component the guardrails metrics are emitted through.
       # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry

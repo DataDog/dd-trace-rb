@@ -11,7 +11,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
   let(:telemetry) { nil }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
   end
 
   let(:transport) do

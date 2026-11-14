@@ -56,7 +56,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_logger_double
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: nil)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: nil)
   end
 
   let(:capture_expression_evaluator) do
@@ -2220,7 +2220,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:guardrails_telemetry) do
-        Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
+        Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
       end
 
       def expect_condition_timeout_skip_metric
@@ -2575,7 +2575,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:guardrails_telemetry) do
-      Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
+      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
     end
 
     # Asserts the guardrails skip metric emission for a rejected probe
@@ -3300,7 +3300,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:guardrails_telemetry) do
-      Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
+      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
     end
 
     context "when a capture limit truncates the snapshot" do

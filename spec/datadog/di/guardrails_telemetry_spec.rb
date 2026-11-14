@@ -5,12 +5,10 @@ require "datadog/di/probe"
 RSpec.describe Datadog::DI::GuardrailsTelemetry do
   di_test
 
-  di_logger_double
-
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
   let(:guardrails_telemetry) do
-    described_class.new(logger: logger, telemetry: telemetry)
+    described_class.new(telemetry: telemetry)
   end
 
   let(:probe) do

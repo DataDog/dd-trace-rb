@@ -340,7 +340,7 @@ RSpec.describe Datadog::DI::Remote do
       end
 
       let(:guardrails_telemetry) do
-        Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: nil)
+        Datadog::DI::GuardrailsTelemetry.new(telemetry: nil)
       end
 
       let(:instrumenter) do

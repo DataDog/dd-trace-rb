@@ -26,7 +26,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
   end
 
   let(:evaluator) do

@@ -40,7 +40,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   let(:telemetry) { nil }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(logger: logger, telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
   end
 
   let(:default_probe_repository) do
@@ -559,9 +559,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker_settings, logger,
         agent_settings: agent_settings,
         telemetry: telemetry,
-        guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
-          logger: logger, telemetry: telemetry,
-        ),
+        guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry),
         probe_repository: default_probe_repository,
         probe_notification_builder: default_probe_notification_builder,
       )
