@@ -898,11 +898,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
     end
 
-    it "does not propagate exceptions when logger.debug itself raises" do
-      # If the rescue handler's own logger call raises (custom logger
-      # implementation, IO error), it would escape the outer rescue and
-      # surface in the customer's class body. The inner rescue contains
-      # this case.
+    it "surfaces a raising logger.debug in the customer's class body" do
       component = described_class.build(settings, agent_settings, logger)
       component.wait_for_idle(timeout: 5)
 
@@ -913,7 +909,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       begin
         expect do
           eval("class SymdbHotLoadLoggerRescueTestClass; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
-        end.not_to raise_error
+        end.to raise_error(RuntimeError, "logger boom")
       ensure
         component.shutdown!
         Object.send(:remove_const, :SymdbHotLoadLoggerRescueTestClass) if Object.const_defined?(:SymdbHotLoadLoggerRescueTestClass)
