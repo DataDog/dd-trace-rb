@@ -12,6 +12,8 @@ module Datadog
         class Integration
           include Contrib::Integration
 
+          MINIMUM_VERSION = Gem::Version.new("1.13.21")
+
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :graphql, auto_patch: true
 
@@ -31,7 +33,7 @@ module Datadog
           #
           def self.compatible?
             super && (
-              (version >= Gem::Version.new("1.13.21") && version < Gem::Version.new("2.0")) ||
+              (version >= MINIMUM_VERSION && version < Gem::Version.new("2.0")) ||
               (version >= Gem::Version.new("2.0.28") && version < Gem::Version.new("2.1")) ||
               (version >= Gem::Version.new("2.1.11") && version < Gem::Version.new("2.2")) ||
               (version >= Gem::Version.new("2.2.6"))

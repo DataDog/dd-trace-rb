@@ -22,7 +22,7 @@ module Datadog
         # - instrument parts of the framework when needed
         module Framework
           # Rails integration options applied to the Rack integration.
-          RACK_OPTION_NAMES = [:service_name, :middleware_names, :distributed_tracing, :request_queuing].freeze
+          RACK_OPTION_NAMES = [:service_name, :middleware_names, :distributed_tracing, :request_queuing, :web_service_name].freeze
 
           # After the Rails application finishes initializing, we configure the Rails
           # integration and all its sub-components with the application information

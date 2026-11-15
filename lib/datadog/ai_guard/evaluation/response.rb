@@ -8,7 +8,7 @@ module Datadog
       # @api private
       class Response
         attr_reader :action, :reason, :tags, :sds_findings, :tag_probabilities,
-          :redaction_replacements
+          :redaction_replacements, :extra_tags, :extra_metastruct
 
         def initialize(raw_response)
           attributes = raw_response.fetch("data").fetch("attributes")
@@ -20,12 +20,29 @@ module Datadog
           @is_blocking_enabled = attributes.fetch("is_blocking_enabled")
           @sds_findings = attributes.fetch("sds_findings", [])
           @redaction_replacements = attributes.fetch("redaction_replacements", [])
+          @extra_tags = key_value_list_to_hash(attributes["extra_tags"])
+          @extra_metastruct = key_value_list_to_hash(attributes["extra_metastruct"])
         rescue KeyError => e
           raise AIGuardClientError, "Missing key: \"#{e.key}\""
         end
 
         def blocking_enabled?
           !!@is_blocking_enabled
+        end
+
+        private
+
+        def key_value_list_to_hash(list)
+          return {} unless list.is_a?(Array)
+
+          list.each_with_object({}) do |item, result|
+            next unless item.is_a?(Hash)
+
+            key = item["key"]
+            value = item["value"]
+
+            result[key] = value if key.is_a?(String) && !key.empty? && !value.nil?
+          end
         end
       end
     end

@@ -2,6 +2,8 @@
 
 require "datadog/tracing/contrib/support/spec_helper"
 
+require "msgpack"
+
 require "datadog/ai_guard/evaluation"
 
 RSpec.describe Datadog::AIGuard::Evaluation do
@@ -165,6 +167,162 @@ RSpec.describe Datadog::AIGuard::Evaluation do
     context "when empty messages array is passed" do
       it "raises ArgumentError" do
         expect { described_class.perform([]) }.to raise_error(ArgumentError, "Messages must not be empty")
+      end
+    end
+
+    context "with backend-provided span data" do
+      subject(:evaluate) do
+        described_class.perform([Datadog::AIGuard.message(role: :user, content: "Hello")])
+      end
+
+      let(:action) { "ALLOW" }
+      let(:blocking_enabled) { false }
+
+      let(:extra_tags) do
+        [
+          {"key" => "ai_guard.evaluate_id", "value" => "evaluation-123"},
+          {"key" => "custom_context.note", "value" => "something"},
+        ]
+      end
+
+      let(:extra_metastruct) do
+        [
+          {"key" => "policy_match", "value" => {"rule" => "example", "matches" => []}},
+          {"key" => "flag", "value" => false},
+          {"key" => "empty", "value" => []},
+        ]
+      end
+
+      let(:raw_response) do
+        {
+          "data" => {
+            "id" => "evaluation-123",
+            "attributes" => {
+              "action" => action,
+              "reason" => "Because why not",
+              "tags" => [],
+              "sds_findings" => [],
+              "tag_probs" => {},
+              "is_blocking_enabled" => blocking_enabled,
+              "extra_tags" => extra_tags,
+              "extra_metastruct" => extra_metastruct,
+            },
+          },
+        }
+      end
+
+      it "adds backend data to the intended destinations without changing values" do
+        expect(evaluate.action).to eq("ALLOW")
+
+        expect(ai_guard_span.tags).to include(
+          "ai_guard.evaluate_id" => "evaluation-123",
+          "custom_context.note" => "something",
+        )
+        expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include(
+          "policy_match" => {"rule" => "example", "matches" => []},
+          "flag" => false,
+          "empty" => [],
+        )
+      end
+
+      context "when some extra_tags entries are malformed" do
+        let(:extra_tags) do
+          super() + [
+            nil,
+            {"value" => "missing key"},
+            {"key" => "", "value" => "empty key"},
+            {"key" => 1, "value" => "numeric key"},
+            {"key" => "bad.nil", "value" => nil},
+            {"key" => "custom_context.after_invalid", "value" => "kept"},
+          ]
+        end
+
+        it "skips malformed entries while retaining valid entries" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span).not_to have_error
+
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.evaluate_id" => "evaluation-123",
+            "custom_context.note" => "something",
+            "custom_context.after_invalid" => "kept",
+          )
+          expect(ai_guard_span.tags).not_to include("", "bad.nil")
+        end
+      end
+
+      context "when some extra_metastruct entries are malformed" do
+        let(:extra_metastruct) do
+          super() + [
+            "not an object",
+            {"key" => "bad.nil", "value" => nil},
+            {"key" => "something", "value" => true},
+          ]
+        end
+
+        it "skips malformed entries while retaining valid entries" do
+          evaluate
+
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include("flag" => false, "something" => true)
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).not_to include("bad.nil")
+        end
+      end
+
+      context "when extra_tags entries use reserved keys" do
+        let(:extra_tags) do
+          super() + [
+            {"key" => "ai_guard.action", "value" => "forged"},
+            {"key" => "ai_guard.blocked", "value" => "forged"},
+            {"key" => "_dd.custom", "value" => "forged"},
+            {"key" => "analytics.enabled", "value" => "forged"},
+          ]
+        end
+
+        it "drops entries with reserved keys" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.action" => "ALLOW",
+            "ai_guard.evaluate_id" => "evaluation-123",
+          )
+          expect(ai_guard_span.tags).not_to include("ai_guard.blocked", "_dd.custom", "_dd1.sr.eausr")
+        end
+      end
+
+      context "when extra_metastruct entries use reserved keys" do
+        let(:extra_metastruct) do
+          super() + [
+            {"key" => "messages", "value" => "forged"},
+            {"key" => "attack_categories", "value" => "forged"},
+            {"key" => "sds", "value" => "forged"},
+            {"key" => "tag_probs", "value" => "forged"},
+          ]
+        end
+
+        it "drops entries with reserved keys" do
+          evaluate
+
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).not_to include("messages", "attack_categories", "sds", "tag_probs")
+          expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)).to eq([{role: :user, content: "Hello"}])
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include("flag" => false)
+        end
+      end
+
+      context "when the evaluation blocks" do
+        let(:action) { "DENY" }
+        let(:blocking_enabled) { true }
+
+        it "attaches backend data before raising" do
+          expect { evaluate }.to raise_error(Datadog::AIGuard::AIGuardAbortError)
+
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.evaluate_id" => "evaluation-123",
+            "ai_guard.blocked" => "true",
+          )
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include(
+            "policy_match" => {"rule" => "example", "matches" => []},
+          )
+        end
       end
     end
 

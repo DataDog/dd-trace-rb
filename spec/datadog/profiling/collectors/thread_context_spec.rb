@@ -2204,6 +2204,34 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect(result.locations.first).to have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
       end
     end
+
+    context "when a C method in the prepared stack gets refined before sampling" do
+      let(:klass) do
+        Class.new { define_method(:catch, Kernel.instance_method(:catch)) }
+      end
+
+      it "still names the C frame" do
+        sample
+
+        refined_class = klass
+        klass.new.catch do
+          prepare_sample_inside_signal_handler
+          # Turns the method entry captured for the `catch` frame into a VM_METHOD_TYPE_REFINED one
+          Module.new do
+            refine(refined_class) do
+              def catch(*)
+              end
+            end
+          end
+        end
+        recorder.serialize!
+
+        sample
+
+        result = sample_for_thread(samples, Thread.current)
+        expect(result.locations).to include(have_attributes(label: "catch"))
+      end
+    end
   end
 
   describe "show_classes" do
