@@ -239,6 +239,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
       let(:sending) { Queue.new }
       let(:release_send) { Queue.new }
+      let(:stopping) { Queue.new }
+      let(:batches) { [] }
+      let(:snapshot) { {last: true} }
+      let(:status) { {status: "received"} }
       after { release_send << true }
 
       it "stops the thread" do
@@ -253,8 +257,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker.add_snapshot({first: true}, probe: probe)
         worker.flush
 
-        snapshot = {last: true}
-        status = {status: "received"}
         worker.add_snapshot(snapshot, probe: probe)
         worker.add_status(status)
         worker.stop
@@ -268,8 +270,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it "finishes an in-flight send and drains snapshots queued behind it" do
-        stopping = Queue.new
-        batches = []
         allow(input_transport).to receive(:send_input) do |snapshots, *_args|
           batches << snapshots.map(&:payload)
           if batches.length == 1
