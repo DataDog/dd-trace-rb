@@ -105,9 +105,7 @@ module Datadog
             # so a stop requested while awake skips the sleep entirely.
             if !stopping && @lock.synchronize { @flush } == 0
               sleep_remaining = @lock.synchronize do
-                # Steep cannot detect the type of the local read inside the
-                # block that assigns it.
-                if sleep_remaining && sleep_remaining > 0 # steep:ignore FallbackAny
+                if @sleep_remaining&.positive?
                   # Recalculate how much sleep time is remaining, then sleep that long.
                   set_sleep_remaining
                 else
