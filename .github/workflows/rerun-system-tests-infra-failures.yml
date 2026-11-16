@@ -1,7 +1,13 @@
 name: Re-run System Tests infra failures
 
+# This workflow always runs the version of this file committed to master,
+# because workflow_run workflows are resolved from the default branch. It never
+# executes pull-request-controlled code: pull-request-triggered System Tests
+# runs are excluded by the job filter, the checkout is the default branch, and
+# the script validates RUN_ID as digits before requesting any GitHub API
+# endpoint with it.
 on: # yamllint disable-line rule:truthy
-  workflow_run:
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows:
       - System Tests
     types:
