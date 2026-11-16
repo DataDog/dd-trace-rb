@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "datadog/appsec/spec_helper"
+require "datadog/appsec/native_output_helpers"
 require "active_record"
 
 require "spec/datadog/tracing/contrib/rails/support/deprecation"
@@ -96,7 +97,6 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => 'SELECT "users".* FROM "users" WHERE "users"."name" = ?',
             "server.db.system" => "sqlite",
@@ -112,7 +112,6 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "sqlite",
@@ -173,5 +172,10 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
 
       it { expect { query_thread.join }.not_to raise_error }
     end
+  end
+  context "native SQLi trace output" do
+    let(:output_address) { "server.db.statement" }
+    subject(:consume) { User.where(name: "Bob").to_a }
+    it_behaves_like "a native AppSec output consumer"
   end
 end

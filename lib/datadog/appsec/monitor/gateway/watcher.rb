@@ -35,14 +35,14 @@ module Datadog
                   next stack.call(user)
                 end
 
-                persistent_data = {}
-                persistent_data["usr.id"] = user.id if user.id
-                persistent_data["usr.login"] = user.login if user.login
-                persistent_data["usr.session_id"] = user.session_id if user.session_id
+                evaluation_data = {}
+                evaluation_data["usr.id"] = user.id if user.id
+                evaluation_data["usr.login"] = user.login if user.login
+                evaluation_data["usr.session_id"] = user.session_id if user.session_id
 
-                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                if result.match? || result.attributes.any?
+                if result.match? || result.keep? || result.attributes.any?
                   context.events.push(
                     AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                   )
@@ -66,10 +66,10 @@ module Datadog
 
                 next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
 
-                persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
-                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                evaluation_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
+                result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                if result.match? || result.attributes.any?
+                if result.match? || result.keep? || result.attributes.any?
                   context.events.push(
                     AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                   )

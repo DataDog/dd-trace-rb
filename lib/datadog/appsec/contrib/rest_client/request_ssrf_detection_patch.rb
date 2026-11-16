@@ -20,8 +20,8 @@ module Datadog
             return super unless context && AppSec.rasp_enabled?
 
             headers = normalize_request_headers
-            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
-            ephemeral_data = {
+            # @type var evaluation_data: ::Datadog::AppSec::Context::input_data
+            evaluation_data = {
               "server.io.net.url" => url,
               "server.io.net.request.method" => method.to_s.upcase,
               "server.io.net.request.headers" => headers,
@@ -37,12 +37,12 @@ module Datadog
 
             if !is_redirect && sample_body
               body = parse_request_body(payload, content_type: headers["content-type"])
-              ephemeral_data["server.io.net.request.body"] = body if body
+              evaluation_data["server.io.net.request.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(result, context: context) if result.match?
+            result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
+            handle(result, context: context) if result.match? || result.keep? || result.attributes.any?
 
             # NOTE: RestClient raises exceptions for non-2xx responses. For POST/PUT/PATCH
             #       requests with 3xx redirects, RestClient raises instead of auto-following.
@@ -65,8 +65,8 @@ module Datadog
             return unless context
 
             headers = normalize_response_headers(response)
-            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
-            ephemeral_data = {
+            # @type var evaluation_data: ::Datadog::AppSec::Context::input_data
+            evaluation_data = {
               "server.io.net.response.status" => response.code.to_s,
               "server.io.net.response.headers" => headers,
             }
@@ -76,12 +76,12 @@ module Datadog
 
             if sample_body && !is_redirect
               body = parse_response_body(response.body, headers: headers, context: context)
-              ephemeral_data["server.io.net.response.body"] = body if body
+              evaluation_data["server.io.net.response.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(result, context: context) if result.match?
+            result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
+            handle(result, context: context) if result.match? || result.keep? || result.attributes.any?
           end
 
           private
@@ -177,14 +177,16 @@ module Datadog
           end
 
           def handle(result, context:)
-            AppSec::Event.tag(context, result)
-            TraceKeeper.keep!(context.trace) if result.keep?
-
             context.events.push(
               AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
             )
 
-            AppSec::ActionsHandler.handle(result.actions)
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            if result.match?
+              AppSec::Event.tag(context, result)
+              AppSec::ActionsHandler.handle(result.actions)
+            end
           end
         end
       end

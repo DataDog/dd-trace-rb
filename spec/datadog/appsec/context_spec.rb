@@ -3,6 +3,7 @@
 require "libddwaf"
 
 require "datadog/appsec/spec_helper"
+require "datadog/appsec/native_output_helpers"
 require "datadog/appsec/processor/rule_loader"
 
 RSpec.describe Datadog::AppSec::Context do
@@ -249,11 +250,11 @@ RSpec.describe Datadog::AppSec::Context do
   describe "#run_waf" do
     context "when multiple same matching runs were made within a single context" do
       let!(:run_results) do
-        persistent_data = {
+        evaluation_data = {
           "server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"},
         }
 
-        Array.new(3) { context.run_waf(persistent_data, {}, 1_000_000) }
+        Array.new(3) { context.run_waf(evaluation_data, 1_000_000) }
       end
 
       it "returns a single match and rest is ok" do
@@ -269,14 +270,14 @@ RSpec.describe Datadog::AppSec::Context do
 
     context "when multiple different matching runs were made within a single context" do
       let!(:run_results) do
-        persistent_data_1 = {"server.request.query" => {"q" => "1 OR 1;"}}
-        persistent_data_2 = {
+        evaluation_data_1 = {"server.request.query" => {"q" => "1 OR 1;"}}
+        evaluation_data_2 = {
           "server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"},
         }
 
         [
-          context.run_waf(persistent_data_1, {}, 1_000_000),
-          context.run_waf(persistent_data_2, {}, 1_000_000),
+          context.run_waf(evaluation_data_1, 1_000_000),
+          context.run_waf(evaluation_data_2, 1_000_000),
         ]
       end
 
@@ -295,10 +296,10 @@ RSpec.describe Datadog::AppSec::Context do
     context "when a matching run was made" do
       before { allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry) }
 
-      let(:persistent_data) do
+      let(:waf_evaluation_data) do
         {"server.request.query" => {"q" => "1' OR 1=1;"}}
       end
-      let(:ephemeral_data) do
+      let(:evaluation_data) do
         {
           "server.db.statement" => "SELECT * FROM users WHERE name = '1' OR 1=1;",
           "server.db.system" => "mysql",
@@ -310,7 +311,8 @@ RSpec.describe Datadog::AppSec::Context do
           .with("appsec", anything, kind_of(Integer), anything)
           .at_least(:once)
 
-        context.run_rasp("sqli", persistent_data, ephemeral_data, 1_000_000)
+        context.run_waf(waf_evaluation_data, 1_000_000)
+        context.run_rasp("sqli", evaluation_data, 1_000_000)
       end
     end
 
@@ -324,10 +326,10 @@ RSpec.describe Datadog::AppSec::Context do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0, input_truncated: false)
       end
-      let(:persistent_data) do
+      let(:waf_evaluation_data) do
         {"server.request.query" => {"q" => "1' OR 1=1;"}}
       end
-      let(:ephemeral_data) do
+      let(:evaluation_data) do
         {
           "server.db.statement" => "SELECT * FROM users WHERE name = '1' OR 1=1;",
           "server.db.system" => "mysql",
@@ -338,7 +340,8 @@ RSpec.describe Datadog::AppSec::Context do
         expect(telemetry).not_to receive(:inc)
           .with("appsec", be_in(["rasp.rule.eval", "rasp.rule.match", "rasp.timeout"]), kind_of(Integer), anything)
 
-        context.run_rasp("sqli", persistent_data, ephemeral_data, 1_000_000)
+        context.run_waf(waf_evaluation_data, 1_000_000)
+        context.run_rasp("sqli", evaluation_data, 1_000_000)
       end
     end
 
@@ -346,13 +349,13 @@ RSpec.describe Datadog::AppSec::Context do
       before do
         described_class.activate(context)
         context.attach
-        context.run_rasp("sqli", {}, ephemeral_data, 1_000_000)
+        context.run_rasp("sqli", evaluation_data, 1_000_000)
         described_class.deactivate
       end
 
       after { context.detach }
 
-      let(:ephemeral_data) do
+      let(:evaluation_data) do
         {
           "server.db.statement" => "SELECT 1",
           "server.db.system" => "mysql",
@@ -360,9 +363,76 @@ RSpec.describe Datadog::AppSec::Context do
       end
 
       it "runs waf" do
-        expect(context.run_rasp("sqli", {}, ephemeral_data, 1_000_000))
+        expect(context.run_rasp("sqli", evaluation_data, 1_000_000))
           .to be_a(Datadog::AppSec::SecurityEngine::Result::Ok)
       end
+    end
+  end
+
+  describe "native subcontext lifetime" do
+    let(:waf_evaluation_data) { {"server.request.query" => {"q" => "1' OR 1=1;"}} }
+    let(:evaluation_data) do
+      {"server.db.statement" => "SELECT * FROM users WHERE name = '1' OR 1=1;", "server.db.system" => "mysql"}
+    end
+
+    before { context.attach }
+    after { context.detach }
+
+    it "inherits the parent while keeping repeated RASP calls and later parent evaluation independent" do
+      context.run_waf(waf_evaluation_data, 1_000_000)
+      2.times { expect(context.run_rasp("sqli", evaluation_data, 1_000_000)).to be_match }
+      expect(context.run_rasp("sqli", {}, 1_000_000)).not_to be_match
+      expect(context.run_waf({}, 1_000_000)).not_to be_match
+      expect(context.run_waf({"server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"}}, 1_000_000))
+        .to be_match
+    end
+
+    it "destroys a failed child within the single budget and permits a later evaluation" do
+      context.run_waf(waf_evaluation_data, 1_000_000)
+      child = nil
+      allow(Datadog::AppSec::WAF::Subcontext).to receive(:new).and_wrap_original do |original, *args, **kwargs|
+        child = original.call(*args, **kwargs)
+        allow(child).to receive(:eval).and_call_original
+        expect(child).to receive(:eval).with(evaluation_data, 37).once
+          .and_raise(Datadog::AppSec::WAF::LibDDWAFError, "evaluation failed")
+        expect(child).to receive(:finalize!).once.and_call_original
+        child
+      end
+      allow(telemetry).to receive(:report)
+      allow(telemetry).to receive(:error)
+      expect(context.run_rasp("sqli", evaluation_data, 37)).to be_error
+      expect { child.eval({}) }.to raise_error(Datadog::AppSec::WAF::InstanceFinalizedError)
+      allow(Datadog::AppSec::WAF::Subcontext).to receive(:new).and_call_original
+      expect(context.run_rasp("sqli", evaluation_data, 1_000_000)).to be_match
+    end
+  end
+
+  describe "schema evaluation retention without attributes" do
+    include_context "native AppSec output"
+    let(:output_address) { "waf.context.processor" }
+    let(:output_keep) { true }
+    let(:output_attributes) { {"test.trace.attribute" => {"address" => "missing.source"}} }
+    let(:output_conditions) do
+      [{
+        "operator" => "equals",
+        "parameters" => {
+          "inputs" => [{"address" => output_address, "key_path" => ["extract-schema"]}],
+          "type" => "boolean", "value" => true,
+        },
+      }]
+    end
+
+    it "captures only one event without counting a detection and keeps the trace when recorded" do
+      context.extract_schema!
+      expect(context.events.size).to eq(1)
+      expect(context.events.first.waf_result.attributes).to be_empty
+      expect(context.events.first.waf_result).to be_keep
+      expect(context.metrics.waf.matches).to eq(0)
+      expect(context.state[:schema_extracted]).to be(false)
+      expect(trace.sampling_priority).to eq(0)
+      Datadog::AppSec::Event.record(context)
+      expect(trace.sampling_priority).to eq(2)
+      expect(span.get_tag("appsec.event")).to be_nil
     end
   end
 
@@ -371,7 +441,7 @@ RSpec.describe Datadog::AppSec::Context do
 
     it "runs the waf with extract-schema address and the configured timeout" do
       expect_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
-        .with({"waf.context.processor" => {"extract-schema" => true}}, {}, 42)
+        .with({"waf.context.processor" => {"extract-schema" => true}}, 42)
         .and_call_original
 
       context.extract_schema!

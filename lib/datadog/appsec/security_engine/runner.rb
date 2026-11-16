@@ -17,26 +17,20 @@ module Datadog
           @waf_handle = handle_ref.acquire
           @ruleset_version = ruleset_version
 
-          @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
+          @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:eval"
         end
 
-        def run(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+        def run(data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT, ephemeral: false)
           @mutex.lock
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
-          persistent_data.reject! do |_, v|
+          data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
             v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
-          ephemeral_data.reject! do |_, v|
-            next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
-
-            v.nil? || (v.respond_to?(:empty?) && v.empty?)
-          end
-
-          result = try_run(persistent_data, ephemeral_data, timeout)
+          result = try_run(data, timeout, ephemeral: ephemeral)
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
           report_execution(result)
@@ -45,7 +39,7 @@ module Datadog
             return Result::Error.new(duration_ext_ns: stop_ns - start_ns, input_truncated: result.input_truncated?)
           end
 
-          klass = (result.status == :match) ? Result::Match : Result::Ok
+          klass = (result.events.empty? && result.actions.empty?) ? Result::Ok : Result::Match
           klass.new(
             events: result.events,
             actions: result.actions,
@@ -76,8 +70,12 @@ module Datadog
 
         private
 
-        def try_run(persistent_data, ephemeral_data, timeout)
-          waf_context.run(persistent_data, ephemeral_data, timeout)
+        def try_run(data, timeout, ephemeral:)
+          if ephemeral
+            waf_context.build_subcontext { |child| child.eval(data, timeout) }
+          else
+            waf_context.eval(data, timeout)
+          end
         rescue WAF::LibDDWAFError => e
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e.class}: #{e.message} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: "libddwaf-rb internal low-level error")
