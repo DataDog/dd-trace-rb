@@ -5,7 +5,11 @@ RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
   before { skip_if_profiling_not_supported }
 
   let(:cpu_and_wall_time_worker) {
-    instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, _native_profiler_internal_thread_done: nil)
+    instance_double(
+      Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
+      _native_profiler_internal_thread_started: nil,
+      _native_profiler_internal_thread_done: nil,
+    )
   }
   subject(:idle_sampling_helper) { described_class.new }
 
