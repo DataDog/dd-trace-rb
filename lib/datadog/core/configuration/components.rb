@@ -447,8 +447,11 @@ module Datadog
         end
 
         # Builds or detaches the Data Streams processor to match `settings.data_streams.enabled`.
-        # Caller must hold the Components lock. Returns the detached processor for stop_retired_data_streams.
+        # Caller must hold the Components lock. Returns the detached processor for stop_retired_data_streams; never raises.
         def swap_data_streams
+          # Settings lack data_streams when only datadog/core is loaded.
+          return unless settings.respond_to?(:data_streams)
+
           if settings.data_streams.enabled
             # Skipped when unsupported so each configure/RC dispatch doesn't repeat the build failure warning.
             if Core::DDSketch.supported?
@@ -463,6 +466,9 @@ module Datadog
           @data_streams = nil
           @retiring_data_streams_lock.synchronize { @retiring_data_streams << retired }
           retired
+        rescue => e
+          logger.debug { "Failed to reconcile Data Streams Monitoring: #{e.class}: #{e.message}" }
+          nil
         end
 
         # Stops a processor detached by swap_data_streams, outside the Components lock.

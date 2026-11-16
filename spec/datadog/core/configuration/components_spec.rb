@@ -1021,6 +1021,27 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context "when the setting is disabled and there is no processor" do
       it { expect(swap_data_streams).to be_nil }
     end
+
+    context "when the settings have no data_streams (only datadog/core loaded)" do
+      before do
+        allow(settings).to receive(:respond_to?).and_call_original
+        allow(settings).to receive(:respond_to?).with(:data_streams).and_return(false)
+      end
+
+      it "does nothing" do
+        expect(swap_data_streams).to be_nil
+        expect(described_class).not_to have_received(:build_data_streams)
+      end
+    end
+
+    context "when reconciling fails" do
+      before do
+        settings.data_streams.enabled = true
+        allow(described_class).to receive(:build_data_streams).and_raise("boom")
+      end
+
+      it { expect(swap_data_streams).to be_nil }
+    end
   end
 
   describe "#stop_retired_data_streams" do
