@@ -37,7 +37,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           agent_base_url: agent_base_url,
           ld_library_path: ld_library_path,
           path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-          collect_otel_thread_contexts: boolean,
           logger: logger,
         ).and_return(component)
 
@@ -562,7 +561,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           crash_report_experimental[:otel_thread_contexts]
         }
 
-        it "captures thread context when collect_otel_thread_contexts is enabled" do
+        it "captures thread context when otel thread context is active" do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             require "datadog/tracing/otel_thread_context"
 
@@ -572,7 +571,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
             crash_tracker = build_crashtracker(
               agent_base_url: agent_base_url,
-              collect_otel_thread_contexts: true,
             )
             crash_tracker.start
 
@@ -604,7 +602,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         {"tag1" => "value1", "tag2" => "value2", "language" => testing_string, "service" => testing_string},
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
-      collect_otel_thread_contexts: options.fetch(:collect_otel_thread_contexts, false),
       logger: options[:logger] || Logger.new($stdout),
     )
   end
