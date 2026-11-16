@@ -3058,7 +3058,12 @@ RSpec.describe Datadog::DI::Instrumenter do
             HookLineTestClass.new.test_method
             expect(weakref_probe_calls).to be_empty
 
-            expect(WeakRef.new(Object.new).weakref_alive?).to be(true)
+            # The local keeps a strong reference to the target: WeakRef
+            # keeps it only weakly, so a GC during the wrapper's
+            # processing collects the target and weakref_alive? returns
+            # nil.
+            weakref_target = Object.new
+            expect(WeakRef.new(weakref_target).weakref_alive?).to be(true)
           ensure
             instrumenter.unhook(capturing_line_probe)
             instrumenter.unhook(weakref_probe)
