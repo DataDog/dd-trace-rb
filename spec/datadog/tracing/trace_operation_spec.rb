@@ -2092,6 +2092,32 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect(joined).to be(worker), "the blocking subscriber was not interrupted"
         expect(worker.value).to be_a(interrupt)
       end
+
+      it "activates the span when a caller-supplied before_start subscriber blocks and is interrupted" do
+        reached = Queue.new
+        events = Datadog::Tracing::SpanOperation::Events.new
+        events.before_start.subscribe do |_span_op|
+          reached << true
+          Queue.new.pop
+        end
+
+        worker = Thread.new do
+          trace_op.measure("interrupted", events: events) {}
+        rescue interrupt => e
+          e
+        end
+        reached.pop
+        worker.raise(interrupt)
+
+        joined = worker.join(5)
+        worker.kill.join unless joined
+        expect(joined).to be(worker), "trace operation did not terminate"
+        expect(worker.value).to be_a(interrupt)
+
+        expect(trace_op.send(:root_span).name).to eq("interrupted")
+        expect(trace_op.active_span_count).to eq(0)
+        expect(trace_op).to be_finished
+      end
     end
   end
 

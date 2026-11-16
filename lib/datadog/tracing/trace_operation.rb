@@ -299,9 +299,9 @@ module Datadog
         span_events = events || SpanOperation::Events.new(logger: logger)
 
         # Before start: activate the span, publish events.
-        span_events.before_start.subscribe do |span_op|
-          start_span(span_op)
-        end
+        # Runs before caller-supplied subscribers: before_start is published once per span,
+        # so an exception in an earlier subscriber would skip activation for good.
+        span_events.before_start.subscriptions.unshift(proc { |span_op| start_span(span_op) })
 
         # Before finish: allow enrichment before the span is finalized, publish events.
         span_events.before_finish.subscribe do |span_op|
