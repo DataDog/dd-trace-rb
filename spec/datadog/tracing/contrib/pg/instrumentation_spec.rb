@@ -62,6 +62,18 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
     end
   end
 
+  context "with an Aurora Limitless DB shard group endpoint" do
+    let(:host) { "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" }
+
+    it "tags the shard group name without naming a cluster or an instance" do
+      expect(span.get_tag("aws.rds.identifier")).to eq("orders-sg")
+      expect(span.get_tag("aws.rds.endpoint_type")).to eq("shard-group")
+      expect(span.get_tag("aws.region")).to eq("us-east-1")
+      expect(span.get_tag("dbclusteridentifier")).to be_nil
+      expect(span.get_tag("dbinstanceidentifier")).to be_nil
+    end
+  end
+
   context "with an endpoint outside the commercial partition" do
     let(:host) { "orders-db.cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk" }
 

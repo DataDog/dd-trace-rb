@@ -83,6 +83,8 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
           {identifier: "analytics", endpoint_type: "cluster-custom", region: "ap-southeast-2"},
         "orders-proxy.proxy-cdbfa1b2c3d4.us-east-2.rds.amazonaws.com" =>
           {identifier: "orders-proxy", endpoint_type: "proxy", region: "us-east-2"},
+        "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" =>
+          {identifier: "orders-sg", endpoint_type: "shard-group", region: "us-east-1"},
       }.each do |host, expected|
         context "with #{host}" do
           let(:hostname) { host }
@@ -97,6 +99,54 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         it { is_expected.to eq(identifier: "orders", endpoint_type: "cluster", region: "us-iso-east-1") }
       end
 
+      context "with a shard group endpoint in each AWS partition" do
+        {
+          "orders-sg.shardgrp-cdbfa1b2c3d4.us-gov-west-1.rds.amazonaws.com" => "us-gov-west-1",
+          "orders-sg.shardgrp-cdbfa1b2c3d4.cn-north-1.rds.amazonaws.com.cn" => "cn-north-1",
+          "orders-sg.shardgrp-cdbfa1b2c3d4.eusc-de-east-1.rds.amazonaws.eu" => "eusc-de-east-1",
+          "orders-sg.shardgrp-cdbfa1b2c3d4.us-iso-east-1.rds.c2s.ic.gov" => "us-iso-east-1",
+          "orders-sg.shardgrp-cdbfa1b2c3d4.us-isob-east-1.rds.sc2s.sgov.gov" => "us-isob-east-1",
+          "orders-sg.shardgrp-cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk" => "eu-isoe-west-1",
+          "orders-sg.shardgrp-cdbfa1b2c3d4.us-isof-south-1.rds.csp.hci.ic.gov" => "us-isof-south-1",
+        }.each do |host, region|
+          context "with #{host}" do
+            let(:hostname) { host }
+
+            it { is_expected.to eq(identifier: "orders-sg", endpoint_type: "shard-group", region: region) }
+          end
+        end
+      end
+
+      context "with a shard group endpoint in upper case, with a trailing dot and a port" do
+        let(:hostname) { "ORDERS-SG.SHARDGRP-CDBFA1B2C3D4.US-EAST-1.RDS.AMAZONAWS.COM.:5432" }
+
+        it { is_expected.to eq(identifier: "orders-sg", endpoint_type: "shard-group", region: "us-east-1") }
+      end
+
+      context "with a malformed shard group endpoint" do
+        [
+          # the account label is a single run of letters and digits
+          "orders-sg.shardgrp-cdbfa1-b2c3d4.us-east-1.rds.amazonaws.com",
+          "orders-sg.shardgrp-cdbfa1_b2c3d4.us-east-1.rds.amazonaws.com",
+          "orders-sg.shardgrp-.us-east-1.rds.amazonaws.com",
+          "orders-sg.shardgrp-#{"a" * 64}.us-east-1.rds.amazonaws.com",
+          # the prefix is not repeated or combined with another
+          "orders-sg.shardgrp-shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          "orders-sg.cluster-shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          # the shard group name follows the same naming rules
+          "1orders.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          "orders--sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          # the Region still has to belong to the partition of its DNS suffix
+          "orders-sg.shardgrp-cdbfa1b2c3d4.us-iso-east-1.rds.amazonaws.com",
+        ].each do |host|
+          context "with #{host}" do
+            let(:hostname) { host }
+
+            it { is_expected.to be_nil }
+          end
+        end
+      end
+
       context "with each endpoint type in the China label order" do
         {
           "orders.cluster-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
@@ -107,6 +157,8 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
             {identifier: "analytics", endpoint_type: "cluster-custom", region: "cn-north-1"},
           "orders-proxy.proxy-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
             {identifier: "orders-proxy", endpoint_type: "proxy", region: "cn-north-1"},
+          "orders-sg.shardgrp-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
+            {identifier: "orders-sg", endpoint_type: "shard-group", region: "cn-north-1"},
         }.each do |host, expected|
           context "with #{host}" do
             let(:hostname) { host }
@@ -162,7 +214,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
       {
         "Aurora global cluster" => "global-orders.global-cdbfa1b2c3d4.global.rds.amazonaws.com",
         "RDS Proxy custom endpoint" => "readonly.endpoint.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
-        "Aurora Limitless DB shard group" => "orders.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
       }.each do |description, host|
         context "with a #{description} endpoint" do
           let(:hostname) { host }
@@ -374,6 +425,15 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         expect(parse.values).to all(be_frozen)
       end
 
+      context "with a shard group endpoint" do
+        let(:hostname) { "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" }
+
+        it "is frozen and holds frozen strings" do
+          expect(parse).to be_frozen
+          expect(parse.values).to all(be_frozen)
+        end
+      end
+
       it "is the same object every time, so a repeated endpoint is parsed once" do
         expect(described_class.parse(hostname)).to be(described_class.parse(hostname))
       end
@@ -505,6 +565,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
       "orders.cluster-ro-cdbfa1b2c3d4.eu-west-1.rds.amazonaws.com",
       "isoe-db.cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk",
       "cn-db.cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn",
+      "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
       "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:5432",
     ].each do |host|
       it "allocates nothing re-parsing the known endpoint #{host.inspect}" do

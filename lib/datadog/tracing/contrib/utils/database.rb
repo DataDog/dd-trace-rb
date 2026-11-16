@@ -27,7 +27,9 @@ module Datadog
           end
 
           # Sets the tags of an endpoint returned by {Contrib::Aws::RDSEndpoint.parse},
-          # and nothing when `rds_endpoint` is `nil`.
+          # and nothing when `rds_endpoint` is `nil`. Only an instance endpoint sets the
+          # DB instance id, and only a cluster or cluster-ro endpoint sets the DB cluster
+          # id. Cluster-custom, proxy, and shard group endpoints name neither.
           def self.set_rds_endpoint_tags(span, rds_endpoint)
             return unless rds_endpoint
 
