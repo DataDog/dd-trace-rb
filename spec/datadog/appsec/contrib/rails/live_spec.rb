@@ -100,13 +100,6 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     get("/live", params, {"SERVER_PROTOCOL" => "HTTP/1.1", "HTTP_VERSION" => "HTTP/1.1"})
   end
 
-  # Blocks until a live request thread finishes detaching the AppSec context.
-  #
-  # Every example that makes a live request must wait for that request's
-  # thread with this method before the example ends. While RSpec restores
-  # `allow_any_instance_of` stubs it briefly removes `Context#detach` from
-  # the class, and a live thread calling `detach` in that window fails the
-  # run with NoMethodError.
   def wait_for_controller_thread
     Timeout.timeout(5) do
       loop { break unless live_signals[:detached].pop == Thread.current }
@@ -154,31 +147,30 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
       Timeout.timeout(5) do
         get_live
         live_signals[:resumed].push(true)
-        live_signals[:result].pop
+        live_signals[:result].pop.tap { wait_for_controller_thread }
       end
     end
 
     it "runs the query without error" do
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.last).to eq(1)
-      wait_for_controller_thread
     end
 
     it "keeps AppSec context in the live thread" do
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.first).to be_a(Datadog::AppSec::Context)
-      wait_for_controller_thread
     end
 
     context "when request thread returns before live thread ends" do
       before do
+        threads = finalized_threads
+
         allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:finalize!).and_wrap_original do |method|
-          finalized_threads << Thread.current
+          threads << Thread.current
           method.call
         end
 
         after_action_result
-        wait_for_controller_thread
       end
 
       let(:finalized_threads) { [] }
@@ -387,13 +379,10 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     before do
       Timeout.timeout(5) do
         get_live
+        wait_for_controller_thread
         get_live
+        wait_for_controller_thread
       end
-
-      # One wait per live request: each get_live above spawns a controller
-      # thread, and every one of them must finish detaching before the
-      # example ends.
-      2.times { wait_for_controller_thread }
     end
 
     it "sees the context of the current request" do
