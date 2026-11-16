@@ -69,7 +69,10 @@ The enablement signal can target a single service and environment, or be
 set as a default for a whole environment or the whole organization. When
 several of these apply to one service, the most specific one wins: a
 service-and-environment setting overrides an environment-wide default,
-which overrides an organization-wide default.
+which overrides an organization-wide default. The service and environment
+names in these settings are the names shown in the Datadog UI: a service
+started with `DD_SERVICE=MyApp` is selected as `myapp`, and a service started
+without `DD_ENV` uses the environment of the Datadog Agent it reports to.
 
 **Precedence:** if `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` is set
 explicitly, the env-var setting takes precedence and remote-config

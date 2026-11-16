@@ -44,22 +44,13 @@ module Datadog
         # result once. Org/env-level (multi-config) remote enablement delivers
         # several APM_TRACING configs in parallel (a (service, env)-specific one,
         # an env-wide one, and/or an org-wide "*" one); for each lib_config field
-        # the value from the most-specific matching config wins. The RC repository
+        # the value from the most-specific config wins. The RC repository
         # prunes deleted configs, so this recomputes the merge from the repository's
         # current contents on each dispatch.
         #
         # @param repository [Core::Remote::Configuration::Repository] the current RC repository
         # @return [nil]
         def merge_and_apply_configs(repository)
-          # Resolve the service identity the same way the RC client registers
-          # it with the backend (Core::Remote::Client#service_name =
-          # remote.service || service). When a customer sets remote.service,
-          # the backend delivers service_target.service values targeting that
-          # override; matching against the local service instead would drop
-          # every service-scoped config and let a less-specific org config win.
-          service = Datadog.configuration.remote.service || Datadog.configuration.service
-          env = Datadog.configuration.env
-
           # @type var parsed: Array[[Core::Remote::Configuration::Content, Hash[String, untyped]]]
           parsed = []
           # @type var unparseable_contents: Array[Datadog::Core::Remote::Configuration::Content]
@@ -71,7 +62,7 @@ module Datadog
               config = parse_content(content)
               unless config.is_a?(Hash)
                 # A syntactically valid but non-object payload (null, [], 42)
-                # would later make config_matches? raise outside this per-content
+                # would later make config_priority raise outside this per-content
                 # rescue and abort the whole merge, erroring valid configs too.
                 raise TypeError, "APM_TRACING remote config must be a JSON object, got #{config.class}"
               end
@@ -99,27 +90,23 @@ module Datadog
 
           Datadog.logger.debug { "APM_TRACING RC: received #{parsed.length} config(s)" }
 
-          applicable = parsed.select do |content, config|
-            if config_matches?(config, service, env)
-              Datadog.logger.debug do
-                "APM_TRACING RC: config #{content.path.config_id} " \
-                  "scope=#{SCOPE_LABELS[config_priority(config)]} priority=#{config_priority(config)}"
-              end
-              true
-            else
-              Datadog.logger.debug do
-                "APM_TRACING RC: dropped config #{content.path.config_id} " \
-                  "(service_target=#{config["service_target"].inspect}, self=#{service}/#{env})"
-              end
-              false
+          # Every delivered config is merged; service_target only ranks it. RC
+          # delivery matches service_target against the tracer's normalized
+          # service and env, using the agent's env when the tracer has none, so a
+          # comparison with the raw settings would drop configs targeting this
+          # tracer.
+          parsed.each do |content, config|
+            Datadog.logger.debug do
+              "APM_TRACING RC: config #{content.path.config_id} " \
+                "scope=#{SCOPE_LABELS[config_priority(config)]} priority=#{config_priority(config)}"
             end
           end
 
           # Most-specific first; ties broken by config id (ascending) for a
           # deterministic merge.
-          ordered = applicable.sort_by { |content, config| [-config_priority(config), content.path.config_id] }
+          ordered = parsed.sort_by { |content, config| [-config_priority(config), content.path.config_id] }
           merged = merge_lib_configs(ordered.map { |_content, config| config })
-          # The applicable configs carrying a non-null dynamic_instrumentation_enabled
+          # The configs carrying a non-null dynamic_instrumentation_enabled
           # value: any of their paths can still supply the signal after a later
           # replacement, so the DI component records them all.
           # @type var enable_signal_paths: Array[Datadog::Core::Remote::Configuration::Path]
@@ -152,26 +139,6 @@ module Datadog
             content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
           end
           nil
-        end
-
-        # Whether a config targets this tracer. A concrete (non-"*") service or
-        # env that differs from ours excludes the config; "*" and an absent
-        # service_target match anything.
-        #
-        # @param config [Hash[String, untyped]] a parsed config
-        # @param service [String, nil] this tracer's service
-        # @param env [String, nil] this tracer's env
-        # @return [bool] true when the config applies to this tracer
-        def config_matches?(config, service, env)
-          target = config["service_target"]
-          return true unless target.is_a?(Hash)
-
-          target_service = target["service"]
-          target_env = target["env"]
-          return false if target_service && target_service != "*" && target_service != service
-          return false if target_env && target_env != "*" && target_env != env
-
-          true
         end
 
         # Specificity of a config, higher meaning more specific: service+env (5),

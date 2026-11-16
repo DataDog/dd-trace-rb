@@ -302,32 +302,6 @@ RSpec.describe Datadog::Tracing::Remote do
     end
   end
 
-  describe "#config_matches?" do
-    it "matches when service_target is absent" do
-      expect(remote.config_matches?({"lib_config" => {}}, "web", "prod")).to be(true)
-    end
-
-    it "matches wildcard service and env" do
-      config = {"service_target" => {"service" => "*", "env" => "*"}}
-      expect(remote.config_matches?(config, "web", "prod")).to be(true)
-    end
-
-    it "matches a concrete service+env equal to ours" do
-      config = {"service_target" => {"service" => "web", "env" => "prod"}}
-      expect(remote.config_matches?(config, "web", "prod")).to be(true)
-    end
-
-    it "drops a config for a different concrete service" do
-      config = {"service_target" => {"service" => "other", "env" => "*"}}
-      expect(remote.config_matches?(config, "web", "prod")).to be(false)
-    end
-
-    it "drops a config for a different concrete env" do
-      config = {"service_target" => {"service" => "*", "env" => "staging"}}
-      expect(remote.config_matches?(config, "web", "prod")).to be(false)
-    end
-  end
-
   describe "#config_priority" do
     it "ranks service+env highest (5)" do
       expect(remote.config_priority({"service_target" => {"service" => "web", "env" => "prod"}})).to eq(5)
@@ -476,7 +450,7 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
-    context "when a config targets a different service" do
+    context "when a config targets a service other than the local service" do
       let(:contents) do
         [
           build_content("other", {"service_target" => {"service" => "other", "env" => "prod"},
@@ -484,8 +458,10 @@ RSpec.describe Datadog::Tracing::Remote do
         ]
       end
 
-      it "drops it from the merge but still marks it applied, and does not touch DI" do
-        expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+      before { allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products).and_return([]) }
+
+      it "merges it, because Remote Configuration delivered it to this tracer, and marks it applied" do
+        expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).once.with(true, repository)
 
         remote.merge_and_apply_configs(repository)
 
@@ -493,28 +469,43 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
-    context "when remote.service overrides the local service for RC binding" do
+    context "when the local service is not in normalized form" do
       let(:contents) do
         [
-          build_content("svc", {"service_target" => {"service" => "rc-svc", "env" => "*"},
-                              "lib_config" => {"log_injection_enabled" => false}}),
+          build_content("svc", {"service_target" => {"service" => "web-app", "env" => "prod"},
+                              "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
         ]
       end
 
       before do
-        # The RC client registers with the backend as remote.service ||
-        # service, so a service-scoped config arrives targeted at the override.
-        allow(Datadog.configuration.remote).to receive(:service).and_return("rc-svc")
+        allow(Datadog.configuration).to receive(:service).and_return("Web-App")
+        allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products).and_return([])
       end
 
-      it "matches the config against the override and applies it" do
-        expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
-          .with(contain_exactly(
-            ["DD_LOGS_INJECTION", false],
-            ["DD_TRACE_HEADER_TAGS", nil],
-            ["DD_TRACE_SAMPLE_RATE", nil],
-            ["DD_TRACE_SAMPLING_RULES", nil],
-          ))
+      it "applies a config targeting the normalized service" do
+        expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).once.with(true, repository)
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(contents.first.apply_state).to eq(2)
+      end
+    end
+
+    context "when the tracer has no env" do
+      let(:contents) do
+        [
+          build_content("svc", {"service_target" => {"service" => "web", "env" => "prod"},
+                              "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
+        ]
+      end
+
+      before do
+        allow(Datadog.configuration).to receive(:env).and_return(nil)
+        allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products).and_return([])
+      end
+
+      it "applies a config targeting the env the tracer inherits from the agent" do
+        expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).once.with(true, repository)
 
         remote.merge_and_apply_configs(repository)
 
@@ -834,7 +825,7 @@ RSpec.describe Datadog::Tracing::Remote do
 
         expect(messages).to include(a_string_matching(/received 2 config\(s\)/))
         expect(messages).to include(a_string_matching(/config org scope=org priority=1/))
-        expect(messages).to include(a_string_matching(/dropped config other/))
+        expect(messages).to include(a_string_matching(/config other scope=service\+env priority=5/))
       end
     end
   end
