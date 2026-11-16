@@ -555,6 +555,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         }
 
         it "captures thread context when otel thread context is active" do
+          known_trace_id = 0xaabbccdd00112233aabbccdd00112233
+          expected_trace_id_hex = "aabbccdd00112233aabbccdd00112233"
+
+          # continue_from: sets the trace_id, but the span created by .trace gets a new span_id
+          trace_digest = Datadog::Tracing::TraceDigest.new(
+            trace_id: known_trace_id,
+            span_id: 0xdeadbeef12345678,
+          )
+
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             require "datadog/tracing/otel_thread_context"
 
@@ -567,7 +576,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             )
             crash_tracker.start
 
-            Datadog::Tracing.trace("crash.test") do
+            Datadog::Tracing.trace("crash.test", continue_from: trace_digest) do
               Process.kill("SEGV", Process.pid)
             end
           end
@@ -576,11 +585,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           expect(otel_thread_contexts).to_not be_empty
 
           crashing_thread_ctx = otel_thread_contexts.first
-          # trace_id and span_id should exist for a single context object
-          expect(crashing_thread_ctx[:trace_id]).to be_a(String)
+          expect(crashing_thread_ctx[:trace_id]).to eq(expected_trace_id_hex)
           expect(crashing_thread_ctx[:span_id]).to be_a(String)
-          # they should be some random values
-          expect(crashing_thread_ctx[:trace_id]).to_not eq("0" * 32)
           expect(crashing_thread_ctx[:span_id]).to_not eq("0" * 16)
         end
       end
