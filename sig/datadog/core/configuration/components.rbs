@@ -62,11 +62,17 @@ module Datadog
 
         @environment_logger_extra: Hash[Symbol, untyped]
 
+        @retiring_data_streams: Array[Datadog::DataStreams::Processor]
+
+        @retiring_data_streams_lock: Thread::Mutex
+
         def initialize: (Settings settings) -> void
 
         def after_fork: () -> void
 
-        def sync_data_streams: () -> void
+        def swap_data_streams: () -> Datadog::DataStreams::Processor?
+
+        def stop_retired_data_streams: (Datadog::DataStreams::Processor processor) -> void
 
         def rebuild_profiler: () -> void
 

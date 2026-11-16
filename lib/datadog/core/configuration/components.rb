@@ -139,9 +139,14 @@ module Datadog
           # Starts or stops Data Streams Monitoring on the current Components instance to match the
           # `data_streams.enabled` setting. Used by remote configuration; never raises.
           def reconfigure_data_streams
-            # allow_initialization: false to avoid building the component tree from the remote-config worker thread.
-            current = Datadog.send(:components, allow_initialization: false)
-            current&.sync_data_streams
+            current = nil
+            retired = nil
+            Datadog.send(:safely_synchronize) do
+              # allow_initialization: false to avoid building the component tree from the remote-config worker thread.
+              current = Datadog.send(:components, allow_initialization: false)
+              retired = current&.swap_data_streams
+            end
+            current&.stop_retired_data_streams(retired) if retired
             nil
           rescue => e
             Datadog.logger.debug { "Failed to reconfigure Data Streams Monitoring: #{e.class}: #{e.message}" }
@@ -253,6 +258,8 @@ module Datadog
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
+          @retiring_data_streams = []
+          @retiring_data_streams_lock = Mutex.new
           # Reflects "the customer configured DI to be on" — true iff the
           # component was built AND the env-var-driven enabled flag is set.
           # This is the post-initialize / pre-startup value visible to tests
@@ -383,6 +390,7 @@ module Datadog
 
           # Shutdown Data Streams Monitoring processor
           data_streams&.stop(true)
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams.dup }.each { |processor| processor.stop(true) }
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)
@@ -438,26 +446,30 @@ module Datadog
           @open_feature_activation.component
         end
 
-        # Starts or stops the Data Streams processor to match `settings.data_streams.enabled`.
-        # The swap runs under the Components lock; the final flush runs outside it.
-        # Does nothing when these components were replaced meanwhile, so no processor is orphaned.
-        def sync_data_streams
-          stopped = nil
-          Datadog.send(:safely_synchronize) do
-            next unless Datadog.send(:components, allow_initialization: false).equal?(self)
-
-            if settings.data_streams.enabled
-              @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
-            else
-              stopped = @data_streams
-              @data_streams = nil
-            end
+        # Builds or detaches the Data Streams processor to match `settings.data_streams.enabled`.
+        # Caller must hold the Components lock. Returns the detached processor for stop_retired_data_streams.
+        def swap_data_streams
+          if settings.data_streams.enabled
+            @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
+            return
           end
 
-          return unless stopped
+          retired = @data_streams
+          return unless retired
 
-          stopped.stop(true)
-          stopped.flush
+          @data_streams = nil
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams << retired }
+          retired
+        end
+
+        # Stops a processor detached by swap_data_streams, outside the Components lock.
+        # It stays listed until stopped, so shutdown! stops it if this thread is killed first.
+        def stop_retired_data_streams(processor)
+          processor.stop(true)
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams.delete(processor) }
+          processor.flush
+        rescue => e
+          logger.debug { "Failed to stop Data Streams Monitoring: #{e.class}: #{e.message}" }
         end
 
         def rebuild_profiler
