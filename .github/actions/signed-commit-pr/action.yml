@@ -124,8 +124,14 @@ runs:
         fi
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
 
-    - name: Create signed commit
-      id: commit
+    # ghcommit-action makes one attempt and has no retry, so a single 502/504
+    # from GitHub's API frontends fails the whole run
+    # (https://github.com/DataDog/dd-trace-rb/actions/runs/43656277577).
+    # Attempts are repeated steps because a `uses:` step cannot be looped; the
+    # first two do not fail the job so the remaining attempts can run, and the
+    # last one does, so exhausted retries still fail the run.
+    - name: Create signed commit (attempt 1 of 3)
+      id: commit-1
       if: steps.stage.outputs.changed == 'true'
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
@@ -143,6 +149,100 @@ runs:
         # ref was just created at, rather than whatever the CLI's `git rev-parse
         # HEAD` fallback resolves to.
         GHCOMMIT_SHA: ${{ steps.scratch.outputs.head-sha }}
+      continue-on-error: true
+
+    # A 5xx response can arrive after the mutation was applied, so a retry
+    # must guard on the scratch ref's current head: guarding on the original
+    # head would fail as a stale-head conflict. When the commit did land, the
+    # retry appends a content-identical commit to this throwaway ref.
+    - name: Back off and re-read the scratch head
+      id: backoff-1
+      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        SCRATCH: ${{ steps.stage.outputs.scratch }}
+      run: |
+        sleep 30
+        head_sha=""
+        for _ in 1 2 3; do
+          if head_sha="$(gh api "repos/$REPO/git/refs/heads/$SCRATCH" --jq .object.sha)"; then
+            break
+          fi
+          sleep 10
+        done
+        if [ -z "$head_sha" ]; then
+          echo "Could not re-read the scratch head after three attempts." >&2
+          exit 1
+        fi
+        echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+    - name: Create signed commit (attempt 2 of 3)
+      id: commit-2
+      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ steps.stage.outputs.scratch }}
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GHCOMMIT_SHA: ${{ steps.backoff-1.outputs.head-sha }}
+      continue-on-error: true
+
+    - name: Back off and re-read the scratch head
+      id: backoff-2
+      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        SCRATCH: ${{ steps.stage.outputs.scratch }}
+      run: |
+        sleep 30
+        head_sha=""
+        for _ in 1 2 3; do
+          if head_sha="$(gh api "repos/$REPO/git/refs/heads/$SCRATCH" --jq .object.sha)"; then
+            break
+          fi
+          sleep 10
+        done
+        if [ -z "$head_sha" ]; then
+          echo "Could not re-read the scratch head after three attempts." >&2
+          exit 1
+        fi
+        echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+    - name: Create signed commit (attempt 3 of 3)
+      id: commit-3
+      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ steps.stage.outputs.scratch }}
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GHCOMMIT_SHA: ${{ steps.backoff-2.outputs.head-sha }}
+
+    # Once an attempt succeeds the rest are skipped, so at most one of the
+    # three outputs below is set.
+    - name: Resolve the created commit
+      id: commit
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        FIRST: ${{ steps.commit-1.outputs.commit-hash }}
+        SECOND: ${{ steps.commit-2.outputs.commit-hash }}
+        THIRD: ${{ steps.commit-3.outputs.commit-hash }}
+      run: |
+        commit="$THIRD"
+        [ -n "$commit" ] || commit="$SECOND"
+        [ -n "$commit" ] || commit="$FIRST"
+        echo "commit-hash=$commit" >> "$GITHUB_OUTPUT"
 
     # Single move onto a commit that already exists, so an open pull request on
     # `branch` never observes a head level with its base. Runs even when the
