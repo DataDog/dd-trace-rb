@@ -6,7 +6,6 @@
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_idle_sampling_helper.h"
-#include "collectors_thread_context.h"
 
 // Used by the Collectors::CpuAndWallTimeWorker to gather samples when the Ruby process is idle.
 //
@@ -113,14 +112,13 @@ static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
 }
 
 static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE cpu_and_wall_time_worker_instance) {
+  rb_funcall(cpu_and_wall_time_worker_instance, rb_intern("_native_profiler_internal_thread_started"), 0);
   return rb_ensure(idle_sampling_loop_body, self_instance, idle_sampling_loop_ensure, cpu_and_wall_time_worker_instance);
 }
 
 static VALUE idle_sampling_loop_body(VALUE self_instance) {
   idle_sampling_loop_state *state;
   TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
-
-  thread_context_collector_profiler_internal_thread_started();
 
   // Release GVL and run the loop waiting for requests
   rb_thread_call_without_gvl(run_idle_sampling_loop, state, interrupt_idle_sampling_loop, state);

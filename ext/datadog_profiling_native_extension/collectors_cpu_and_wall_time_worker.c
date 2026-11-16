@@ -235,6 +235,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
+static VALUE _native_profiler_internal_thread_started(VALUE self_instance);
 static VALUE _native_profiler_internal_thread_done(VALUE self_instance);
 static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
@@ -378,6 +379,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
+  rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_started", _native_profiler_internal_thread_started, 0);
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
@@ -572,7 +574,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // situation we stop immediately and never even start the sampling trigger loop.
   if (state->stop_thread == rb_thread_current()) return Qnil;
 
-  thread_context_collector_profiler_internal_thread_started();
+  _native_profiler_internal_thread_started(instance);
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
@@ -655,6 +657,11 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
 static VALUE during_sample_exit_ensure(VALUE state_ptr) {
   during_sample_exit((cpu_and_wall_time_worker_state *) state_ptr);
+  return Qnil;
+}
+
+static VALUE _native_profiler_internal_thread_started(DDTRACE_UNUSED VALUE self_instance) {
+  thread_context_collector_profiler_internal_thread_started();
   return Qnil;
 }
 
