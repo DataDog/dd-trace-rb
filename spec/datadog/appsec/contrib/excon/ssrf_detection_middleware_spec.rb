@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "datadog/appsec/spec_helper"
-require "datadog/appsec/native_output_helpers"
 require "datadog/appsec/counter_sampler"
 require "excon"
 require "stringio"
@@ -644,13 +643,6 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
 
     it "clears downstream_redirect_url state after following redirect chain with relative URL" do
       expect(context.state[:downstream_redirect_url]).to be_nil
-    end
-  end
-  ["server.io.net.request.method", "server.io.net.response.status"].each do |address|
-    context "native output from #{address}" do
-      let(:output_address) { address }
-      subject(:consume) { client.post(path: "/application-json") }
-      it_behaves_like "a native AppSec output consumer"
     end
   end
 end

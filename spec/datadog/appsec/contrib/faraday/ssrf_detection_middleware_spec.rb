@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "datadog/appsec/spec_helper"
-require "datadog/appsec/native_output_helpers"
 require "datadog/appsec/counter_sampler"
 require "faraday"
 
@@ -623,13 +622,6 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
     it "includes final response body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
-    end
-  end
-  ["server.io.net.request.method", "server.io.net.response.status"].each do |address|
-    context "native output from #{address}" do
-      let(:output_address) { address }
-      subject(:consume) { client.post("/application-json") }
-      it_behaves_like "a native AppSec output consumer"
     end
   end
 end

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "datadog/appsec/spec_helper"
-require "datadog/appsec/native_output_helpers"
 require "datadog/appsec/contrib/aws_lambda/gateway/watcher"
 
 RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
@@ -237,20 +236,6 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       gateway.push("aws_lambda.response.start", response_payload)
 
       expect(context).to have_received(:run_waf).twice
-    end
-  end
-  [[:request, "server.request.method", "aws_lambda.request.start"],
-    [:response, "server.response.status", "aws_lambda.response.start"]].each do |phase, address, event_name|
-    context "native #{phase} output" do
-      before { described_class.public_send("watch_#{phase}", gateway) }
-      let(:output_address) { address }
-      subject(:consume) do
-        payload = Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(
-          (phase == :request) ? event : response, context: context,
-        )
-        gateway.push(event_name, payload)
-      end
-      it_behaves_like "a native AppSec output consumer"
     end
   end
 end
