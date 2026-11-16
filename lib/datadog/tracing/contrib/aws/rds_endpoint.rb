@@ -27,7 +27,7 @@ module Datadog
           TYPE_CLUSTER_RO = "cluster-ro"
           TYPE_CLUSTER_CUSTOM = "cluster-custom"
           TYPE_PROXY = "proxy"
-          TYPE_SHARD_GROUP = "shard-group"
+          TYPE_SHARD_GROUP = "shardgrp"
 
           # The longest DNS name, its root label's trailing dot, and a `:65535` port.
           MAX_INPUT_BYTES = 253 + 1 + 6

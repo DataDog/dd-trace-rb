@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         "orders-proxy.proxy-cdbfa1b2c3d4.us-east-2.rds.amazonaws.com" =>
           {identifier: "orders-proxy", endpoint_type: "proxy", region: "us-east-2"},
         "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" =>
-          {identifier: "orders-sg", endpoint_type: "shard-group", region: "us-east-1"},
+          {identifier: "orders-sg", endpoint_type: "shardgrp", region: "us-east-1"},
       }.each do |host, expected|
         context "with #{host}" do
           let(:hostname) { host }
@@ -112,7 +112,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
           context "with #{host}" do
             let(:hostname) { host }
 
-            it { is_expected.to eq(identifier: "orders-sg", endpoint_type: "shard-group", region: region) }
+            it { is_expected.to eq(identifier: "orders-sg", endpoint_type: "shardgrp", region: region) }
           end
         end
       end
@@ -120,7 +120,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
       context "with a shard group endpoint in upper case, with a trailing dot and a port" do
         let(:hostname) { "ORDERS-SG.SHARDGRP-CDBFA1B2C3D4.US-EAST-1.RDS.AMAZONAWS.COM.:5432" }
 
-        it { is_expected.to eq(identifier: "orders-sg", endpoint_type: "shard-group", region: "us-east-1") }
+        it { is_expected.to eq(identifier: "orders-sg", endpoint_type: "shardgrp", region: "us-east-1") }
       end
 
       context "with a malformed shard group endpoint" do
@@ -158,7 +158,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
           "orders-proxy.proxy-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
             {identifier: "orders-proxy", endpoint_type: "proxy", region: "cn-north-1"},
           "orders-sg.shardgrp-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
-            {identifier: "orders-sg", endpoint_type: "shard-group", region: "cn-north-1"},
+            {identifier: "orders-sg", endpoint_type: "shardgrp", region: "cn-north-1"},
         }.each do |host, expected|
           context "with #{host}" do
             let(:hostname) { host }
