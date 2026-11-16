@@ -153,8 +153,13 @@ runs:
 
     # A 5xx response can arrive after the mutation was applied, so a retry
     # must guard on the scratch ref's current head: guarding on the original
-    # head would fail as a stale-head conflict. When the commit did land, the
-    # retry appends a content-identical commit to this throwaway ref.
+    # head would fail as a stale-head conflict. A head past the guarded SHA
+    # means the failed attempt landed. The checkout still holds the full
+    # change set, and createCommitOnBranch aborts a mutation deleting a path
+    # the branch no longer carries, so a replay would fail on every deletion
+    # the landed commit already applied. The landed tree is therefore compared
+    # against the staged tree and adopted on a match; the retry runs only
+    # when nothing landed or the landed tree cannot be confirmed.
     - name: Back off and re-read the scratch head
       id: backoff-1
       if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
@@ -163,6 +168,7 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
         REPO: ${{ github.repository }}
         SCRATCH: ${{ steps.stage.outputs.scratch }}
+        GUARDED_SHA: ${{ steps.scratch.outputs.head-sha }}
       run: |
         sleep 30
         head_sha=""
@@ -177,10 +183,28 @@ runs:
           exit 1
         fi
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
+        if [ "$head_sha" != "$GUARDED_SHA" ]; then
+          landed_tree=""
+          for _ in 1 2 3; do
+            if landed_tree="$(gh api "repos/$REPO/git/commits/$head_sha" --jq .tree.sha)"; then
+              break
+            fi
+            sleep 10
+          done
+          staged_tree="$(git write-tree)"
+          if [ -z "$landed_tree" ]; then
+            echo "Could not read the landed commit's tree after three attempts." >&2
+          elif [ "$landed_tree" = "$staged_tree" ]; then
+            echo "The failed attempt landed as $head_sha; adopting it."
+            echo "landed-hash=$head_sha" >> "$GITHUB_OUTPUT"
+          else
+            echo "The landed commit does not carry the staged changes." >&2
+          fi
+        fi
 
     - name: Create signed commit (attempt 2 of 3)
       id: commit-2
-      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
+      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure' && steps.backoff-1.outputs.landed-hash == ''
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
         repo: ${{ github.repository }}
@@ -200,6 +224,7 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
         REPO: ${{ github.repository }}
         SCRATCH: ${{ steps.stage.outputs.scratch }}
+        GUARDED_SHA: ${{ steps.backoff-1.outputs.head-sha }}
       run: |
         sleep 30
         head_sha=""
@@ -214,10 +239,28 @@ runs:
           exit 1
         fi
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
+        if [ "$head_sha" != "$GUARDED_SHA" ]; then
+          landed_tree=""
+          for _ in 1 2 3; do
+            if landed_tree="$(gh api "repos/$REPO/git/commits/$head_sha" --jq .tree.sha)"; then
+              break
+            fi
+            sleep 10
+          done
+          staged_tree="$(git write-tree)"
+          if [ -z "$landed_tree" ]; then
+            echo "Could not read the landed commit's tree after three attempts." >&2
+          elif [ "$landed_tree" = "$staged_tree" ]; then
+            echo "The failed attempt landed as $head_sha; adopting it."
+            echo "landed-hash=$head_sha" >> "$GITHUB_OUTPUT"
+          else
+            echo "The landed commit does not carry the staged changes." >&2
+          fi
+        fi
 
     - name: Create signed commit (attempt 3 of 3)
       id: commit-3
-      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
+      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure' && steps.backoff-2.outputs.landed-hash == ''
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
         repo: ${{ github.repository }}
@@ -228,8 +271,8 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GHCOMMIT_SHA: ${{ steps.backoff-2.outputs.head-sha }}
 
-    # Once an attempt succeeds the rest are skipped, so at most one of the
-    # three outputs below is set.
+    # Once an attempt succeeds, or a backoff step adopts a landed attempt,
+    # the rest are skipped, so at most one of the five outputs below is set.
     - name: Resolve the created commit
       id: commit
       if: steps.stage.outputs.changed == 'true'
@@ -238,10 +281,14 @@ runs:
         FIRST: ${{ steps.commit-1.outputs.commit-hash }}
         SECOND: ${{ steps.commit-2.outputs.commit-hash }}
         THIRD: ${{ steps.commit-3.outputs.commit-hash }}
+        LANDED_FIRST: ${{ steps.backoff-1.outputs.landed-hash }}
+        LANDED_SECOND: ${{ steps.backoff-2.outputs.landed-hash }}
       run: |
         commit="$THIRD"
         [ -n "$commit" ] || commit="$SECOND"
         [ -n "$commit" ] || commit="$FIRST"
+        [ -n "$commit" ] || commit="$LANDED_SECOND"
+        [ -n "$commit" ] || commit="$LANDED_FIRST"
         echo "commit-hash=$commit" >> "$GITHUB_OUTPUT"
 
     # Single move onto a commit that already exists, so an open pull request on
