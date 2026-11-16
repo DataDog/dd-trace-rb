@@ -98,6 +98,10 @@ RSpec.describe Datadog::OpenFeature::FlagSelectionReporter do
       end
     end
 
+    it "keeps every known reason within the compared header length" do
+      expect(described_class::IGNORED_REASONS.map(&:bytesize)).to all(be <= described_class::MAX_IGNORED_REASON_BYTES)
+    end
+
     [nil, ""].each do |value|
       it "treats #{value.inspect} as absent" do
         reporter.report_ignored(value)

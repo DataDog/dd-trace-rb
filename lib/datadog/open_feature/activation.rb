@@ -316,6 +316,8 @@ module Datadog
         end
       end
 
+      # A selection without a drop reason is dropped only when its request URL is over the limit, which the
+      # client SDKs also report as too_many_values.
       def dropped_reason(flag_selection)
         flag_selection.drop_reason || Configuration::FlagSelection::TOO_MANY_VALUES
       end

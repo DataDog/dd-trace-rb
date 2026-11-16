@@ -23,7 +23,7 @@ module Datadog
           "key_patterns" => :key_patterns,
         }.freeze
 
-        # Not String#strip, which misses Unicode White_Space and strips NUL.
+        # Leading or trailing Unicode White_Space. String#strip would keep non-ASCII White_Space and strip NUL.
         # The lookbehind keeps the trailing branch from rescanning an interior run, which is quadratic before
         # Ruby 3.2 added match memoization: https://bugs.ruby-lang.org/issues/19104
         SURROUNDING_WHITE_SPACE = /\A\p{White_Space}+|(?<!\p{White_Space})\p{White_Space}+\z/
@@ -63,7 +63,8 @@ module Datadog
               ambiguous ||= raw_lists.key?(name)
               raw_lists[name] = value
             end
-            # Both the Symbol and the String spelling of one list leave the selection ambiguous.
+            # An option with both :tags and "tags", or both :key_patterns and "key_patterns", is malformed:
+            # neither value takes precedence.
             return if ambiguous
 
             tags = utf8_list(raw_lists[:tags])
@@ -74,10 +75,10 @@ module Datadog
           def utf8_list(value)
             return [] if value.nil?
             return unless value.is_a?(Array) && value.all? { |element| element.is_a?(String) }
+            # #encode raises on invalid bytes when it transcodes, but returns a UTF-8 String without checking it.
+            return if value.any? { |element| element.encoding == Encoding::UTF_8 && !element.valid_encoding? }
 
-            # A UTF-8 String with invalid bytes passes #encode unchanged.
-            utf8_values = value.map { |element| element.encode(Encoding::UTF_8) }
-            utf8_values if utf8_values.all?(&:valid_encoding?)
+            value.map { |element| element.encode(Encoding::UTF_8) }
           end
 
           def canonical_list(values)
