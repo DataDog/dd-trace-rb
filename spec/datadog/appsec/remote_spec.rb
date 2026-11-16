@@ -172,6 +172,25 @@ RSpec.describe Datadog::AppSec::Remote do
           receiver.call(repository, transaction)
         end
 
+        ["rejected", "unconverted"].each do |failure|
+          context "when the submitted configuration is #{failure}" do
+            let(:rules) { (failure == "rejected") ? '"invalid"' : {rules: Array.new(65_536)}.to_json }
+
+            before do
+              allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+              allow(telemetry).to receive(:report)
+              allow(telemetry).to receive(:error)
+            end
+
+            it "marks content errored despite a successful default fallback" do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR)
+              expect(content.apply_error).to include(content.path.to_s)
+            end
+          end
+        end
+
         it "sets apply_state to ACKNOWLEDGED on content" do
           receiver.call(repository, transaction)
 
@@ -280,7 +299,7 @@ RSpec.describe Datadog::AppSec::Remote do
             engine = Datadog::AppSec.security_engine
             call_order = []
 
-            allow(engine).to receive(:remove_config_at_path).and_wrap_original do |original, path|
+            allow(engine).to receive(:remove_builder_config).and_wrap_original do |original, path|
               call_order << [:remove, path]
               original.call(path)
             end

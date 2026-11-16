@@ -41,9 +41,9 @@ module Datadog
 
       def initialize: (Tracing::TraceOperation trace, Tracing::SpanOperation span, SecurityEngine::Runner waf_runner) -> void
 
-      def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
+      def run_waf: (input_data evaluation_data, ?Integer timeout) -> SecurityEngine::result
 
-      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout, ?phase: String?) -> SecurityEngine::result
+      def run_rasp: (Ext::rasp_rule_type type, input_data evaluation_data, ?Integer timeout, ?phase: String?) -> SecurityEngine::result
 
       def events: () -> Array[SecurityEvent]
 

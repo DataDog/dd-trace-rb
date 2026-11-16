@@ -22,7 +22,7 @@ module Datadog
 
         def initialize: (ThreadSafeRef handle_ref, ruleset_version: String) -> void
 
-        def run: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
+        def run: (input_data data, ?Integer timeout, ?ephemeral: bool) -> SecurityEngine::result
 
         def waf_context: () -> WAF::Context
 
@@ -32,7 +32,7 @@ module Datadog
 
         private
 
-        def try_run: (input_data persistent_data, input_data ephemeral_data, Integer timeout) -> WAF::Result
+        def try_run: (input_data data, Integer timeout, ephemeral: bool) -> WAF::Result
 
         def report_execution: (WAF::Result result) -> void
       end

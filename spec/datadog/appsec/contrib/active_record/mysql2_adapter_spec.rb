@@ -102,7 +102,6 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
             "server.db.system" => "mysql2",
@@ -118,7 +117,6 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "mysql2",

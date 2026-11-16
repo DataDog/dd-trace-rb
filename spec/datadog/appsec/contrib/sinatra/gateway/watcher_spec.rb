@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "datadog/appsec/spec_helper"
+require "datadog/appsec/native_output_helpers"
+require "datadog/appsec/contrib/sinatra/gateway/route_params"
 require "datadog/appsec/contrib/sinatra/gateway/watcher"
 require "datadog/appsec/contrib/sinatra/gateway/request"
 require "libddwaf"
@@ -55,7 +57,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything,
+          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, anything,
         )
       end
 
@@ -76,7 +78,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 42}, {}, anything,
+          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 42}, anything,
         )
       end
     end
@@ -99,7 +101,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
           gateway.push("sinatra.request.dispatch", gateway_request)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything,
+            {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, anything,
           )
         end
       end
@@ -114,7 +116,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
           gateway.push("sinatra.request.dispatch", gateway_request)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.request.body" => {"name" => "john"}}, {}, anything,
+            {"server.request.body" => {"name" => "john"}}, anything,
           )
         end
       end
@@ -161,7 +163,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body.byte_length" => 9}, {}, anything,
+          {"server.request.body.byte_length" => 9}, anything,
         )
       end
 
@@ -226,7 +228,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         {
           "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
           "server.response.body.byte_length" => 7,
-        }, {}, anything,
+        }, anything,
       )
     end
 
@@ -245,7 +247,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything,
+          {"server.response.body.byte_length" => 7}, anything,
         )
       end
     end
@@ -263,7 +265,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 4}, {}, anything,
+          {"server.response.body.byte_length" => 4}, anything,
         )
       end
     end
@@ -275,7 +277,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything,
+          {"server.response.body.byte_length" => 7}, anything,
         )
       end
     end
@@ -287,7 +289,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything,
+          {"server.response.body.byte_length" => 7}, anything,
         )
       end
     end
@@ -327,6 +329,55 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         expect { gateway.push("sinatra.response.body.json", container) }
           .to raise_error(ArgumentError, "unexpected error")
       end
+    end
+  end
+  describe "native output through gateway phases" do
+    before do
+      described_class.watch_request_dispatch(gateway)
+      described_class.watch_request_routed(gateway)
+      described_class.watch_response_body_json(gateway)
+    end
+
+    context "request.dispatch" do
+      let(:request) do
+        Datadog::AppSec::Contrib::Sinatra::Gateway::Request.new(
+          Rack::MockRequest.env_for("http://example.com/", {
+            :method => "POST", :input => "name=john", "CONTENT_TYPE" => "application/x-www-form-urlencoded",
+            Datadog::AppSec::Ext::CONTEXT_KEY => context,
+            "action_dispatch.request.path_parameters" => {"id" => "123"},
+          }),
+        )
+      end
+      let(:output_address) { "server.request.body" }
+      subject(:consume) { gateway.push("sinatra.request.dispatch", request) }
+      it_behaves_like "a native AppSec output consumer"
+    end
+
+    context "response JSON" do
+      let(:output_address) { "server.response.body" }
+      subject(:consume) do
+        container = Datadog::AppSec::Instrumentation::Gateway::DataContainer.new('{"name":"john"}', context: context)
+        gateway.push("sinatra.response.body.json", container)
+      end
+      it_behaves_like "a native AppSec output consumer"
+    end
+
+    context "routed parameters" do
+      let(:request) do
+        Datadog::AppSec::Contrib::Sinatra::Gateway::Request.new(
+          Rack::MockRequest.env_for("http://example.com/", {
+            :method => "POST", :input => "name=john", "CONTENT_TYPE" => "application/x-www-form-urlencoded",
+            Datadog::AppSec::Ext::CONTEXT_KEY => context,
+            "action_dispatch.request.path_parameters" => {"id" => "123"},
+          }),
+        )
+      end
+      let(:output_address) { "server.request.path_params" }
+      subject(:consume) do
+        params = Datadog::AppSec::Contrib::Sinatra::Gateway::RouteParams.new({"id" => "123"})
+        gateway.push("sinatra.request.routed", [request, params])
+      end
+      it_behaves_like "a native AppSec output consumer"
     end
   end
 end

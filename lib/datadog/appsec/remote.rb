@@ -93,8 +93,11 @@ module Datadog
               case change.type
               when :insert, :update
                 # @type var content: Core::Remote::Configuration::Content
-                engine.add_or_update_config(parse_content(content), path: change.path.to_s)
-                content.applied
+                if engine.add_or_update_config(parse_content(content), path: change.path.to_s)
+                  content.applied
+                else
+                  content.errored("AppSec configuration rejected at path: #{change.path}")
+                end
               end
             end
 
