@@ -31,6 +31,8 @@ module Datadog
                   payload = ack_event.payload
                   Datadog::DataStreams.track_kafka_produce(payload[:topic], payload[:partition], payload[:offset])
                 end
+              rescue => e
+                Datadog.logger.debug { "Error tracking DSM produce ack: #{e.class}: #{e.message}" }
               end
             end
           end

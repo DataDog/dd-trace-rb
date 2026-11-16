@@ -118,5 +118,23 @@ RSpec.describe "Waterdrop patcher" do
         )
       end
     end
+
+    context "when tracking an acknowledged message raises" do
+      it "does not propagate the error" do
+        allow(Datadog::DataStreams).to receive(:enabled?).and_return(true)
+        allow(Datadog::DataStreams).to receive(:track_kafka_produce).and_raise("boom")
+        producer = WaterDrop::Producer.new do |config|
+          config.client_class = WaterDrop::Clients::Buffered
+        end
+
+        expect do
+          producer.monitor.instrument(
+            "message.acknowledged",
+            producer_id: producer.id, topic: "orders", partition: 1, offset: 7,
+          )
+        end.not_to raise_error
+        expect(Datadog::DataStreams).to have_received(:track_kafka_produce)
+      end
+    end
   end
 end
