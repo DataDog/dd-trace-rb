@@ -76,6 +76,7 @@ RSpec.describe Datadog::Core::Configuration do
           let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
 
           before do
+            allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
             allow(Datadog::Core::Configuration::Components).to receive(:build_data_streams) do |settings|
               processor if settings.data_streams.enabled
             end
