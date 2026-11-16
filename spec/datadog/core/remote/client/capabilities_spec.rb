@@ -18,6 +18,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     # JRuby and old Rubies). The unsupported-runtime paths are covered below.
     allow(Datadog::DI).to receive(:supported_runtime?).and_return(true)
     allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
   end
 
   shared_examples "tracing and DI capabilities" do
@@ -337,6 +338,14 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context "Tracing component" do
+    context "when DDSketch is not supported" do
+      before { allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false) }
+
+      it "does not advertise the Data Streams enablement bit 20" do
+        expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
+      end
+    end
+
     it "register capabilities, products, and receivers" do
       expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 20, 1 << 29, 1 << 45)
       expect(capabilities.products).to include("APM_TRACING")

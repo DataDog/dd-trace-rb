@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../core/ddsketch"
 require_relative "../core/remote/dispatcher"
 require_relative "configuration/dynamic"
 
@@ -14,13 +15,15 @@ module Datadog
           1 << 12, # APM_TRACING_SAMPLE_RATE: Dynamic trace sampling rate configuration
           1 << 13, # APM_TRACING_LOGS_INJECTION: Dynamic trace logs injection configuration
           1 << 14, # APM_TRACING_HTTP_HEADER_TAGS: Dynamic trace HTTP header tags configuration
-          1 << 20, # APM_TRACING_DATA_STREAMS_ENABLED: Dynamic Data Streams Monitoring enablement
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
           1 << 45, # APM_TRACING_MULTICONFIG: merge multiple org/env-level APM_TRACING configs
           # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION (bit 38) is declared in
           # DI::Remote.capabilities, not here, so it is registered only when DI
           # is not explicitly disabled and the runtime supports DI.
         ].freeze
+
+        # APM_TRACING_DATA_STREAMS_ENABLED: Dynamic Data Streams Monitoring enablement.
+        DATA_STREAMS_ENABLED_CAPABILITY = 1 << 20
 
         # Diagnostic scope label per specificity priority.
         SCOPE_LABELS = {
@@ -38,7 +41,10 @@ module Datadog
 
         # @return [Array[Integer]] the remote config capability bits advertised
         def capabilities
-          CAPABILITIES
+          # The Data Streams processor needs DDSketch, unavailable without libdatadog_api (e.g. JRuby).
+          return CAPABILITIES unless Core::DDSketch.supported?
+
+          CAPABILITIES + [DATA_STREAMS_ENABLED_CAPABILITY]
         end
 
         # Merges every active APM_TRACING config in the repository and applies the

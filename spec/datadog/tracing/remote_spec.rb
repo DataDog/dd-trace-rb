@@ -19,7 +19,15 @@ RSpec.describe Datadog::Tracing::Remote do
   end
 
   it "declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)" do
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
+
     expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 20, 1 << 29, 1 << 45)
+  end
+
+  it "omits the Data Streams enablement bit 20 when DDSketch is not supported" do
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false)
+
+    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
   end
 
   it "declares matches that match APM_TRACING" do
