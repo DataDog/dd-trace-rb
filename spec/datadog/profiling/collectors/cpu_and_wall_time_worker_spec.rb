@@ -2864,7 +2864,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
         .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
 
-      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([0, 150])
+      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([1_000_000, 150])
       expect(recorded_miteruby_samples).to be_empty
     end
 
@@ -2883,7 +2883,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(batches.map(&:size)).to eq([1, 1])
       expect(batches.last.first.locations).to eq(batches.first.first.locations)
-      expect(batches.map { |samples| samples.first.values.fetch(:"cpu-time") }).to eq([0, 150])
+      expect(batches.map { |samples| samples.first.values.fetch(:"cpu-time") }).to eq([1_000_000, 150])
       expect(batches.last.first.values.fetch(:"wall-time")).to be > 0
     end
 
@@ -3029,8 +3029,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
         .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
 
-      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([0, 0, 100, 0, 80])
-      expect(samples.first.values.fetch(:"wall-time")).to eq(0)
+      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([1_000_000, 0, 100, 0, 80])
+      expect(samples.first.values.fetch(:"wall-time")).to eq(1_000_000)
       samples.each_cons(2) do |previous, current|
         expect(current.values.fetch(:"wall-time"))
           .to eq(current.labels.fetch(:end_timestamp_ns) - previous.labels.fetch(:end_timestamp_ns))
@@ -3063,7 +3063,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consume_miteruby
       samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
 
-      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([0, 0, 80])
+      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([1_000_000, 0, 80])
     end
 
     it "preserves independent thread baselines as more threads are recorded" do
@@ -3085,7 +3085,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       threads.each_with_index do |thread, index|
         expect(samples_for_thread(samples, thread).map(&:values)).to contain_exactly(
-          include("cpu-time": 0, "wall-time": 0),
+          include("cpu-time": 1_000_000, "wall-time": 1_000_000),
           include("cpu-time": 900 + index),
         )
       end
@@ -3103,7 +3103,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
 
         expect(samples.size).to be >= 2
-        expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+        expect(samples.first.values).to include("cpu-time": 1_000_000, "wall-time": 1_000_000)
         expect(samples.last.values.fetch(:"wall-time")).to be > 0
       end
     end
@@ -3114,7 +3114,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 100)).to be true
       consume_miteruby
       first = samples_for_thread(recorded_miteruby_samples, sampled_thread).first
-      expect(first.values).to include("cpu-time": 0, "wall-time": 0)
+      expect(first.values).to include("cpu-time": 1_000_000, "wall-time": 1_000_000)
 
       expect(recorded_miteruby_samples).to be_empty
       expect(ObjectSpace.reachable_objects_from(serializer)).to include(sampled_thread)
@@ -3162,7 +3162,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 300)).to be true
       consume_miteruby
       samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
-      expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+      expect(samples.first.values).to include("cpu-time": 1_000_000, "wall-time": 1_000_000)
       serializer.reset_after_fork
       expect(ObjectSpace.reachable_objects_from(serializer)).to_not include(sampled_thread)
     end
@@ -3248,7 +3248,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
         .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
       expect(samples.size).to be >= 2
-      expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+      expect(samples.first.values).to include("cpu-time": 1_000_000, "wall-time": 1_000_000)
       expect(samples.sum { |sample| sample.values.fetch(:"cpu-time") }).to be > 0
       expect(samples.map(&:labels)).to all(include("thread name": "miteruby finished thread"))
       expect(samples.flat_map(&:locations).map(&:label)).to include("#{self.class.name}#publish_miteruby_sample")

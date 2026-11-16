@@ -100,8 +100,8 @@ static void test_sample_values(void) {
     int thread;
     long cpu, monotonic, expected_cpu, expected_wall;
   } samples[] = {
-    {1, -1, 100, 0, 0},
-    {2, 50, 110, 0, 0},
+    {1, -1, 100, 1000000, 1000000},
+    {2, 50, 110, 1000000, 1000000},
     {1, 0, 120, 0, 20},
     {1, 100, 150, 100, 30},
     {2, 80, 160, 30, 50},
@@ -164,7 +164,7 @@ static void test_reuse_after_error(void) {
   miteruby_event_deduped_sample_t event = {.header = {.cpu_time = {.ns = 100}, .timestamp = {.ns = 200}}};
   assert(thread_context_for(&contexts, INT2FIX(0), true, &context) == MITERUBY_SERIALIZER_OK);
   miteruby_sample_values values = sample_values_for(context, &event);
-  assert(values.cpu_time_ns == 0 && values.wall_time_ns == 0);
+  assert(values.cpu_time_ns == 1000000 && values.wall_time_ns == 1000000);
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
   fail_allocations = false;
   verstable_serializer_thread_contexts_map_cleanup(&contexts);

@@ -390,6 +390,12 @@ static miteruby_sample_values sample_values_for(
     context->cpu_time_at_previous_sample = cpu_time;
     context->monotonic_time_at_previous_sample = monotonic_time;
     context->has_previous_sample = true;
+    // Without a previous sample, duration is unknown; we've picked 1 ms as an approximation that avoids zero-duration events
+    return (miteruby_sample_values) {
+      .cpu_time_ns = MILLIS_AS_NS(1),
+      .wall_time_ns = MILLIS_AS_NS(1),
+      .cpu_or_wall_samples = 1,
+    };
   }
   miteruby_sample_values values = {
     .wall_time_ns = monotonic_time.ns - context->monotonic_time_at_previous_sample.ns,
