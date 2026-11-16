@@ -19,7 +19,7 @@ module Datadog
 
           TYPE_PROXY: "proxy"
 
-          TYPE_SHARD_GROUP: "shard-group"
+          TYPE_SHARD_GROUP: "shardgrp"
 
           MAX_INPUT_BYTES: Integer
 

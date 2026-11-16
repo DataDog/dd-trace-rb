@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
 
     it "tags the shard group name without naming a cluster or an instance" do
       expect(span.get_tag("aws.rds.identifier")).to eq("orders-sg")
-      expect(span.get_tag("aws.rds.endpoint_type")).to eq("shard-group")
+      expect(span.get_tag("aws.rds.endpoint_type")).to eq("shardgrp")
       expect(span.get_tag("aws.region")).to eq("us-east-1")
       expect(span.get_tag("dbclusteridentifier")).to be_nil
       expect(span.get_tag("dbinstanceidentifier")).to be_nil
