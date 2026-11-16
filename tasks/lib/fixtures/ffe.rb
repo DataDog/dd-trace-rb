@@ -30,6 +30,12 @@ class FfeFixtures
     new(repository_root, sha).download
   end
 
+  def self.applicable?(test_case, platform:)
+    return false if test_case.fetch("_skip", []).any? { |entry| entry.fetch("platform") == platform }
+
+    !test_case.key?("_include") || test_case.fetch("_include").any? { |entry| entry.fetch("platform") == platform }
+  end
+
   def initialize(repository_root, sha)
     @repository_root = repository_root
     @sha = sha
