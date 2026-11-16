@@ -6,13 +6,20 @@ module Datadog
       module Aws
         # Parses the identity Amazon RDS encodes in a DB endpoint hostname.
         #
-        # Reads instance, cluster, cluster-ro, cluster-custom, and RDS Proxy default
-        # endpoints in every AWS partition. Any other form, including Aurora global,
-        # RDS Proxy custom, and Aurora Limitless shard group endpoints, is not parsed.
+        # Reads instance, cluster, cluster-ro, cluster-custom, RDS Proxy default, and
+        # Aurora Limitless DB shard group endpoints in every AWS partition. Any other
+        # form, including Aurora global and RDS Proxy custom endpoints, is not parsed.
         # The account-specific label is matched but never returned.
+        #
+        # The identifier is the first label, so what it names depends on the endpoint
+        # type. An instance endpoint names the DB instance. A cluster or cluster-ro
+        # endpoint names the DB cluster, not the writer or reader instance it currently
+        # resolves to. A cluster-custom endpoint names the custom endpoint, a proxy
+        # endpoint names the proxy, and a shard group endpoint names the shard group.
         #
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html#USER_VPC.Endpoint
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.Endpoints.html
+        # @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/limitless-shard.html
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy-endpoints.html
         module RDSEndpoint
           TYPE_INSTANCE = "instance"
@@ -20,6 +27,7 @@ module Datadog
           TYPE_CLUSTER_RO = "cluster-ro"
           TYPE_CLUSTER_CUSTOM = "cluster-custom"
           TYPE_PROXY = "proxy"
+          TYPE_SHARD_GROUP = "shard-group"
 
           # The longest DNS name, its root label's trailing dot, and a `:65535` port.
           MAX_INPUT_BYTES = 253 + 1 + 6
@@ -27,14 +35,18 @@ module Datadog
           PORT_PATTERN = /\A\d{1,5}\z/
           RDS_LABEL_PATTERN = /\.rds\./i
 
-          # Each partition's DNS suffix only serves that partition's Regions.
+          # The China partition's suffix, which also allows a second label order below.
+          CHINA_DNS_SUFFIX = "amazonaws.com.cn"
+
+          # Each partition's DNS suffix only serves that partition's Regions. This is the
+          # only list of suffixes, and everything else that needs one is derived from it.
           #
           # @see https://github.com/aws/aws-sdk-ruby/blob/version-3/gems/aws-partitions/partitions.json
           REGION_PATTERNS_BY_DNS_SUFFIX = {
             # aws, and aws-us-gov
             "amazonaws.com" => /\A(?:(?:us|eu|ap|sa|ca|me|af|il|mx)-\w+-\d+|us-gov-\w+-\d+)\z/,
             # aws-cn
-            "amazonaws.com.cn" => /\Acn-\w+-\d+\z/,
+            CHINA_DNS_SUFFIX => /\Acn-\w+-\d+\z/,
             # aws-eusc
             "amazonaws.eu" => /\Aeusc-(?:de)-\w+-\d+\z/,
             # aws-iso
@@ -54,8 +66,6 @@ module Datadog
             .map { |suffix| Regexp.escape(suffix) }
             .join("|")
 
-          CHINA_DNS_SUFFIX = "amazonaws.com.cn"
-
           # `identifier.[prefix-]accountlabel.region.rds.<partition dns suffix>`, where the
           # identifier follows the RDS naming rules. The China partition also uses
           # `identifier.[prefix-]accountlabel.rds.region.amazonaws.com.cn`.
@@ -63,7 +73,7 @@ module Datadog
             \A
             (?<identifier>[a-z](?:[a-z\d]|-(?!-)){0,61}[a-z\d]|[a-z])
             \.
-            (?<prefix>cluster-ro-|cluster-custom-|cluster-|proxy-)?
+            (?<prefix>cluster-ro-|cluster-custom-|cluster-|proxy-|shardgrp-)?
             [a-z\d]{1,63}
             \.
             (?:
@@ -84,6 +94,7 @@ module Datadog
             "cluster-ro-" => TYPE_CLUSTER_RO,
             "cluster-custom-" => TYPE_CLUSTER_CUSTOM,
             "proxy-" => TYPE_PROXY,
+            "shardgrp-" => TYPE_SHARD_GROUP,
           }.freeze
 
           NOT_AN_ENDPOINT = Object.new.freeze

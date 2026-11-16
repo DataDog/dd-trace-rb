@@ -93,6 +93,14 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
         dbinstanceidentifier: nil,
         dbclusteridentifier: nil,
       },
+      # A shard group is neither a DB instance nor a DB cluster, so neither id is set.
+      "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" => {
+        identifier: "orders-sg",
+        endpoint_type: "shard-group",
+        region: "us-east-1",
+        dbinstanceidentifier: nil,
+        dbclusteridentifier: nil,
+      },
       "isoe-db.cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk" => {
         identifier: "isoe-db",
         endpoint_type: "instance",
