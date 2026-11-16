@@ -10,6 +10,17 @@ require "datadog"
 require "elasticsearch"
 
 require "datadog/tracing/contrib/elasticsearch/support/client"
+require "datadog/tracing/contrib/elasticsearch/support/stall_reproducer"
+
+# Reproducer boot: the stub server replaces the real server for the whole
+# process, so that every server-bound example in the elasticsearch task
+# sees the same host and port. The hook must be registered on the
+# configuration object; hooks registered on example groups are ignored.
+RSpec.configure do |config|
+  config.before(:suite) do
+    ElasticsearchStallReproducer.start!
+  end
+end
 
 RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
   include_context "Elasticsearch client"
