@@ -83,10 +83,13 @@ VALUE enforce_encoded_profile_instance(VALUE object) {
   return object;
 }
 
-// Temporary prototype bridge for miteruby exports: libdatadog lacks a constructor accepting arbitrary encoded bytes.
+// Temporary HACK for miteruby exports: libdatadog lacks a constructor accepting arbitrary encoded bytes.
 // Serialize an empty profile so libdatadog initializes timestamps and endpoint statistics, then
 // replace its buffer while preserving normal export/drop ownership. This assumes Rust's private
 // Vec layout at the start of the object, checked against libdatadog's bytes API before mutation.
+//
+// @ivoanjo: Added a new API for this in https://github.com/DataDog/libdatadog/pull/2875, we just need to wait for
+// libdatadog v50 to throw this away
 static VALUE from_custom(DDTRACE_UNUSED VALUE self, VALUE start, VALUE end, VALUE bytes_string) {
   if (!rb_obj_is_kind_of(start, rb_cTime) || !rb_obj_is_kind_of(end, rb_cTime)) {
     raise_error(rb_eTypeError, "start and end must be Time objects");
