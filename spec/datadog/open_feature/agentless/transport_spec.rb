@@ -81,10 +81,27 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
           stub_request(:get, expected).to_return(status: 200, body: "configuration")
           transport.get(etag_value)
           expect(a_request(:get, expected).with do |request|
-            request.headers["If-None-Match"] == etag_value
+            request.headers["If-None-Match"] == etag_value &&
+              !request.headers.key?("X-Dd-Feature-Flags-Capabilities")
           end).to have_been_made.once
         end
       end
+    end
+  end
+
+  context "with a managed endpoint without a query" do
+    let(:endpoint) do
+      Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(URI("https://example.test/config"), managed: true)
+    end
+
+    before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true) }
+
+    it "adds the canonical query parameter without changing the endpoint" do
+      stub_request(:get, "https://example.test/config?cap_dependent-flags-variant-key=v1")
+        .to_return(status: 200, body: "configuration")
+
+      expect(response.status).to eq(200)
+      expect(endpoint.uri.query).to be_nil
     end
   end
 
@@ -107,6 +124,26 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
       expect(
         a_request(:get, "https://example.test/config?dd_env=test").with(headers: {"DD-Service" => "checkout"}),
       ).to have_been_made.once
+    end
+
+    context "with a capable evaluator and a signed query" do
+      let(:endpoint) do
+        Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+          URI("https://example.test/config?token=a%20b&token=c%2fd&signature=abc"),
+          managed: false,
+        )
+      end
+
+      before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true) }
+
+      it "preserves the exact custom request target" do
+        expect(transport).to receive(:request).with(have_attributes(
+          path: "/config?token=a%20b&token=c%2fd&signature=abc",
+        )).and_return(Net::HTTPNotModified.new("1.1", "304", "Not Modified"))
+
+        expect(transport.get(nil).status).to eq(304)
+        expect(endpoint.uri.query).to eq("token=a%20b&token=c%2fd&signature=abc")
+      end
     end
 
     context "with URL credentials" do
