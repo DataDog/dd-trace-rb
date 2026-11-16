@@ -173,9 +173,9 @@ module Datadog
       end
 
       class ConfigurationResult
-        attr_reader diagnostics: opaque
+        attr_reader diagnostics: diagnostics?
 
-        def initialize: (success: bool, diagnostics: opaque) -> void
+        def initialize: (success: bool, diagnostics: diagnostics?) -> void
 
         def success?: () -> bool
       end

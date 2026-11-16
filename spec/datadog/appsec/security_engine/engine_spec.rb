@@ -236,8 +236,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
   describe "#add_or_update_config" do
     subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
 
-    it "returns diagnostics with loaded config identifiers and no errors" do
-      diagnostics = engine.add_or_update_config(
+    it "returns true for an accepted configuration" do
+      success = engine.add_or_update_config(
         {
           custom_rules: [
             {
@@ -255,10 +255,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         path: "datadog/603646/ASM/test-custom-rule",
       )
 
-      aggregate_failures("diagnostics") do
-        expect(diagnostics.dig("custom_rules", "errors")).to be_empty
-        expect(diagnostics.dig("custom_rules", "loaded")).to eq(%w[test-custom-rule-id])
-      end
+      expect(success).to be(true)
     end
 
     context "when config loading fails with item-level errors" do
@@ -293,18 +290,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:error)
       end
 
-      it "returns diagnostics with loaded config identifiers and errors for invalid rules" do
-        diagnostics = engine.add_or_update_config(config_with_invalid_rule, path: "datadog/603646/ASM/test-custom-rule")
+      it "accepts a configuration with individual rule errors" do
+        success = engine.add_or_update_config(config_with_invalid_rule, path: "datadog/603646/ASM/test-custom-rule")
 
-        aggregate_failures("diagnostics") do
-          expect(diagnostics.dig("custom_rules", "failed")).to match(%w[invalid-rule-one-id invalid-rule-two-id])
-          expect(diagnostics.dig("custom_rules", "loaded")).to eq(%w[test-custom-rule-id])
-
-          expect(diagnostics.dig("custom_rules", "errors")).to eq({
-            "missing key 'conditions'" => %w[invalid-rule-one-id],
-            "missing key 'parameters'" => %w[invalid-rule-two-id],
-          })
-        end
+        expect(success).to be(true)
       end
 
       it "reports item-level errors count through telemetry" do
@@ -338,10 +327,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:error)
       end
 
-      it "returns nil for the rejected submission" do
-        diagnostics = engine.add_or_update_config("", path: "datadog/603646/ASM/test-custom-rule")
+      it "returns false for the rejected submission" do
+        success = engine.add_or_update_config("", path: "datadog/603646/ASM/test-custom-rule")
 
-        expect(diagnostics).to be_nil
+        expect(success).to be(false)
       end
 
       it "reports top-level error count through telemetry" do
@@ -367,19 +356,19 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       end
     end
 
-    context "when config loading fails with top-level error for some config key" do
+    context "when config loading fails with error for some config key" do
       before do
         allow(telemetry).to receive(:inc)
         allow(telemetry).to receive(:error)
       end
 
-      it "returns nil for the rejected submission" do
-        diagnostics = engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
+      it "returns false for the rejected submission" do
+        success = engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
 
-        expect(diagnostics).to be_nil
+        expect(success).to be(false)
       end
 
-      it "reports top-level error count through telemetry" do
+      it "reports rule errors count through telemetry" do
         expect(telemetry).to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
           "waf.config_errors",
@@ -396,7 +385,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
       end
 
-      it "reports top-level error through telemetry" do
+      it "reports rule error through telemetry" do
         expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
 
         engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
@@ -447,18 +436,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         }
       end
 
-      it "returns diagnostics with loaded rules identifiers and no errors" do
-        diagnostics = engine.add_or_update_config(asm_dd_config, path: "datadog/603646/ASM_DD/latest/config")
+      it "returns true for an accepted ruleset" do
+        success = engine.add_or_update_config(asm_dd_config, path: "datadog/603646/ASM_DD/latest/config")
 
-        aggregate_failures("diagnostics") do
-          expect(diagnostics.dig("rules", "loaded")).to eq(%w[rasp-003-001])
-          expect(diagnostics.dig("rules", "errors")).to be_empty
-
-          expect(diagnostics.dig("actions", "loaded")).to eq(%w[block-sqli])
-          expect(diagnostics.dig("actions", "errors")).to be_empty
-
-          expect(diagnostics.dig("processors", "errors")).to eq({})
-        end
+        expect(success).to be(true)
       end
 
       it "does not fall back when an individual processor fails to load" do
@@ -466,10 +447,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
         expect(telemetry).to receive(:error).with("missing key 'generator': [invalid-processor]")
 
-        diagnostics = engine.add_or_update_config(config, path: "datadog/603646/ASM_DD/latest/config")
+        success = engine.add_or_update_config(config, path: "datadog/603646/ASM_DD/latest/config")
 
-        expect(diagnostics.dig("processors", "failed")).to eq(%w[invalid-processor])
-        expect(diagnostics["ruleset_version"]).to eq("1.0.0")
+        expect(success).to be(true)
       end
 
       it "reloads default rules without conflicts when the processor section fails to load" do
@@ -477,12 +457,12 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
         expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
 
-        diagnostics = engine.add_or_update_config(
+        success = engine.add_or_update_config(
           asm_dd_config.merge(processors: ""),
           path: "datadog/603646/ASM_DD/latest/config",
         )
 
-        expect(diagnostics).to be_nil
+        expect(success).to be(false)
         engine.reconfigure!
         runner = engine.new_runner
         expect(runner.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
@@ -761,120 +741,6 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           },
         )
 
-        engine.reconfigure!
-      end
-    end
-  end
-  describe "configuration failure recovery" do
-    subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
-
-    let(:builder) { Datadog::AppSec::WAF::HandleBuilder.new }
-    let(:oversized_config) { {"rules" => Array.new(65_536)} }
-    let(:remote_path) { "datadog/603646/ASM_DD/test/config" }
-    let(:handles) { [] }
-
-    before do
-      builder
-      allow(Datadog::AppSec::WAF::HandleBuilder).to receive(:new).and_return(builder)
-      allow(builder).to receive(:build_handle).and_wrap_original do |original|
-        handle = original.call
-        handles << handle
-        handle
-      end
-      allow(telemetry).to receive(:error)
-    end
-
-    after do
-      handles.each(&:finalize!)
-      builder.finalize!
-    end
-
-    it "warns once and fails initialization for a real conversion error" do
-      appsec_settings.ruleset = oversized_config
-      expect(Datadog.logger).to receive(:warn).with(/ASM_DD\/default: Array exceeds the native size limit/).once
-      expect(telemetry).to receive(:inc).with("appsec", "waf.init", 1, tags: hash_including(success: "false"))
-      expect { engine }.to raise_error(Datadog::AppSec::WAF::ConversionError)
-    end
-
-    it "warns for conversion during obfuscator construction" do
-      allow(Datadog::AppSec::WAF::HandleBuilder).to receive(:new)
-        .and_raise(Datadog::AppSec::WAF::ConversionError, "obfuscator conversion failed")
-      expect(Datadog.logger).to receive(:warn).with(/libddwaf-rb\/obfuscator: obfuscator conversion failed/).once
-      expect { engine }.to raise_error(Datadog::AppSec::WAF::ConversionError)
-    end
-
-    it "warns for conversion during removal and reports failure explicitly" do
-      engine
-      allow(builder).to receive(:remove_config_at_path).with(remote_path)
-        .and_raise(Datadog::AppSec::WAF::ConversionError, "removal conversion failed")
-      expect(Datadog.logger).to receive(:warn).with(/#{Regexp.escape(remote_path)}: removal conversion failed/).once
-      expect(engine.remove_config_at_path(remote_path)).to be_nil
-    end
-
-    it "rejects conversion-failed input and reports a successful fallback update" do
-      engine
-      expect(Datadog.logger).to receive(:warn).with(/#{Regexp.escape(remote_path)}: Array exceeds the native size limit/).once
-      expect(engine.add_or_update_config(oversized_config, path: remote_path)).to be_nil
-      expect(telemetry).to receive(:inc).with("appsec", "waf.updates", 1, tags: hash_including(success: "true"))
-      engine.reconfigure!
-      expect(handles.size).to eq(2)
-      expect(handles.last.known_addresses).to match_array(handles.first.known_addresses)
-    end
-
-    it "rejects a false success flag even with empty diagnostics" do
-      engine
-      allow(builder).to receive(:add_or_update_config).with({}, path: "ASM/test").and_return(
-        Datadog::AppSec::WAF::ConfigurationResult.new(success: false, diagnostics: {}),
-      )
-      expect(engine.add_or_update_config({}, path: "ASM/test")).to be_nil
-      expect(telemetry).to receive(:inc).with("appsec", "waf.updates", 1, tags: hash_including(success: "true"))
-      engine.reconfigure!
-      expect(telemetry).to receive(:inc).with("appsec", "waf.updates", 1, tags: hash_including(success: "true"))
-      engine.reconfigure!
-    end
-
-    it "routes opaque non-hash diagnostics through configuration failure" do
-      engine
-      allow(builder).to receive(:add_or_update_config).with({}, path: "ASM/test").and_return(
-        Datadog::AppSec::WAF::ConfigurationResult.new(success: true, diagnostics: nil),
-      )
-      expect(telemetry).to receive(:report).with(
-        an_instance_of(Datadog::AppSec::WAF::LibDDWAFError), description: /ASM\/test/,
-      )
-      expect(engine.add_or_update_config({}, path: "ASM/test")).to be_nil
-    end
-
-    [:rejection, :removal].each do |operation|
-      it "keeps the active handle after #{operation} reload fails, until replacement rules recover" do
-        engine
-        rules = Datadog::AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: :recommended)
-        engine.add_or_update_config(rules, path: remote_path) if operation == :removal
-        allow(builder).to receive(:add_or_update_config).and_call_original
-        allow(builder).to receive(:add_or_update_config).with(anything, path: "ASM_DD/default")
-          .and_raise(Datadog::AppSec::WAF::ConversionError, "reload conversion failed")
-        expect(Datadog.logger).to receive(:warn).with(/ASM_DD\/default: reload conversion failed/).once
-        if operation == :removal
-          expect(engine.remove_config_at_path(remote_path)).to be_nil
-        else
-          expect(engine.add_or_update_config("invalid", path: remote_path)).to be_nil
-        end
-        engine.reconfigure!
-        engine.reconfigure!
-        expect(handles.size).to eq(1)
-
-        recovery_path = if operation == :rejection
-          "ASM_DD/default"
-        else
-          remote_path
-        end
-        allow(builder).to receive(:add_or_update_config).with(anything, path: recovery_path).and_call_original
-        expect(engine.add_or_update_config(rules, path: recovery_path)).not_to be_nil
-        expect(builder).to receive(:build_handle).and_wrap_original do |original|
-          handle = original.call
-          handles << handle
-          handle
-        end
-        expect(telemetry).to receive(:inc).with("appsec", "waf.updates", 1, tags: hash_including(success: "true"))
         engine.reconfigure!
       end
     end

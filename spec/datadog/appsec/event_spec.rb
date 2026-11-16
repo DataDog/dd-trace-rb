@@ -402,11 +402,13 @@ RSpec.describe Datadog::AppSec::Event do
     let(:with_trace) { true }
     let(:with_span) { true }
 
+    let(:waf_events) { [{"rule" => {"id" => "test-rule"}}] }
     let(:waf_actions) { {} }
     let(:waf_result) do
       dbl = double
 
       allow(dbl).to receive(:actions).and_return(waf_actions)
+      allow(dbl).to receive(:events).and_return(waf_events)
 
       dbl
     end
@@ -443,7 +445,17 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
+    context "without events or actions" do
+      let(:waf_events) { [] }
+
+      it "does not add AppSec event tags to span" do
+        expect(context.span.send(:meta)).to_not include("appsec.event", "appsec.blocked")
+      end
+    end
+
     context "with block_request action" do
+      let(:waf_events) { [] }
+
       let(:waf_actions) do
         {"block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}}
       end
@@ -455,6 +467,8 @@ RSpec.describe Datadog::AppSec::Event do
     end
 
     context "with redirect_request action" do
+      let(:waf_events) { [] }
+
       let(:waf_actions) do
         {"redirect_request" => {"status_code" => "302", "location" => "https://datadoghq.com"}}
       end

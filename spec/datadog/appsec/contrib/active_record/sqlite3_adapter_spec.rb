@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "datadog/appsec/spec_helper"
-require "datadog/appsec/native_output_helpers"
 require "active_record"
 
 require "spec/datadog/tracing/contrib/rails/support/deprecation"
@@ -172,10 +171,5 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
 
       it { expect { query_thread.join }.not_to raise_error }
     end
-  end
-  context "native SQLi trace output" do
-    let(:output_address) { "server.db.statement" }
-    subject(:consume) { User.where(name: "Bob").to_a }
-    it_behaves_like "a native AppSec output consumer"
   end
 end

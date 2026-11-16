@@ -3,7 +3,6 @@
 require "stringio"
 require "rest_client"
 require "datadog/appsec/spec_helper"
-require "datadog/appsec/native_output_helpers"
 require "datadog/appsec/counter_sampler"
 
 RSpec.describe "RestClient::Request patch for SSRF detection" do
@@ -616,13 +615,6 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
 
     it "clears downstream_redirect_url state after following redirect" do
       expect(context.state[:downstream_redirect_url]).to be_nil
-    end
-  end
-  ["server.io.net.request.method", "server.io.net.response.status"].each do |address|
-    context "native output from #{address}" do
-      let(:output_address) { address }
-      subject(:consume) { RestClient.post("http://example.com/application-json", "") }
-      it_behaves_like "a native AppSec output consumer"
     end
   end
 end

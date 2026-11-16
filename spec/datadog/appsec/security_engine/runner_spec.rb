@@ -130,6 +130,14 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result.duration_ext_ns).to be > result.duration_ns
       end
 
+      it "preserves a match that contains only attributes" do
+        allow(waf_result).to receive(:actions).and_return({})
+        allow(waf_result).to receive(:attributes).and_return({"_dd.appsec.fp.http.endpoint" => "fingerprint"})
+
+        expect(result).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Match)
+        expect(result.attributes).to eq({"_dd.appsec.fp.http.endpoint" => "fingerprint"})
+      end
+
       context "when WAF::Result#input_truncated? is true" do
         let(:waf_result) do
           instance_double(
