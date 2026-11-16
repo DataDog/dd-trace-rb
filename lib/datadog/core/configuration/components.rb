@@ -450,7 +450,10 @@ module Datadog
         # Caller must hold the Components lock. Returns the detached processor for stop_retired_data_streams.
         def swap_data_streams
           if settings.data_streams.enabled
-            @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
+            # Skipped when unsupported so each configure/RC dispatch doesn't repeat the build failure warning.
+            if Core::DDSketch.supported?
+              @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
+            end
             return
           end
 

@@ -948,6 +948,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     before do
       components # built with the default disabled setting, before build_data_streams is stubbed
       allow(described_class).to receive(:build_data_streams).and_return(processor)
+      allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
     end
 
     context "when the setting is enabled" do
@@ -959,6 +960,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(swap_data_streams).to be_nil
         expect(described_class).to have_received(:build_data_streams).once
         expect(components.data_streams).to be(processor)
+      end
+
+      context "when DDSketch is not supported" do
+        before { allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false) }
+
+        it "does not build the processor" do
+          expect(swap_data_streams).to be_nil
+          expect(described_class).not_to have_received(:build_data_streams)
+          expect(components.data_streams).to be_nil
+        end
       end
     end
 
