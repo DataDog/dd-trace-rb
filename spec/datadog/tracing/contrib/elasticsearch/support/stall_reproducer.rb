@@ -57,7 +57,7 @@ module ElasticsearchStallReproducer
       "#{RESPONSE_HEADERS}" \
       "Content-Length: #{body.bytesize}\r\n" \
       "\r\n" \
-      "#{body}"
+      "#{body}",
     )
   end
 
