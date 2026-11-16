@@ -1066,7 +1066,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     it "selects the components and swaps the processor under the Components lock" do
       expect(components).to receive(:swap_data_streams) do
-        expect(Datadog::Core::Configuration::COMPONENTS_WRITE_LOCK).to be_owned
+        expect(Datadog::Core::Configuration.const_get(:COMPONENTS_WRITE_LOCK)).to be_owned
         nil
       end
 
@@ -1076,7 +1076,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     it "stops the retired processor outside the Components lock" do
       allow(components).to receive(:swap_data_streams).and_return(processor)
       expect(processor).to receive(:stop).with(true) do
-        expect(Datadog::Core::Configuration::COMPONENTS_WRITE_LOCK).not_to be_owned
+        expect(Datadog::Core::Configuration.const_get(:COMPONENTS_WRITE_LOCK)).not_to be_owned
       end
 
       reconfigure_data_streams
