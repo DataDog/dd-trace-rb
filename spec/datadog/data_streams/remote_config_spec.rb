@@ -171,6 +171,14 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
       expect(Datadog::DataStreams.enabled?).to be true
     end
 
+    it "falls back to the org-wide config when the service config holds a non-boolean value" do
+      service_config = ["web", {"service_target" => {"service" => "web"}, "lib_config" => {"data_streams_enabled" => "yes"}}]
+
+      apply_rc_configs([org_config, service_config])
+
+      expect(Datadog::DataStreams.enabled?).to be true
+    end
+
     it "ignores a config targeting another service" do
       other = ["other", {"service_target" => {"service" => "api", "env" => "prod"}, "lib_config" => {"data_streams_enabled" => true}}]
 

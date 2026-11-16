@@ -199,7 +199,8 @@ module Datadog
         # Merges lib_configs from configs ordered most-specific first: for each
         # field, the first (most-specific) non-nil value wins. Fields are
         # independent, so a lower-priority config can supply a field the
-        # higher-priority one omits.
+        # higher-priority one omits. A non-boolean data_streams_enabled is
+        # skipped so the next valid value wins.
         #
         # @param configs_most_specific_first [Array[Hash[String, untyped]]] configs, most-specific first
         # @return [Hash[String, untyped]] the merged lib_config
@@ -211,6 +212,7 @@ module Datadog
 
             lib_config.each do |key, value|
               next if value.nil?
+              next if key == "data_streams_enabled" && value != true && value != false
 
               merged[key] = value unless merged.key?(key)
             end

@@ -399,6 +399,14 @@ RSpec.describe Datadog::Tracing::Remote do
       expect(remote.merge_lib_configs(ordered)).to eq("y" => 1)
     end
 
+    it "skips a non-boolean data_streams_enabled so a less-specific boolean wins" do
+      ordered = [
+        {"lib_config" => {"data_streams_enabled" => "yes"}},
+        {"lib_config" => {"data_streams_enabled" => true}},
+      ]
+      expect(remote.merge_lib_configs(ordered)).to eq("data_streams_enabled" => true)
+    end
+
     it "skips a config whose lib_config is missing or not a hash" do
       ordered = [{"lib_config" => nil}, {}, {"lib_config" => {"x" => 1}}]
       expect(remote.merge_lib_configs(ordered)).to eq("x" => 1)
