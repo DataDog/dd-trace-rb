@@ -314,14 +314,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       # The receiver binary sends the crash report asynchronously after the forked process
       # dies, so message ordering is not guaranteed.
       let(:parsed_messages) do
-        messages.map do |msg|
-          body = msg.body.to_s
-          next if body.empty?
-
-          JSON.parse(body, symbolize_names: true)
-        rescue JSON::ParserError
-          nil
-        end.compact
+        messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
       end
       let(:crash_report_request) do
         parsed_messages.find { |msg| msg.dig(:payload, :logs, 0, :is_crash) == true }
