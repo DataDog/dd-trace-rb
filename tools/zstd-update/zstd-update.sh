@@ -42,6 +42,13 @@ if [[ "$actual_checksum" != "$EXPECTED_CHECKSUM" ]]; then
 fi
 
 printf 'Checksum verified. Generating zstd.c...\n'
+# @ivoanjo: zstd includes freestanding_lib to adapt its sources for environments with custom runtime dependencies; we reuse its partial preprocessor.
+# @ivoanjo: Upstream xxhash.h defines XXH_NO_XXH3; remove the disabled sections before amalgamation to reduce zstd.c size.
+(
+  cd -- "$source_dir/contrib/freestanding_lib"
+  python3 -c 'from freestanding import PartialPreprocessor; PartialPreprocessor(defs=[("XXH_NO_XXH3", None)], replaces=[], undefs=[]).preprocess("../../lib/common/xxhash.h")' > /dev/null
+)
+
 (
   cd -- "$source_dir/build/single_file_libs"
   python3 combine.py -r ../../lib -x legacy/zstd_legacy.h \
