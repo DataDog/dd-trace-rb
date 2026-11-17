@@ -8,7 +8,7 @@ module Datadog
     #
     # @api private
     class ProcResponder
-      def initialize(executed_proc, failed_proc = nil, recorded_proc = nil)
+      def initialize(executed_proc, failed_proc = nil, recorded_proc: nil)
         @executed_proc = executed_proc
         @failed_proc = failed_proc
         @recorded_proc = recorded_proc

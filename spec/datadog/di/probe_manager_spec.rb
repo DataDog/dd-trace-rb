@@ -540,7 +540,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         id: "test-probe",
         type: "log",
         capture_snapshot?: false,
-        expression_evaluation_failed_rate_limiter: rate_limiter,
+        condition_evaluation_failed_rate_limiter: rate_limiter,
       )
     end
 

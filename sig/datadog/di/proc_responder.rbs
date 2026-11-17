@@ -7,7 +7,7 @@ module Datadog
 
       @recorded_proc: Proc?
 
-      def initialize: (Proc executed_proc, ?Proc? failed_proc, ?Proc? recorded_proc) -> void
+      def initialize: (Proc executed_proc, ?Proc? failed_proc, ?recorded_proc: Proc?) -> void
 
       attr_reader executed_proc: Proc
 

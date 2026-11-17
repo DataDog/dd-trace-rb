@@ -267,62 +267,49 @@ RSpec.describe "Metric probes integration" do
     end
   end
 
-  context "line metric probe against a loaded fixture" do
-    before do
-      Datadog::DI.activate_tracking!
-      load File.join(File.dirname(__FILE__), "..", "hook_line_load.rb")
+  context "with a probe on a line" do
+    let(:probe_spec) do
+      super().merge("where" => {"sourceFile" => "hook_line_load.rb", "lines" => [30]})
     end
 
-    after do
-      Datadog::DI.deactivate_tracking!
-    end
+    it "reports an ERROR status that states that metric probes on lines are not supported" do
+      expect do
+        component.parse_probe_spec_and_notify(probe_spec)
+      end.to raise_error(ArgumentError, "Metric probes on lines are not supported: metric-integration-probe")
 
-    let(:line_probe_spec) do
-      {"id" => "metric-line-integration-probe",
-       "version" => 0,
-       "type" => "METRIC_PROBE",
-       "kind" => "GAUGE",
-       "metricName" => "integration.line.metric",
-       "where" => {"sourceFile" => "hook_line_load.rb", "lines" => [30]},
-       "value" => {"dsl" => "local", "json" => {"ref" => "local"}}}
-    end
-
-    it "submits the evaluated local at the line" do
-      probe = component.parse_probe_spec_and_notify(line_probe_spec)
-      probe_manager.add_probe(probe)
-
-      expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
       component.probe_notifier_worker.flush
 
-      expect(fake_statsd).to have_received(:gauge).with(
-        "dynamic.instrumentation.metric.probe.integration.line.metric", 42,
-        tags: ["debugger.probeid:metric-line-integration-probe"],
-      )
+      error_payloads = diagnostics_batches.flatten.select { |payload|
+        payload.dig(:debugger, :diagnostics, :status) == "ERROR"
+      }
+      expect(error_payloads.length).to eq 1
+      expect(error_payloads.first.dig(:debugger, :diagnostics, :exception, :message))
+        .to eq "Metric probes on lines are not supported: metric-integration-probe"
     end
   end
 
-  context "evaluation errors" do
+  context "with a value expression that fails to evaluate" do
     let(:probe_spec) do
       super().merge("value" => {"dsl" => "len(@return)", "json" => {"len" => {"ref" => "@return"}}})
     end
 
-    it "reports the failing expression in an evaluation errors payload, rate limited" do
+    it "submits no point and sends no evaluation error snapshot" do
       allow(component).to receive(:telemetry)
 
       probe = component.parse_probe_spec_and_notify(probe_spec)
       probe_manager.add_probe(probe)
 
       expect(MetricProbesIntegrationSpecTestClass.new.test_method(21)).to eq 42
-      expect(MetricProbesIntegrationSpecTestClass.new.test_method(21)).to eq 42
 
       component.probe_notifier_worker.flush
 
-      evaluation_errors = input_batches.flatten.map { |event|
-        event.payload.dig(:debugger, :snapshot, :evaluationErrors)
-      }.compact.flatten
-      expect(evaluation_errors.length).to eq 1
-      expect(evaluation_errors.first.fetch(:expr)).to eq "len(@return)"
-      expect(evaluation_errors.first.fetch(:message)).to match(/Unsupported type for length/)
+      expect(fake_statsd).to_not have_received(:count)
+      expect(input_batches.flatten).to be_empty
+      statuses = diagnostics_batches.flatten.map { |payload|
+        payload.dig(:debugger, :diagnostics, :status)
+      }
+      expect(statuses).to include("RECEIVED", "INSTALLED")
+      expect(statuses).to_not include("EMITTING")
     end
   end
 end

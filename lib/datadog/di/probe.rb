@@ -105,6 +105,11 @@ module Datadog
           raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
         end
 
+        # The other tracers install metric probes on lines.
+        if type == :metric && line_no
+          raise ArgumentError, "Metric probes on lines are not supported: #{id}"
+        end
+
         @id = id
         @type = type
         @file = file
@@ -139,8 +144,8 @@ module Datadog
         # can be executed on multiple threads concurrently (even if line
         # probes are never executed concurrently since those are done in a
         # trace point).
-        if condition || metric_value
-          @expression_evaluation_failed_rate_limiter = Datadog::Core::TokenBucket.new(1)
+        if condition
+          @condition_evaluation_failed_rate_limiter = Datadog::Core::TokenBucket.new(1)
         end
 
         @emitting_notified = false
@@ -184,15 +189,14 @@ module Datadog
       attr_reader :rate_limiter
 
       # Rate limiter object for sending snapshots with evaluation errors
-      # for when a probe condition or metric value expression evaluation
-      # fails.
+      # for when probe condition evaluation fails.
       # This rate limit is separate from the "base" rate limit for the probe
       # because when the condition evaluation succeeds we want the "base"
       # rate limit applied, not tainted by any evaluation errors
       # (for example, the condition can be highly selective, and when it
       # does not hold the evaluation may fail - we don't want to use up the
       # probe rate limit for the errors).
-      attr_reader :expression_evaluation_failed_rate_limiter
+      attr_reader :condition_evaluation_failed_rate_limiter
 
       # The metric kind of a metric probe, one of METRIC_KINDS; nil for
       # log probes.

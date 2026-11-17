@@ -12,8 +12,11 @@ module Datadog
     #
     # Application threads that execute metric probes call {#record}, which
     # makes no client call. The DI background thread calls {#flush}, which
-    # submits the pending points and flushes the client, so the socket
-    # writes of metric probes happen off the application threads.
+    # submits the pending points and flushes the client within the
+    # diagnostics send interval (3 seconds by default), so the socket
+    # writes of metric probes happen off the application threads. COUNT
+    # values are summed and GAUGE keeps the last value per flush, which the
+    # agent aggregates as it aggregates a point per execution.
     #
     # @api private
     class MetricEmitter
@@ -24,7 +27,9 @@ module Datadog
 
       # Number of HISTOGRAM or DISTRIBUTION samples that a probe keeps
       # between flushes. {#record} drops the samples beyond it and the next
-      # {#flush} logs how many it dropped.
+      # {#flush} logs how many it dropped; the kept samples carry no sample
+      # rate. Java submits each sample, and Python makes a statsd call per
+      # probe execution.
       MAX_PENDING_SAMPLES = 1024
 
       # Reason that {#unavailable_reason} returns. The components build
@@ -260,6 +265,12 @@ module Datadog
       # @return [void]
       def submit(client, probe, value)
         name = "#{NAMESPACE}.#{probe.metric_name}"
+        # Probe tags pass unchanged, as in Java, followed by the probe id
+        # tag, as in Python. dogstatsd-ruby deletes | and , from a tag,
+        # writes a line feed unchanged, adds the DD_ENV, DD_SERVICE,
+        # DD_VERSION and DD_TAGS tags from 4.8.0 on, and ends no datagram
+        # with a line feed, which Java and Python write. No process tags,
+        # which Java and .NET add.
         tags = probe.tags + ["debugger.probeid:#{probe.id}"]
         case probe.metric_kind
         when :count
