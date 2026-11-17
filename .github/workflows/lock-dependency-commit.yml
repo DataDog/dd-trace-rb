@@ -77,10 +77,6 @@ jobs:
       # local `uses: ./...` resolves from the workspace, which is the PR's head_sha
       # here, letting a PR rewrite the action and run it with the token above.
       # A pinned action cannot be influenced that way.
-      # ghcommit-action makes one attempt and has no retry, so a single 502/504
-      # from GitHub's API frontends would fail the whole run without the
-      # attempts below
-      # (https://github.com/DataDog/dd-trace-rb/actions/runs/43900416052).
       # Every attempt guards on the checked-out head: this branch is the pull
       # request's, and a head that moved since checkout means either this
       # workflow's commit landed (its push re-triggers the chain, which then
