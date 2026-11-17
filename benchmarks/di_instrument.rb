@@ -22,10 +22,36 @@
 # workloads vastly exceed any per-probe rate limit. The firing-path number
 # is what each delivered snapshot costs.
 #
-# capture_snapshot is not set on the probes (defaults to false), so the
-# firing path measured here exercises Context construction and responder
-# dispatch but not serialize_args. For probes with capture_snapshot=true,
-# the firing-path cost is higher than what this benchmark reports.
+# capture_snapshot is not set on the probes above (defaults to false), so
+# their firing path exercises Context construction and responder dispatch
+# but not serialize_args.
+#
+# The capturing method-probe variants measure the correlation sampler's
+# admission path, each also reporting the objects allocated per call:
+#
+#   untraced (own rate limit reject) - no active trace; the probe's own
+#                                   one-per-second limit denies almost
+#                                   every call.
+#   established trace (trace budget reject) - every call runs in the same
+#                                   trace, whose per-probe budget the
+#                                   first call spends.
+#   fresh trace (admitted)        - every call starts a new trace, with
+#                                   TOP and GLOBAL rates high enough to
+#                                   admit and capture every call.
+#   fresh trace (starved, ledger sweeps) - every call starts a new trace at
+#                                   the default rates, so TOP starves
+#                                   nearly every trace and the per-trace
+#                                   ledger repeatedly crosses its sweep
+#                                   threshold under the sampler mutex.
+#
+# Capturing variants, typical result (local run, Ruby 4.0.6, x86_64-linux;
+# no instrumentation: 474.5k i/s):
+#
+#                                               i/s       objects per call
+#   untraced (own rate limit reject)           65.1k      24
+#   established trace (trace budget reject)    93.7k      21
+#   fresh trace (admitted)                     26.0k      48
+#   fresh trace (starved, ledger sweeps)      100.3k      26
 #
 # Typical result (local run, Ruby 3.2.3, x86_64-linux-gnu):
 #
@@ -137,9 +163,22 @@ class DIInstrumentBenchmark
     self.consulted = 0
   end
 
+  # The trace the capturing variants report as active to the correlation
+  # gate, through BenchInstrumenter's trace resolution override. Each new
+  # trace is a fresh object, which is all the gate needs to key a trace.
+  module BenchTrace
+    class << self
+      attr_accessor :current
+    end
+  end
+
   class BenchInstrumenter < Datadog::DI::Instrumenter
     def global_log_rate_limiter
       ToggleLimiter
+    end
+
+    private def current_trace
+      BenchTrace.current
     end
   end
 
@@ -163,7 +202,7 @@ class DIInstrumentBenchmark
     end
   end
 
-  def configure
+  def configure(correlation_sampler: Datadog::DI::CorrelationSampler.new)
     settings = Datadog.configuration
     yield settings if block_given?
 
@@ -183,7 +222,7 @@ class DIInstrumentBenchmark
         settings: settings, serializer: serializer, logger: di_logger,
         guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
       ),
-      correlation_sampler: Datadog::DI::CorrelationSampler.new)
+      correlation_sampler: correlation_sampler)
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target
@@ -199,6 +238,37 @@ class DIInstrumentBenchmark
       x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
+  end
+
+  # Prints the objects allocated per call of the target block, averaged over
+  # repeated calls after a warm-up call.
+  def report_allocations(report:, &target)
+    sample_calls = VALIDATE_BENCHMARK_MODE ? 10 : 10_000
+    target.call
+    before = GC.stat(:total_allocated_objects)
+    sample_calls.times(&target)
+    allocated = GC.stat(:total_allocated_objects) - before
+    puts "#{report}: #{(allocated.to_f / sample_calls).round(2)} objects allocated per call"
+  end
+
+  # Install a capturing method probe, report its allocations per call,
+  # measure it, and unhook it. BenchTrace.current is cleared in an ensure so
+  # a raised assertion cannot leak an active trace into a later variant.
+  def measure_capturing_variant(report:, probe:, &target)
+    rv = instrumenter.hook_method(probe, Datadog::DI::ProcResponder.new(@executed_proc))
+    raise "#{report}: probe was not successfully installed" unless rv
+
+    report_allocations(report: report, &target)
+    measure(report: report, &target)
+    instrumenter.unhook(probe)
+  ensure
+    BenchTrace.current = nil
+  end
+
+  def capturing_probe(rate_limit:)
+    Datadog::DI::Probe.new(id: 1, type: :log,
+      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
+      capture_snapshot: true, rate_limit: rate_limit)
   end
 
   # Install a probe, measure it, and unhook it. ToggleLimiter.admit is restored
@@ -286,6 +356,73 @@ class DIInstrumentBenchmark
 
     if ToggleLimiter.consulted < 100_000 && !VALIDATE_BENCHMARK_MODE
       raise "Method instrumentation (rate_limit=1M, global reject): wrapper did not reach the global limiter, only #{ToggleLimiter.consulted} consultations"
+    end
+
+    calls = 0
+    measure_capturing_variant(
+      report: "method instrumentation - capturing - untraced (own rate limit reject)",
+      probe: capturing_probe(rate_limit: 1),
+    ) { Target.new.test_method }
+
+    if calls < 1
+      raise "Capturing method instrumentation (untraced) did not work - callback was never invoked"
+    end
+
+    if calls > 100 && !VALIDATE_BENCHMARK_MODE
+      raise "Capturing method instrumentation (untraced): rate limit not enforced, got #{calls} firing calls"
+    end
+
+    calls = 0
+    BenchTrace.current = Object.new
+    measure_capturing_variant(
+      report: "method instrumentation - capturing - established trace (trace budget reject)",
+      probe: capturing_probe(rate_limit: 1_000_000),
+    ) { Target.new.test_method }
+
+    if calls != Datadog::DI::CorrelationSampler::PER_PROBE_BUDGET
+      raise "Capturing method instrumentation (established trace): expected " \
+        "#{Datadog::DI::CorrelationSampler::PER_PROBE_BUDGET} firing calls, got #{calls}"
+    end
+
+    configure(correlation_sampler: Datadog::DI::CorrelationSampler.new(top_rate: 1_000_000_000,
+      global_rate: 1_000_000_000))
+    calls = 0
+    measure_capturing_variant(
+      report: "method instrumentation - capturing - fresh trace (admitted)",
+      probe: capturing_probe(rate_limit: 1_000_000),
+    ) do
+      BenchTrace.current = Object.new
+      Target.new.test_method
+    end
+
+    if calls < 1
+      raise "Capturing method instrumentation (fresh admitted traces) did not work - callback was never invoked"
+    end
+
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Capturing method instrumentation (fresh admitted traces): expected at least 100_000 firing calls, got #{calls}"
+    end
+
+    configure
+    calls = 0
+    traces = 0
+    measure_capturing_variant(
+      report: "method instrumentation - capturing - fresh trace (starved, ledger sweeps)",
+      probe: capturing_probe(rate_limit: 1_000_000),
+    ) do
+      traces += 1
+      BenchTrace.current = Object.new
+      Target.new.test_method
+    end
+
+    # TOP admits TOP_RATE new traces up front and TOP_RATE more per second.
+    if calls > Datadog::DI::CorrelationSampler::TOP_RATE * 20 && !VALIDATE_BENCHMARK_MODE
+      raise "Capturing method instrumentation (fresh starved traces): TOP not enforced, got #{calls} firing calls"
+    end
+
+    if traces <= Datadog::DI::CorrelationSampler::DEFAULT_SWEEP_THRESHOLD && !VALIDATE_BENCHMARK_MODE
+      raise "Capturing method instrumentation (fresh starved traces): only #{traces} traces, " \
+        "below the ledger sweep threshold"
     end
 
     # We benchmark untargeted and targeted trace points; untargeted ones
