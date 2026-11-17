@@ -154,15 +154,15 @@ runs:
     # A 5xx response can arrive after the mutation was applied, so a retry
     # must guard on the scratch ref's current head: guarding on the original
     # head would fail as a stale-head conflict. A head past the guarded SHA
-    # means the failed attempt landed. The checkout still holds the full
-    # change set, and createCommitOnBranch aborts a mutation deleting a path
-    # the branch no longer carries, so a replay would fail on every deletion
-    # the landed commit already applied. The landed tree is therefore compared
-    # against the staged tree and adopted on a match; when it cannot be read,
-    # the head is recorded as an unverified candidate, the next attempt is
-    # skipped so no replay runs against it, and the candidate's verification
-    # is retried by the next backoff step and, after the last attempt, by
-    # the resolve step.
+    # means the failed attempt applied the mutation. The checkout still
+    # contains the full change set, and createCommitOnBranch aborts a
+    # mutation deleting a path the branch no longer contains, so a replay
+    # would fail on every deletion the applied commit already made. The
+    # applied commit is therefore used when its tree matches the staged
+    # tree; when its tree cannot be read, the head is recorded as an
+    # unverified candidate, the next attempt is skipped so no replay runs
+    # against it, and the candidate's verification is retried by the next
+    # backoff step and, after the last attempt, by the resolve step.
     - name: Back off and re-read the scratch head
       id: backoff-1
       if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
