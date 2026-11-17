@@ -218,11 +218,11 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GHCOMMIT_SHA: ${{ steps.backoff-2.outputs.head-sha }}
 
-    # Once an attempt succeeds, or a backoff step adopts a landed attempt,
-    # the rest are skipped, so at most one of the five commit hashes below
-    # is set. When a backoff step records an unverified candidate instead,
-    # its verification is retried here and the candidate's hash is used on
-    # a match.
+    # Once an attempt succeeds, or a backoff step records the hash of an
+    # applied attempt, the rest are skipped, so at most one of the five
+    # commit hashes below is set. When a backoff step records an unverified
+    # candidate instead, its verification is retried here and the
+    # candidate's hash is used on a match.
     - name: Resolve the created commit
       id: commit
       if: steps.stage.outputs.changed == 'true'
@@ -234,16 +234,16 @@ runs:
         FIRST: ${{ steps.commit-1.outputs.commit-hash }}
         SECOND: ${{ steps.commit-2.outputs.commit-hash }}
         THIRD: ${{ steps.commit-3.outputs.commit-hash }}
-        LANDED_FIRST: ${{ steps.backoff-1.outputs.applied-hash }}
-        LANDED_SECOND: ${{ steps.backoff-2.outputs.applied-hash }}
+        APPLIED_FIRST: ${{ steps.backoff-1.outputs.applied-hash }}
+        APPLIED_SECOND: ${{ steps.backoff-2.outputs.applied-hash }}
         CANDIDATE_FIRST: ${{ steps.backoff-1.outputs.candidate-sha }}
         CANDIDATE_SECOND: ${{ steps.backoff-2.outputs.candidate-sha }}
       run: |
         commit="$THIRD"
         [ -n "$commit" ] || commit="$SECOND"
         [ -n "$commit" ] || commit="$FIRST"
-        [ -n "$commit" ] || commit="$LANDED_SECOND"
-        [ -n "$commit" ] || commit="$LANDED_FIRST"
+        [ -n "$commit" ] || commit="$APPLIED_SECOND"
+        [ -n "$commit" ] || commit="$APPLIED_FIRST"
         if [ -z "$commit" ]; then
           candidate="$CANDIDATE_SECOND"
           [ -n "$candidate" ] || candidate="$CANDIDATE_FIRST"
