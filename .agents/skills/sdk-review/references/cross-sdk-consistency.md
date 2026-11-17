@@ -21,3 +21,16 @@ Other repositories:
 - [PHP (`dd-trace-php`)](https://github.com/DataDog/dd-trace-php)
 - [C++ (`dd-trace-cpp`)](https://github.com/DataDog/dd-trace-cpp)
 - [Rust (`libdatadog`)](https://github.com/DataDog/libdatadog)
+
+## 1. Configuration
+
+### XSDK-1.1: Keep env var names identical to other Datadog SDKs
+- Flag: a new `DD_*` env var whose name differs from the one other SDKs already use for the same setting, including expanding an abbreviation (`CTX`) or dropping an `EXPERIMENTAL` prefix.
+- Not when: no other SDK defines the setting yet; then follow the product's `DD_<PRODUCT>_*` prefix.
+
+### XSDK-1.2: Check whether a cross-SDK spec fixes a public module or constant name before renaming it
+- Flag: a rename of a shipped public namespace or class (for example, `Datadog::OpenFeature::Provider`) with no reference to the cross-SDK spec or other SDKs' names.
+
+## Don't flag
+- Warn-and-fall-back parsing of invalid env var values when other SDKs handle them the same way.
+- Ruby settings namespaces that differ from other SDKs; only env var names are the shared contract.
