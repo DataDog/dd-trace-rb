@@ -80,7 +80,7 @@ module Datadog
       attr_reader template_segments: Array[String | DI::EL::Expression]?
       attr_reader rate_limiter: Datadog::Core::RateLimiter
 
-      attr_reader expression_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
+      attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
 
       attr_reader metric_kind: (:count | :gauge | :histogram | :distribution)?
 

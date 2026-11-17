@@ -33,7 +33,7 @@ RSpec.describe Datadog::DI::ProcResponder do
     it "invokes the recorded proc with the probe" do
       observed_probes = []
       recorded_proc = proc { |probe| observed_probes << probe }
-      responder = described_class.new(proc {}, nil, recorded_proc)
+      responder = described_class.new(proc {}, recorded_proc: recorded_proc)
 
       probe = double("probe")
       responder.probe_metric_recorded_callback(probe)

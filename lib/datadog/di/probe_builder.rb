@@ -40,11 +40,9 @@ module Datadog
 
       CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
 
-      # DEFAULT and a missing evaluateAt both map to exit, following the
-      # Ruby log probe convention. Java and Python map DEFAULT to entry for
-      # metric probes; exit is the only scope where @return and @duration
-      # exist, so a DEFAULT probe degrades usefully, and the UI always
-      # sends EXIT regardless.
+      # A metric method probe without evaluateAt evaluates at exit, as in
+      # .NET and as Ruby log probes do; Java and Python evaluate it at entry.
+      # The Live Debugger sends EXIT.
       EVALUATE_AT_STRINGS = {
         "ENTRY" => :entry,
         "EXIT" => :exit,

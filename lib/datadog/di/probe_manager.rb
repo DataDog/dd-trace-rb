@@ -297,19 +297,12 @@ module Datadog
         end
       end
 
-      # Entry point invoked from the instrumentation when the specfied probe
-      # is invoked (that is, either its target method is invoked, or
-      # execution reached its target file/line).
-      #
-      # This method is responsible for queueing probe status to be sent to the
-      # backend (once per the probe's lifetime) and a snapshot corresponding
-      # to the current invocation.
       # Sends the EMITTING status for the probe once per probe lifetime,
-      # using the probe's emitting_notified flag. Java re-sends EMITTING on
-      # every diagnostics interval; the Ruby diagnostics path emits statuses
-      # on transition only, and the probe tracker's "last captured" for
-      # metric probes is driven by the metric query rather than repeated
-      # statuses.
+      # using the probe's emitting_notified flag. Java, Python and .NET
+      # re-send the stored statuses every diagnostics interval, and PHP in
+      # every request; the Ruby diagnostics path sends statuses on
+      # transition only, and the probe tracker computes "last captured" for
+      # metric probes from the metric query.
       #
       # @param probe [Probe] the probe that is emitting
       # @return [void]
@@ -321,6 +314,13 @@ module Datadog
         end
       end
 
+      # Entry point invoked from the instrumentation when the specfied probe
+      # is invoked (that is, either its target method is invoked, or
+      # execution reached its target file/line).
+      #
+      # This method is responsible for queueing probe status to be sent to the
+      # backend (once per the probe's lifetime) and a snapshot corresponding
+      # to the current invocation.
       def probe_executed_callback(context)
         probe = context.probe
         logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
@@ -336,7 +336,9 @@ module Datadog
       # Sends the EMITTING status once per the probe's lifetime, after the
       # first accepted point, and schedules the submission of the point
       # within the minimum send interval. Points that the emitter drops do
-      # not reach this callback.
+      # not reach this callback. Java and .NET also send EMITTING once
+      # their client queues the point, Python after its socket write, and
+      # PHP before it evaluates the value.
       #
       # @param probe [Probe] the probe whose point was recorded
       # @return [void]
@@ -361,7 +363,7 @@ module Datadog
       # @return [void]
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        rate_limiter = probe.expression_evaluation_failed_rate_limiter
+        rate_limiter = probe.condition_evaluation_failed_rate_limiter
         if rate_limiter&.allow?
           if instrumenter.admit_condition_error_snapshot?(probe)
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)

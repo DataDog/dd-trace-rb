@@ -671,7 +671,20 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
-    describe "#expression_evaluation_failed_rate_limiter" do
+    context "metric probe on a line" do
+      let(:probe) do
+        described_class.new(id: "42", type: :metric, file: "foo.rb", line_no: 5,
+          metric_kind: :count, metric_name: "probe.metric")
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, "Metric probes on lines are not supported: 42")
+      end
+    end
+
+    describe "#condition_evaluation_failed_rate_limiter" do
       context "metric probe with a condition" do
         let(:probe) do
           compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
@@ -680,7 +693,7 @@ RSpec.describe Datadog::DI::Probe do
         end
 
         it "is created" do
-          expect(probe.expression_evaluation_failed_rate_limiter).to be_a(Datadog::Core::TokenBucket)
+          expect(probe.condition_evaluation_failed_rate_limiter).to be_a(Datadog::Core::TokenBucket)
         end
       end
 
@@ -691,18 +704,8 @@ RSpec.describe Datadog::DI::Probe do
             metric_value: Datadog::DI::EL::Expression.new("foo", compiled))
         end
 
-        it "is created" do
-          expect(probe.expression_evaluation_failed_rate_limiter).to be_a(Datadog::Core::TokenBucket)
-        end
-      end
-
-      context "metric probe with no expressions" do
-        let(:probe) do
-          described_class.new(**metric_probe_args)
-        end
-
         it "is not created" do
-          expect(probe.expression_evaluation_failed_rate_limiter).to be nil
+          expect(probe.condition_evaluation_failed_rate_limiter).to be nil
         end
       end
     end

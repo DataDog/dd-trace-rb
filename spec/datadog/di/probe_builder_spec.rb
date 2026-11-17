@@ -465,10 +465,10 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           base_metric_spec.merge("where" => {"sourceFile" => "foo.rb", "lines" => [17]})
         end
 
-        it "creates a line metric probe" do
-          expect(probe.line?).to be true
-          expect(probe.file).to eq "foo.rb"
-          expect(probe.line_no).to eq 17
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, "Metric probes on lines are not supported: 3ecfd456-2d7c-4359-a51f-d4cc44141ffe")
         end
       end
 
