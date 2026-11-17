@@ -8,7 +8,6 @@ module Datadog
       DEFAULT_MAX_LENGTH: Integer
       AUTO_SAMPLING_PRIORITIES: Array[Integer]
       RECONSIDERABLE_DECISIONS: Array[String]
-      DEFER_ASYNC_INTERRUPTS: Hash[singleton(Exception), Symbol]
 
       @logger: Core::Logger
       @span_links: Array[SpanLink]?

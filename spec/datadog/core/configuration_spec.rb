@@ -72,6 +72,40 @@ RSpec.describe Datadog::Core::Configuration do
           end
         end
 
+        context "and Remote Config changes data_streams.enabled during the rebuild" do
+          let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
+
+          before do
+            allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
+            allow(Datadog::Core::Configuration::Components).to receive(:build_data_streams) do |settings|
+              processor if settings.data_streams.enabled
+            end
+            allow(Datadog::Core::Configuration::Components).to receive(:new)
+              .and_wrap_original do |m, *args|
+                new_components = m.call(*args)
+                allow(new_components).to receive(:shutdown!)
+                allow(new_components).to receive(:startup!) do
+                  test_class.configuration.data_streams.enabled = !test_class.configuration.data_streams.enabled
+                end
+                new_components
+              end
+          end
+
+          it "stops the processor built with the stale enabled setting" do
+            test_class.configure { |c| c.data_streams.enabled = true }
+
+            expect(test_class.send(:components).data_streams).to be_nil
+            expect(processor).to have_received(:stop).with(true)
+            expect(processor).to have_received(:flush)
+          end
+
+          it "starts the processor skipped with the stale disabled setting" do
+            test_class.configure { |c| c.data_streams.enabled = false }
+
+            expect(test_class.send(:components).data_streams).to be(processor)
+          end
+        end
+
         context "and components have not been initialized" do
           it do
             expect_any_instance_of(Datadog::Core::Configuration::Components)
@@ -453,7 +487,7 @@ RSpec.describe Datadog::Core::Configuration do
           allow(Datadog::Core::Configuration::Components).to receive(:new) do
             # simulate getting the logger during reinitialization
             logger_during_component_replacement = test_class.logger
-            instance_double(Datadog::Core::Configuration::Components, startup!: nil)
+            instance_double(Datadog::Core::Configuration::Components, startup!: nil, swap_data_streams: nil)
           end
 
           test_class.configure {}

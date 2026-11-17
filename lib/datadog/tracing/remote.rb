@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../core/ddsketch"
 require_relative "../core/remote/dispatcher"
 require_relative "configuration/dynamic"
 
@@ -21,6 +22,9 @@ module Datadog
           # is not explicitly disabled and the runtime supports DI.
         ].freeze
 
+        # APM_TRACING_DATA_STREAMS_ENABLED: Dynamic Data Streams Monitoring enablement.
+        DATA_STREAMS_ENABLED_CAPABILITY = 1 << 20
+
         # Diagnostic scope label per specificity priority.
         SCOPE_LABELS = {
           5 => "service+env",
@@ -37,7 +41,10 @@ module Datadog
 
         # @return [Array[Integer]] the remote config capability bits advertised
         def capabilities
-          CAPABILITIES
+          # The Data Streams processor needs DDSketch, unavailable without libdatadog_api (e.g. JRuby).
+          return CAPABILITIES unless Core::DDSketch.supported?
+
+          CAPABILITIES + [DATA_STREAMS_ENABLED_CAPABILITY]
         end
 
         # Merges every active APM_TRACING config in the repository and applies the
@@ -198,7 +205,8 @@ module Datadog
         # Merges lib_configs from configs ordered most-specific first: for each
         # field, the first (most-specific) non-nil value wins. Fields are
         # independent, so a lower-priority config can supply a field the
-        # higher-priority one omits.
+        # higher-priority one omits. A non-boolean data_streams_enabled is
+        # skipped so the next valid value wins.
         #
         # @param configs_most_specific_first [Array[Hash[String, untyped]]] configs, most-specific first
         # @return [Hash[String, untyped]] the merged lib_config
@@ -210,6 +218,7 @@ module Datadog
 
             lib_config.each do |key, value|
               next if value.nil?
+              next if key == "data_streams_enabled" && value != true && value != false
 
               merged[key] = value unless merged.key?(key)
             end

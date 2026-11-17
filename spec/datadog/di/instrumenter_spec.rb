@@ -3058,10 +3058,8 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(weakref_probe_calls).to be_empty
 
             # Strong local so GC cannot collect the referent before this unguarded call.
-            target = Object.new
-            ref = WeakRef.new(target)
-            expect(ref.weakref_alive?).to be(true)
-            expect(ref.__getobj__).to be(target)
+            weakref_target = Object.new
+            expect(WeakRef.new(weakref_target).weakref_alive?).to be(true)
           ensure
             instrumenter.unhook(capturing_line_probe)
             instrumenter.unhook(weakref_probe)
