@@ -8,4 +8,3 @@ global_teardown:
   - name: Upload to BP API
     run: upload_to_bp_api
     project: dd-trace-rb
-
