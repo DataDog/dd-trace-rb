@@ -1,7 +1,7 @@
 {
   "type": "Fixed",
   "product": "Data Streams",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/NNNN",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6720",
   "message": "Fix the wrong upstream and inflated pathway latency for Kafka messages consumed without a valid pathway header, such as messages from producers that don't use Data Streams Monitoring.",
   "author": "@your-favorite-dev"
 }
