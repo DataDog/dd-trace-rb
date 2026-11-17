@@ -46,6 +46,7 @@ module Datadog
             begin
               # false stands in for "thread had no context", leaving nil to mean nothing to restore.
               @datadog_pathway_context_before_job = Datadog::DataStreams.pathway_context || false
+              @datadog_data_streams_processor_before_job = Datadog::DataStreams.send(:processor)
               # A headerless job would otherwise checkpoint into, and mutate, the saved context.
               Datadog::DataStreams.pathway_context = nil
               Datadog::DataStreams.set_consume_checkpoint(
@@ -75,7 +76,12 @@ module Datadog
 
             # `|| nil` undoes the false sentinel set in `deserialize`.
             context_before_job = @datadog_pathway_context_before_job || nil
+            processor_before_job = @datadog_data_streams_processor_before_job
             @datadog_pathway_context_before_job = nil
+            @datadog_data_streams_processor_before_job = nil
+            # Remote Config may have replaced the processor during the job; the saved context belongs to the old one.
+            return unless Datadog::DataStreams.send(:processor).equal?(processor_before_job)
+
             Datadog::DataStreams.pathway_context = context_before_job
           rescue => e
             Datadog.logger.debug { "Error restoring DSM pathway context: #{e.class}: #{e.message}" }

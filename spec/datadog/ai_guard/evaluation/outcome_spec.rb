@@ -9,6 +9,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Outcome do
         result: result,
         redaction: redaction,
         blocking_enabled: decision.fetch(:blocking_enabled),
+        extra_tags: nil,
+        extra_metastruct: nil,
       )
     end
     let(:result) do
