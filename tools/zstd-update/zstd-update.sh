@@ -9,7 +9,9 @@ readonly EXPECTED_CHECKSUM="238606d9ad2cb4f40063a7def25395f31302da31c0e09727e20a
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/../.." && pwd)"
-output_path="$repo_root/ext/datadog_profiling_native_extension/miteruby/pprof/zstd.c"
+output_dir="$repo_root/ext/datadog_profiling_native_extension/miteruby/pprof"
+output_path="$output_dir/zstd.c"
+license_path="$output_dir/zstd.LICENSE.txt"
 
 temp_dir="$(mktemp -d)"
 trap 'rm -rf -- "$temp_dir"' EXIT
@@ -60,4 +62,5 @@ printf 'Checksum verified. Generating zstd.c...\n'
 ruby -0777 -i -pe '$_.gsub!(%r{^[[:blank:]]*/\*(?!\*\*).*?\*/}m) { |comment| comment.match?(/copyright|license|SPDX|@ivoanjo/i) ? comment : "" }' "$temp_dir/zstd.c"
 
 install -m 644 "$temp_dir/zstd.c" "$output_path"
-printf 'Updated %s\n' "$output_path"
+install -m 644 "$source_dir/LICENSE" "$license_path"
+printf 'Updated %s\n' "$output_path" "$license_path"
