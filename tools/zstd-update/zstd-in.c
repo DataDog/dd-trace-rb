@@ -101,8 +101,9 @@
 #include "common/entropy_common.c"
 #include "common/error_private.c"
 #include "common/fse_decompress.c"
-#include "common/threading.c"
-#include "common/pool.c"
+// @ivoanjo: Multithreading is disabled, so omit these unused sources to reduce zstd.c size.
+// #include "common/threading.c"
+// #include "common/pool.c"
 #include "common/zstd_common.c"
 
 #include "compress/fse_compress.c"
@@ -113,14 +114,18 @@
 #include "compress/zstd_compress_superblock.c"
 #include "compress/zstd_preSplit.c"
 #include "compress/zstd_compress.c"
-#include "compress/zstd_double_fast.c"
+// @ivoanjo: Level 1 doesn't use this compressor, so omit it to reduce zstd.c size.
+// #include "compress/zstd_double_fast.c"
 #include "compress/zstd_fast.c"
-#include "compress/zstd_lazy.c"
+// @ivoanjo: Level 1 doesn't use these compressors, so omit them to reduce zstd.c size.
+// #include "compress/zstd_lazy.c"
 #include "compress/zstd_ldm.c"
-#include "compress/zstd_opt.c"
-#ifdef ZSTD_MULTITHREAD
-#include "compress/zstdmt_compress.c"
-#endif
+// @ivoanjo: Level 1 doesn't use these compressors, so omit them to reduce zstd.c size.
+// #include "compress/zstd_opt.c"
+// #ifdef ZSTD_MULTITHREAD
+// @ivoanjo: Multithreading is disabled, so omit this unused source to reduce zstd.c size.
+// #include "compress/zstdmt_compress.c"
+// #endif
 
 // @ivoanjo: We don't need to decompress in the profiler.
 // #include "decompress/huf_decompress.c"
