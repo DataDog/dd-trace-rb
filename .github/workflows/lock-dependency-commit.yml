@@ -83,7 +83,7 @@ jobs:
       # finds nothing to commit) or the pull request advanced. Either way the
       # safe action is to fail rather than append to a head of unknown origin.
       # GHCOMMIT_SHA is set explicitly so each attempt guards on the checked-out
-      # SHA rather than the CLI's `git rev-parse HEAD` fallback.
+      # SHA, overriding the CLI's `git rev-parse HEAD` fallback.
       - name: Commit changes (attempt 1 of 3)
         id: commit-1
         if: steps.check.outputs.changed == 'true'
