@@ -150,20 +150,21 @@ module Datadog
         kind = METRIC_KIND_STRINGS[config["kind"]] or raise ArgumentError, "Unknown or missing metric kind: #{config["kind"].inspect} for metric probe: #{config["id"]}"
 
         value = if value_spec = config["value"]
-          unless value_spec["dsl"] && value_spec["json"]
+          # The json of the literal false is a valid expression.
+          unless value_spec["dsl"] && !value_spec["json"].nil?
             raise ArgumentError, "Malformed value specification for probe: #{config}"
           end
           compiled, regexps = EL::Compiler.new.compile(value_spec["json"])
           EL::Expression.new(value_spec["dsl"], compiled, regexps: regexps)
         end
 
-        tags = if raw_tags = config["tags"]
-          unless Array === raw_tags
-            raise ArgumentError, "Metric probe #{config["id"]} tags must be an array, got: #{raw_tags.class}"
-          end
+        raw_tags = config["tags"]
+        tags = if raw_tags.nil?
+          []
+        elsif Array === raw_tags
           raw_tags
         else
-          []
+          raise ArgumentError, "Metric probe #{config["id"]} tags must be an array, got: #{raw_tags.class}"
         end
 
         [kind, config["metricName"], value, tags]

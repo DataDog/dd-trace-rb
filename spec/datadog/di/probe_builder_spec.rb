@@ -503,6 +503,47 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
       end
 
+      context "with the literal false as the value expression" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("value" => {"dsl" => "false", "json" => false})
+        end
+
+        it "compiles the value into an expression" do
+          expect(probe.metric_value).to be_a(Datadog::DI::EL::Expression)
+          expect(probe.metric_value.dsl_expr).to eq "false"
+        end
+      end
+
+      context "with a value specification whose json is null" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("value" => {"dsl" => "x", "json" => nil})
+        end
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Malformed value specification/)
+        end
+      end
+
+      context "with null tags" do
+        let(:rc_probe_spec) { base_metric_spec.merge("tags" => nil) }
+
+        it "creates the probe with no tags" do
+          expect(probe.tags).to eq []
+        end
+      end
+
+      context "with false as the tags" do
+        let(:rc_probe_spec) { base_metric_spec.merge("tags" => false) }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /tags must be an array, got: FalseClass/)
+        end
+      end
+
       context "with a malformed value specification" do
         let(:rc_probe_spec) do
           base_metric_spec.merge("value" => {"dsl" => "@return"})
