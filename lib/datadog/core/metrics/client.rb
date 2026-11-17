@@ -29,7 +29,7 @@ module Datadog
           @logger = logger
           @statsd =
             if supported?
-              statsd || default_statsd_client
+              statsd
             else
               ignored_statsd_warning if statsd
               nil
@@ -47,28 +47,6 @@ module Datadog
 
         def enabled=(enabled)
           @enabled = (enabled == true)
-        end
-
-        def default_hostname
-          Dogstatsd.default_hostname
-        end
-
-        def default_port
-          Dogstatsd.default_port
-        end
-
-        def default_statsd_client
-          require "datadog/statsd"
-
-          # Create a StatsD client that points to the agent.
-          version = dogstatsd_version
-          options = if version && Dogstatsd.single_thread_supported?(version)
-            {single_thread: true}
-          else
-            {}
-          end
-
-          Datadog::Statsd.new(default_hostname, default_port, **options)
         end
 
         def configure(options = {})
@@ -149,10 +127,6 @@ module Datadog
 
         def send_metrics(metrics)
           metrics.each { |m| send(m.type, *[m.name, m.value, m.options].compact) }
-        end
-
-        def close
-          @statsd.close if @statsd&.respond_to?(:close)
         end
 
         private
