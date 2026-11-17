@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../../core/tag_normalizer"
 require_relative "../../core/utils"
 require_relative "../../core/workers/polling"
 require_relative "../evaluation_engine"
@@ -17,9 +18,7 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
-        # The Agent replaces each run of these characters in a service name with one `_`. It keeps letters, decimal
-        # digits and `:./-`.
-        USAGE_SERVICE_REPLACED_CHARACTERS = %r{[^\p{L}\p{Nd}:./-]+}
+        # The Agent cuts a service to 100 bytes before it normalizes the name.
         USAGE_SERVICE_MAX_BYTES = 100
 
         include Core::Workers::Polling
@@ -44,9 +43,9 @@ module Datadog
           )
         end
 
-        # Returns the DD-Service value: the service name that APM shows, or nil. It converts the service as the tracer
-        # does for spans, then normalizes it as the Agent does. Thus `My Service` becomes `my_service`. If the result is
-        # empty or not printable ASCII (for example `café-api`), the header is not sent. Net::HTTP sends non-ASCII bytes,
+        # Returns the DD-Service value, or nil. It converts the service as the tracer does for spans, cuts it to 100 bytes
+        # as the Agent does, then normalizes it with Core::TagNormalizer. Thus `My Service` becomes `my_service`. If the
+        # result is empty or not printable ASCII (for example `café-api`), the header is not sent. Net::HTTP sends non-ASCII bytes,
         # but the HTTP clients of some other Datadog tracers reject them. All tracers skip such names, so a service sends
         # the same header in every language. The CDN alone decides which values it attributes usage to, so this method
         # does not check the CDN format. Only the header value changes. The tracer's service stays as configured.
@@ -62,24 +61,13 @@ module Datadog
           end
           return if name.strip.empty?
 
-          normalized = normalize_service(name)
+          normalized = Core::TagNormalizer.normalize((name.byteslice(0, USAGE_SERVICE_MAX_BYTES) || name).scrub(""))
           return normalized if normalized.match?(/\A[\x21-\x7E]+\z/)
 
           logger.debug do
-            "Feature Flags: service #{service.inspect} has no ASCII APM name; DD-Service header not sent"
+            "Feature Flags: service #{service.inspect} has no ASCII normalized name; DD-Service header not sent"
           end
           nil
-        end
-
-        # Ports NormalizeService from the Agent (pkg/trace/traceutil/normalize, v0.82.3). It cuts the name to 100 bytes
-        # and does not split a character. It lowercases ASCII letters. It replaces each run of characters other than
-        # letters, decimal digits and `:./-` with one `_`, and removes a run at the end. It removes nothing at the
-        # start, so ` svc` becomes `_svc`. The Agent also lowercases some non-ASCII letters. This method does not,
-        # because a name with a non-ASCII letter is not sent.
-        def self.normalize_service(service)
-          (service.byteslice(0, USAGE_SERVICE_MAX_BYTES) || service).scrub("").downcase(:ascii)
-            .gsub(USAGE_SERVICE_REPLACED_CHARACTERS, "_")
-            .delete_suffix("_")
         end
 
         # Returns the service as the Agent reads it from a span, or nil if the tracer cannot convert it to UTF-8. The
@@ -90,7 +78,7 @@ module Datadog
         def self.span_service(service)
           Core::Utils.utf8_encode(service, placeholder: nil)&.scrub { |bytes| "\uFFFD" * bytes.bytesize }
         end
-        private_class_method :usage_service, :normalize_service, :span_service
+        private_class_method :usage_service, :span_service
 
         def initialize(
           endpoint:,

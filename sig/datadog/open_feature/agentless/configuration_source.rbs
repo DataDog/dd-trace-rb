@@ -14,8 +14,6 @@ module Datadog
 
         RETRY_JITTER: Float
 
-        USAGE_SERVICE_REPLACED_CHARACTERS: Regexp
-
         USAGE_SERVICE_MAX_BYTES: 100
 
         include Core::Workers::Polling
@@ -82,8 +80,6 @@ module Datadog
         private
 
         def self.usage_service: (String? service, Core::Logger logger) -> String?
-
-        def self.normalize_service: (String service) -> String
 
         def self.span_service: (String service) -> String?
 
