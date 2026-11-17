@@ -125,7 +125,8 @@ runs:
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
 
     # ghcommit-action makes one attempt and has no retry, so a single 502/504
-    # from GitHub's API frontends fails the whole run
+    # from GitHub's API frontends would fail the whole run without the
+    # attempts below
     # (https://github.com/DataDog/dd-trace-rb/actions/runs/43656277577).
     # Attempts are repeated steps because a `uses:` step cannot be looped.
     - name: Create signed commit (attempt 1 of 3)
