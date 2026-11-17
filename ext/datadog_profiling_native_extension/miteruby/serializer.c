@@ -8,6 +8,7 @@
 #include "../encoded_profile.h"
 #include "../helpers.h"
 #include "../private_vm_api_access.h"
+#include "../native_filenames.h"
 #include "../time_helpers.h"
 
 #include <ruby/thread.h>
@@ -154,6 +155,7 @@ typedef struct {
   uint8_t *compressed_serialization_buffer; // Up to 10 MiB; replaced with an empty buffer after serialization
   void *compression_workspace; // From zstd setup, ~1.3 MiB
   verstable_serializer_thread_contexts_map thread_contexts;
+  native_filenames_cache native_filenames_cache;
 
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
@@ -236,6 +238,7 @@ static void serializer_free(void *data) {
   miteruby_allocator_free(state->interned_events_queue);
   miteruby_allocator_free(state->compression_workspace);
   verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
+  native_filenames_cache_cleanup(&state->native_filenames_cache);
   ruby_xfree(state);
 }
 
@@ -343,6 +346,7 @@ static VALUE serializer_new(VALUE klass) {
   miteruby_serializer_persistent_state_t *state;
   VALUE serializer = TypedData_Make_Struct(klass, miteruby_serializer_persistent_state_t, &serializer_type, state);
   verstable_serializer_thread_contexts_map_init(&state->thread_contexts);
+  native_filenames_cache_init(&state->native_filenames_cache);
   verstable_mark_threads_set_init(&state->threads_set);
 
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MAX_UNCOMPRESSED_BUFFER_BYTES, "uncompressed_serialization_buffer");
@@ -680,7 +684,6 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
 
   // 3. Emit FragmentStringTable: From profile data - function names and filenames (Requires GVL, depends: 2)
   // TODO: Trim method name suffixes like stack collector
-  // TODO: Port get_or_compute_native_filename from stack collector
   char qualified_name[4096];
   for (size_t i = 0; i < mark_function_array->count; i++) {
     miteruby_function_t function = mark_function_array->entries[i];
@@ -701,8 +704,8 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
       VALUE filename = ddtrace_iseq_path(function.iseq);
       RETURN_IF_ERROR(emit_string_table_entry(stream, RSTRING_PTR(filename), RSTRING_LEN(filename)));
     } else {
-      const char *filename = "(TODO: resolve filename for cfuncs)";
-      RETURN_IF_ERROR(emit_string_table_entry(stream, filename, strlen(filename)));
+      native_filename filename = native_filenames_lookup(&state->native_filenames_cache, (native_function_pointer) ddtrace_cme_cfunc_func(function.cme));
+      RETURN_IF_ERROR(emit_string_table_entry(stream, filename.path, strlen(filename.path)));
     }
     RETURN_IF_ERROR(flush_if_needed(state));
   }

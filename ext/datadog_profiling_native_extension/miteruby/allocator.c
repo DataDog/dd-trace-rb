@@ -73,7 +73,7 @@ static size_t rounded_to_page_size(size_t mapping_size) {
   return ((mapping_size + system_page_size - 1) / system_page_size) * system_page_size;
 }
 
-MITERUBY_INTERNAL size_t miteruby_allocator_currently_allocated_bytes_stat(void) {
+size_t miteruby_allocator_currently_allocated_bytes_stat(void) {
   return atomic_load_explicit(&currently_allocated_bytes_stat, memory_order_relaxed);
 }
 
@@ -81,7 +81,7 @@ MITERUBY_INTERNAL size_t miteruby_allocator_currently_allocated_bytes_stat(void)
 //
 // We allocate a bit of extra space at the beginning of the allocation to place the `allocation_header` so we can identify our own
 // allocations.
-MITERUBY_INTERNAL void *miteruby_allocator_alloc(size_t size, const char *name) {
+void *miteruby_allocator_alloc(size_t size, const char *name) {
   if (size == 0 || name == NULL || size > ALLOC_MAXIMUM_BYTES) {
     errno = EINVAL;
     return NULL;
@@ -104,7 +104,7 @@ MITERUBY_INTERNAL void *miteruby_allocator_alloc(size_t size, const char *name) 
   return header + 1; // Return pointer to memory just after the header
 }
 
-MITERUBY_INTERNAL size_t miteruby_allocator_alloc_size(const void *allocation) {
+size_t miteruby_allocator_alloc_size(const void *allocation) {
   if (allocation == NULL) return 0;
 
   const allocation_header *header = ((const allocation_header *)allocation) - 1;
@@ -114,7 +114,7 @@ MITERUBY_INTERNAL size_t miteruby_allocator_alloc_size(const void *allocation) {
   return header->size;
 }
 
-MITERUBY_INTERNAL void miteruby_allocator_free(void *allocation) {
+void miteruby_allocator_free(void *allocation) {
   if (allocation == NULL) return;
 
   size_t size = miteruby_allocator_alloc_size(allocation);

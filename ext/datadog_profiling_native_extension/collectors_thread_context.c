@@ -167,7 +167,7 @@ typedef struct {
   // Used to include class/module names in method names (e.g. "Foo#bar" instead of "bar")
   bool show_classes;
   // Used to cache native filename lookup results (Map[void *function_pointer, char *filename])
-  st_table *native_filenames_cache;
+  native_filenames_cache native_filenames_cache;
   // Used to attribute overhead during sampling to this component
   VALUE overhead_filename;
 
@@ -508,7 +508,7 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
   // pointers that have been set NULL there may still be NULL here.
   sample_locations_free(&state->locations);
 
-  st_free_table(state->native_filenames_cache);
+  native_filenames_cache_cleanup(&state->native_filenames_cache);
 
   ruby_xfree(state);
 }
@@ -570,7 +570,7 @@ static VALUE _native_new(VALUE klass) {
   state->endpoint_collection_enabled = true;
   state->native_filenames_enabled = false;
   state->show_classes = false;
-  state->native_filenames_cache = st_init_numtable();
+  native_filenames_cache_init(&state->native_filenames_cache);
   state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   state->otel_context_source = OTEL_CONTEXT_SOURCE_UNKNOWN;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
@@ -1192,7 +1192,7 @@ static void trigger_sample_for_thread(
       .is_gvl_waiting_state = is_gvl_waiting_state,
     },
     state->native_filenames_enabled,
-    state->native_filenames_cache,
+    &state->native_filenames_cache,
     state->show_classes
   );
 }
@@ -1372,8 +1372,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" native_filenames_enabled=%"PRIsVALUE, state->native_filenames_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" show_classes=%"PRIsVALUE, state->show_classes ? Qtrue : Qfalse));
-  // Note: `st_table_size()` is available from Ruby 3.2+ but not before
-  rb_str_concat(result, rb_sprintf(" native_filenames_cache_size=%zu", state->native_filenames_cache->num_entries));
+  rb_str_concat(result, rb_sprintf(" native_filenames_cache_size=%zu", native_filenames_cache_size(&state->native_filenames_cache)));
   rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",

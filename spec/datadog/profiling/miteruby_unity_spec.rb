@@ -17,6 +17,10 @@ RSpec.describe "miteruby_unity.o" do
     symbols = output.lines.map { |line| line.split.first }
     symbols.map! { |name| name.delete_prefix("_") } if PlatformHelpers.mac?
     expect(symbols).to match_array(%w[
+      miteruby_allocator_alloc
+      miteruby_allocator_alloc_size
+      miteruby_allocator_currently_allocated_bytes_stat
+      miteruby_allocator_free
       miteruby_consumer_consume_loop
       miteruby_consumer_init
       miteruby_consumer_prepare_serialize

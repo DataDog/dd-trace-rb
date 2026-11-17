@@ -26,6 +26,7 @@ void encoded_profile_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 void miteruby_serializer_init(VALUE profiling_module);
+void native_filenames_init(VALUE profiling_module);
 void crashtracking_runtime_stacks_init(void);
 void setup_signal_handler_init(VALUE profiling_module);
 
@@ -70,6 +71,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
 
   private_vm_api_access_init();
   ruby_helpers_init();
+  native_filenames_init(profiling_module);
   setup_signal_handler_init(profiling_module);
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_discrete_dynamic_sampler_init(profiling_module);

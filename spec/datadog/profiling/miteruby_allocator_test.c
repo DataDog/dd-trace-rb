@@ -1,4 +1,3 @@
-#define MITERUBY_INTERNAL static
 #include "allocator.h"
 
 #include <ruby.h>

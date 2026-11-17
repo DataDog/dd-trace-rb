@@ -4,6 +4,7 @@
 
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
+#include "native_filenames.h"
 
 #define MIN_FRAMES_LIMIT            400
 #define MIN_FRAMES_LIMIT_AS_STRING "400"
@@ -50,7 +51,7 @@ void sample_thread(
   sample_values values,
   sample_labels labels,
   bool native_filenames_enabled,
-  st_table *native_filenames_cache,
+  native_filenames_cache *filename_cache,
   bool show_classes
 );
 void record_placeholder_stack(

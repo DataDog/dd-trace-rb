@@ -2493,6 +2493,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   end
 
   describe "miteruby consumer" do
+    let(:profiling_native_extension_path) do
+      $LOADED_FEATURES.find { |path| File.basename(path).start_with?("datadog_profiling_native_extension.") }
+    end
     let(:options) { {miteruby_enabled: true} }
     let(:no_signals_workaround_enabled) { true }
     let(:serializer) { Datadog::Profiling::Miteruby::Serializer.new }
@@ -2568,7 +2571,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(functions).to include(["MiterubyStringEmission#capture", __FILE__])
       expect(functions).to include([
         "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal",
-        "(TODO: resolve filename for cfuncs)",
+        profiling_native_extension_path,
       ])
       expect(profile.function.map(&:id)).to eq((1..profile.function.size).to_a)
       expect(profile.location.size).to eq(2 + location_count)
@@ -2580,10 +2583,36 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         ProfileHelpers::Frame.new("MiterubyStringEmission#capture", source_file, source_line + 2),
         ProfileHelpers::Frame.new(
           "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal",
-          "(TODO: resolve filename for cfuncs)",
+          profiling_native_extension_path,
           0,
         ),
       )
+    end
+
+    it "resolves native extension and Ruby VM filenames across serializations and fork reset" do
+      require "bigdecimal"
+
+      3.times do |iteration|
+        serializer.reset_after_fork if iteration == 2
+        capture_miteruby do
+          catch(:native_filenames) do
+            BigDecimal.save_rounding_mode { publish_miteruby_sample }
+          end
+        end
+        consume_miteruby
+        frames = recorded_miteruby_samples.flat_map(&:locations)
+
+        expect(frames).to include(have_attributes(
+          label: "BigDecimal.save_rounding_mode",
+          path: end_with("bigdecimal.so").or(end_with("bigdecimal.bundle")),
+          lineno: 0,
+        ))
+        expect(frames).to include(have_attributes(
+          label: "Kernel#catch",
+          path: Datadog::Profiling::Collectors::Stack._native_ruby_native_filename,
+          lineno: 0,
+        ))
+      end
     end
 
     it "rejects streaming serialization before preparation" do
@@ -2892,7 +2921,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(explicit_sample.locations.take(2)).to eq([
         ProfileHelpers::Frame.new(
           "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal",
-          "(TODO: resolve filename for cfuncs)",
+          profiling_native_extension_path,
           0,
         ),
         ProfileHelpers::Frame.new("#{self.class.name}#publish_miteruby_sample", source_file, source_line + 1),

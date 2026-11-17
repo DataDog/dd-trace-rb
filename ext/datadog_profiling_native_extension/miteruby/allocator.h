@@ -24,9 +24,9 @@
 //
 // Note: The allocator adds a header to every allocation, which means the size requested to the OS is bigger than
 // the `size` argument (e.g. alloc(4096) will allocate 2 pages not 1 if that's the system page size).
-MITERUBY_INTERNAL void *miteruby_allocator_alloc(size_t size, const char *name);
+void *miteruby_allocator_alloc(size_t size, const char *name);
 
-MITERUBY_INTERNAL size_t miteruby_allocator_alloc_size(const void *allocation);
+size_t miteruby_allocator_alloc_size(const void *allocation);
 
 // Returns the total bytes that were allocated from the OS and not yet released with free, for statistics.
 //
@@ -37,9 +37,9 @@ MITERUBY_INTERNAL size_t miteruby_allocator_alloc_size(const void *allocation);
 // Note 2: This is rounded up to page size, and includes the header added by the allocator.
 //
 // => Thus in practice this value is an upper bound on the resident memory backing the allocator.
-MITERUBY_INTERNAL size_t miteruby_allocator_currently_allocated_bytes_stat(void);
+size_t miteruby_allocator_currently_allocated_bytes_stat(void);
 
-MITERUBY_INTERNAL void miteruby_allocator_free(void *allocation);
+void miteruby_allocator_free(void *allocation);
 
 // Matches Verstable's sized free callback; the allocation header supplies the actual size.
 static inline void miteruby_allocator_free_sized(void *allocation, size_t _size) {
