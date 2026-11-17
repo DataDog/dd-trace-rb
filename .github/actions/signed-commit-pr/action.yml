@@ -158,8 +158,11 @@ runs:
     # change set, and createCommitOnBranch aborts a mutation deleting a path
     # the branch no longer carries, so a replay would fail on every deletion
     # the landed commit already applied. The landed tree is therefore compared
-    # against the staged tree and adopted on a match; the retry runs only
-    # when nothing landed or the landed tree cannot be confirmed.
+    # against the staged tree and adopted on a match; when it cannot be read,
+    # the head is recorded as an unverified candidate, the next attempt is
+    # skipped so no replay runs against it, and the candidate's verification
+    # is retried by the next backoff step and, after the last attempt, by
+    # the resolve step.
     - name: Back off and re-read the scratch head
       id: backoff-1
       if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
@@ -169,6 +172,7 @@ runs:
         REPO: ${{ github.repository }}
         SCRATCH: ${{ steps.stage.outputs.scratch }}
         GUARDED_SHA: ${{ steps.scratch.outputs.head-sha }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         sleep 30
         head_sha=""
@@ -183,28 +187,23 @@ runs:
           exit 1
         fi
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
-        if [ "$head_sha" != "$GUARDED_SHA" ]; then
-          landed_tree=""
-          for _ in 1 2 3; do
-            if landed_tree="$(gh api "repos/$REPO/git/commits/$head_sha" --jq .tree.sha)"; then
-              break
-            fi
-            sleep 10
-          done
-          staged_tree="$(git write-tree)"
-          if [ -z "$landed_tree" ]; then
-            echo "Could not read the landed commit's tree after three attempts." >&2
-          elif [ "$landed_tree" = "$staged_tree" ]; then
+        record_head_commit_verdict() {
+          verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$head_sha")"
+          if [ "$verdict" = "match" ]; then
             echo "The failed attempt landed as $head_sha; adopting it."
             echo "landed-hash=$head_sha" >> "$GITHUB_OUTPUT"
-          else
-            echo "The landed commit does not carry the staged changes." >&2
+          elif [ "$verdict" = "unreadable" ]; then
+            echo "Recording $head_sha as an unverified candidate."
+            echo "candidate-sha=$head_sha" >> "$GITHUB_OUTPUT"
           fi
+        }
+        if [ "$head_sha" != "$GUARDED_SHA" ]; then
+          record_head_commit_verdict
         fi
 
     - name: Create signed commit (attempt 2 of 3)
       id: commit-2
-      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure' && steps.backoff-1.outputs.landed-hash == ''
+      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure' && steps.backoff-1.outputs.landed-hash == '' && steps.backoff-1.outputs.candidate-sha == ''
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
         repo: ${{ github.repository }}
@@ -216,15 +215,19 @@ runs:
         GHCOMMIT_SHA: ${{ steps.backoff-1.outputs.head-sha }}
       continue-on-error: true
 
+    # Also runs when the backoff above recorded an unverified candidate, so
+    # the candidate's verification is retried after another backoff.
     - name: Back off and re-read the scratch head
       id: backoff-2
-      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
+      if: steps.stage.outputs.changed == 'true' && (steps.commit-2.outcome == 'failure' || steps.backoff-1.outputs.candidate-sha != '')
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
         REPO: ${{ github.repository }}
         SCRATCH: ${{ steps.stage.outputs.scratch }}
         GUARDED_SHA: ${{ steps.backoff-1.outputs.head-sha }}
+        CANDIDATE_SHA: ${{ steps.backoff-1.outputs.candidate-sha }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         sleep 30
         head_sha=""
@@ -239,28 +242,25 @@ runs:
           exit 1
         fi
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
-        if [ "$head_sha" != "$GUARDED_SHA" ]; then
-          landed_tree=""
-          for _ in 1 2 3; do
-            if landed_tree="$(gh api "repos/$REPO/git/commits/$head_sha" --jq .tree.sha)"; then
-              break
-            fi
-            sleep 10
-          done
-          staged_tree="$(git write-tree)"
-          if [ -z "$landed_tree" ]; then
-            echo "Could not read the landed commit's tree after three attempts." >&2
-          elif [ "$landed_tree" = "$staged_tree" ]; then
+        record_head_commit_verdict() {
+          verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$head_sha")"
+          if [ "$verdict" = "match" ]; then
             echo "The failed attempt landed as $head_sha; adopting it."
             echo "landed-hash=$head_sha" >> "$GITHUB_OUTPUT"
-          else
-            echo "The landed commit does not carry the staged changes." >&2
+          elif [ "$verdict" = "unreadable" ]; then
+            echo "Recording $head_sha as an unverified candidate."
+            echo "candidate-sha=$head_sha" >> "$GITHUB_OUTPUT"
           fi
+        }
+        if [ "$head_sha" != "$GUARDED_SHA" ]; then
+          record_head_commit_verdict
+        elif [ -n "$CANDIDATE_SHA" ] && [ "$head_sha" = "$CANDIDATE_SHA" ]; then
+          record_head_commit_verdict
         fi
 
     - name: Create signed commit (attempt 3 of 3)
       id: commit-3
-      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure' && steps.backoff-2.outputs.landed-hash == ''
+      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure' && steps.backoff-2.outputs.landed-hash == '' && steps.backoff-2.outputs.candidate-sha == ''
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
         repo: ${{ github.repository }}
@@ -272,23 +272,42 @@ runs:
         GHCOMMIT_SHA: ${{ steps.backoff-2.outputs.head-sha }}
 
     # Once an attempt succeeds, or a backoff step adopts a landed attempt,
-    # the rest are skipped, so at most one of the five outputs below is set.
+    # the rest are skipped, so at most one of the five commit hashes below
+    # is set. When a backoff step records an unverified candidate instead,
+    # its verification is retried here and the candidate's hash is used on
+    # a match.
     - name: Resolve the created commit
       id: commit
       if: steps.stage.outputs.changed == 'true'
       shell: bash
       env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        ACTION_PATH: ${{ github.action_path }}
         FIRST: ${{ steps.commit-1.outputs.commit-hash }}
         SECOND: ${{ steps.commit-2.outputs.commit-hash }}
         THIRD: ${{ steps.commit-3.outputs.commit-hash }}
         LANDED_FIRST: ${{ steps.backoff-1.outputs.landed-hash }}
         LANDED_SECOND: ${{ steps.backoff-2.outputs.landed-hash }}
+        CANDIDATE_FIRST: ${{ steps.backoff-1.outputs.candidate-sha }}
+        CANDIDATE_SECOND: ${{ steps.backoff-2.outputs.candidate-sha }}
       run: |
         commit="$THIRD"
         [ -n "$commit" ] || commit="$SECOND"
         [ -n "$commit" ] || commit="$FIRST"
         [ -n "$commit" ] || commit="$LANDED_SECOND"
         [ -n "$commit" ] || commit="$LANDED_FIRST"
+        if [ -z "$commit" ]; then
+          candidate="$CANDIDATE_SECOND"
+          [ -n "$candidate" ] || candidate="$CANDIDATE_FIRST"
+          if [ -n "$candidate" ]; then
+            verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$candidate")"
+            if [ "$verdict" = "match" ]; then
+              echo "The recorded candidate $candidate matches the staged tree; using it."
+              commit="$candidate"
+            fi
+          fi
+        fi
         echo "commit-hash=$commit" >> "$GITHUB_OUTPUT"
 
     # Single move onto a commit that already exists, so an open pull request on
