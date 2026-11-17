@@ -34,15 +34,20 @@ module Datadog
       def build_executed: (Context context) -> Hash[Symbol,untyped]
 
       def build_snapshot: (Context context) -> Hash[Symbol,untyped]
-      def serialize_throwable: (Exception exception) -> Hash[Symbol, String? | Array[Hash[Symbol, String | Integer | nil]]?]
-      def format_backtrace_locations: (Array[Thread::Backtrace::Location] locations) -> Array[Hash[Symbol, String | Integer | nil]]
-      def format_backtrace_strings: (Array[String]? backtrace) -> Array[Hash[Symbol, String | Integer | nil]]
-
-      def build_snapshot_base: (Context context, ?evaluation_errors: Array[EvaluationFailure], ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
 
       def build_condition_evaluation_failed: (Context context, EL::Expression expr, Exception exception) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: String, status: String, ?exception: Exception?) -> Hash[Symbol,untyped]
+
+      private
+
+      def serialize_throwable: (Exception exception) -> Hash[Symbol, String? | Array[Hash[Symbol, String | Integer | nil]]?]
+
+      def format_backtrace_locations: (Array[Thread::Backtrace::Location] locations) -> Array[Hash[Symbol, String | Integer | nil]]
+
+      def format_backtrace_strings: (Array[String]? backtrace) -> Array[Hash[Symbol, String | Integer | nil]]
+
+      def build_snapshot_base: (Context context, ?evaluation_errors: Array[EvaluationFailure], ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
 
       def format_caller_locations: (Array[Thread::Backtrace::Location] callers) -> Array[Hash[Symbol,untyped]]
 
@@ -57,6 +62,7 @@ module Datadog
       def envelope_span: (Context context) -> Datadog::Tracing::SpanOperation?
 
       def active_trace: () -> Datadog::Tracing::TraceOperation?
+
       def active_span: () -> Datadog::Tracing::SpanOperation?
     end
   end

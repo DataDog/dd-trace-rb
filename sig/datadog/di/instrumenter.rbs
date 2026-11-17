@@ -61,8 +61,6 @@ module Datadog
 
       def record_rate_limit_skip: (String reason, Probe probe) -> void
 
-      def rate_limit_skip_limit: (String reason) -> String
-
       def hook_method: (Probe probe, untyped responder) -> void
 
       def unhook_method: (Probe probe) -> void
@@ -91,6 +89,8 @@ module Datadog
       private
 
       attr_reader lock: Thread::Mutex
+
+      def rate_limit_skip_limit: (String reason) -> String
 
       def emit?: (Probe probe) ?{ (Datadog::Tracing::TraceOperation? trace) -> void } -> bool
 
