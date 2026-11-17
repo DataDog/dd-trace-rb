@@ -55,35 +55,24 @@ module Datadog
         rebuild_state
       end
 
-      # Decides whether this capturing probe hit emits a snapshot, and names
-      # the drop decision for a denial.
-      #
-      # @param probe [Datadog::DI::Probe]
-      # @param trace [Datadog::Tracing::TraceOperation, nil]
-      # @return [Array(Boolean, Symbol, nil)] the admitted flag, and the drop
-      #   decision naming the denying limit: +:own_rate_limit+,
-      #   +:global_budget+, +:top_gate+ or +:trace_budget+, nil when admitted
-      def emit_with_reason?(probe, trace)
-        lock.synchronize do
-          return emit_uncorrelated?(probe) if trace.nil?
-
-          budget = trace_budgets.fetch(trace)
-          if budget
-            emit_correlated?(budget, probe)
-          else
-            emit_first_probe?(probe, trace)
-          end
-        end
-      end
-
       # Decides whether this capturing probe hit emits a snapshot.
       #
       # @param probe [Datadog::DI::Probe]
       # @param trace [Datadog::Tracing::TraceOperation, nil]
-      # @return [Boolean]
-      def emit?(probe, trace)
-        admitted, = emit_with_reason?(probe, trace)
-        admitted
+      # @return [Symbol] +:admitted+, or the drop decision naming the denying
+      #   limit: +:own_rate_limit+, +:global_budget+, +:top_gate+ or
+      #   +:trace_budget+
+      def decide(probe, trace)
+        lock.synchronize do
+          return decide_uncorrelated(probe) if trace.nil?
+
+          budget = trace_budgets.fetch(trace)
+          if budget
+            decide_correlated(budget, probe)
+          else
+            decide_first_probe(probe, trace)
+          end
+        end
       end
 
       # Consumes one GLOBAL token for a snapshot payload the coordinated
@@ -163,13 +152,12 @@ module Datadog
       # limit and the process-wide GLOBAL budget. Must hold the lock.
       #
       # @param probe [Datadog::DI::Probe]
-      # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
-      #   decision, nil when admitted
-      def emit_uncorrelated?(probe)
-        return [false, :own_rate_limit] unless probe.own_rate_limit_allows?
-        return [false, :global_budget] unless global_limiter.try_consume
+      # @return [Symbol] +:admitted+ or the drop decision
+      def decide_uncorrelated(probe)
+        return :own_rate_limit unless probe.own_rate_limit_allows?
+        return :global_budget unless global_limiter.try_consume
 
-        [true, nil]
+        :admitted
       end
 
       # First capturing probe in the trace. Passes the process-wide GLOBAL and
@@ -182,19 +170,18 @@ module Datadog
       #
       # @param probe [Datadog::DI::Probe]
       # @param trace [Datadog::Tracing::TraceOperation]
-      # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
-      #   decision, nil when admitted
-      def emit_first_probe?(probe, trace)
+      # @return [Symbol] +:admitted+ or the drop decision
+      def decide_first_probe(probe, trace)
         unless global_limiter.try_consume && top_limiter.allow?
           store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
-          return [false, :top_gate]
+          return :top_gate
         end
 
         budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
         store(trace, budget)
-        return [false, :trace_budget] unless budget.admit(probe.id)
+        return :trace_budget unless budget.admit(probe.id)
 
-        [true, nil]
+        :admitted
       end
 
       # A capturing probe firing inside an established unit. Bounded by the
@@ -202,13 +189,12 @@ module Datadog
       #
       # @param budget [TraceBudget]
       # @param probe [Datadog::DI::Probe]
-      # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
-      #   decision, nil when admitted
-      def emit_correlated?(budget, probe)
-        return [false, :trace_budget] unless budget.admit(probe.id)
+      # @return [Symbol] +:admitted+ or the drop decision
+      def decide_correlated(budget, probe)
+        return :trace_budget unless budget.admit(probe.id)
 
         global_limiter.consume
-        [true, nil]
+        :admitted
       end
 
       # Stores the trace's budget in the ledger. Must hold the lock.
