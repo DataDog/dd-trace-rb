@@ -3012,23 +3012,24 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls).to eq([true])
         end
 
-        it "keeps a pre-held guard set for a hit nested in other DI processing" do
+        it "skips a hit nested in other DI processing and keeps the guard held" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
           hook_line(probe) do |payload|
             observed_calls << payload
           end
 
+          guard_after_hit = nil
           Datadog::DI.enter_probe
           begin
             HookLineTestClass.new.test_method
+            guard_after_hit = Datadog::DI.in_probe?
           ensure
-            expect(Datadog::DI.in_probe?).to be(true)
             Datadog::DI.leave_probe
           end
 
-          expect(observed_calls.length).to eq 1
-          expect(Datadog::DI.in_probe?).to be(false)
+          expect(observed_calls).to be_empty
+          expect(guard_after_hit).to be(true)
         end
 
         it "short-circuits a method probe nested in the callback's dispatches" do

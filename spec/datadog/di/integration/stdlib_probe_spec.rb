@@ -2,6 +2,7 @@ require "datadog/di/spec_helper"
 require "datadog/di"
 require "set"
 require "securerandom"
+require "weakref"
 
 # Integration tests that set DI probes on standard library methods
 # invoked by DI's own processing pipeline.
@@ -19,7 +20,9 @@ require "securerandom"
 #
 # 1. Line probes (TracePoint) are NOT vulnerable to re-entrancy.
 #    Ruby self-disables a TracePoint during its callback, preventing
-#    the same trace point from firing while already processing.
+#    the same trace point from firing while already processing. A line
+#    probe hit on stdlib code that DI runs while processing another probe
+#    sees the re-entrancy guard held and is skipped.
 #
 # 2. Method probes (module prepending) are protected by the split
 #    re-entrancy guard. Without the guard, the vulnerability manifests
@@ -406,6 +409,102 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         # causes SystemStackError, this line probe completes normally
         # because Ruby's TracePoint prevents re-entrant callback firing.
         expect(payloads.length).to be >= 1
+      end
+    end
+  end
+
+  # ----------------------------------------------------------------
+  # Line probes on stdlib code DI runs while processing a method probe
+  # ----------------------------------------------------------------
+
+  context "line probe on stdlib code DI runs while processing a method probe" do
+    # Both targets are loaded before code tracking starts, so the line
+    # probes use untargeted trace points.
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.remote.enabled = true
+        settings.dynamic_instrumentation.enabled = true
+        settings.dynamic_instrumentation.internal.development = true
+        settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
+        settings.dynamic_instrumentation.internal.untargeted_trace_points = true
+      end
+    end
+
+    let(:method_probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-host-method",
+        type: :log,
+        type_name: "StdlibProbeTestClass",
+        method_name: "call_string_length",
+        capture_snapshot: true,
+        rate_limit: 5000,
+      )
+    end
+
+    let(:target_source_location) { target_method.source_location }
+
+    let(:line_probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-line",
+        type: :log,
+        file: target_source_location.first,
+        # First executable line of the target method, one after `def`.
+        line_no: target_source_location.last + 1,
+        capture_snapshot: true,
+        rate_limit: 5000,
+      )
+    end
+
+    before do
+      # The line probe needs a Ruby-implemented target.
+      expect(target_source_location&.first).to end_with(".rb")
+    end
+
+    # Installs both probes, runs the block and returns the probe id of
+    # every snapshot the block produced.
+    def snapshot_probe_ids
+      payloads = []
+      allow(component.probe_notifier_worker).to receive(:add_snapshot) do |payload|
+        payloads << payload
+      end
+      probe_manager.add_probe(method_probe)
+      probe_manager.add_probe(line_probe)
+
+      yield
+
+      component.probe_notifier_worker.flush
+      payloads.map { |payload| payload.dig(:debugger, :snapshot, :probe, :id) }
+    end
+
+    context "when the target is SecureRandom.uuid, which the snapshot builder calls" do
+      let(:target_method) { SecureRandom.method(:uuid) }
+
+      before { stub_no_trace }
+
+      it "emits the method snapshot and no line snapshot of the builder's call" do
+        probe_ids = snapshot_probe_ids do
+          expect(StdlibProbeTestClass.new.call_string_length("hello world")).to eq(11)
+        end
+
+        expect(probe_ids).to eq(["stdlib-host-method"])
+      end
+    end
+
+    context "when the target is WeakRef#weakref_alive?, which the correlation sampler calls" do
+      let(:target_method) { WeakRef.instance_method(:weakref_alive?) }
+
+      before { stub_active_trace(123) }
+
+      it "emits only the method snapshot the trace budget admits" do
+        # The second hit in the trace reads the stored trace budget through
+        # WeakRef#weakref_alive? while the sampler holds its mutex.
+        probe_ids = snapshot_probe_ids do
+          2.times do
+            expect(StdlibProbeTestClass.new.call_string_length("hello world")).to eq(11)
+          end
+        end
+
+        expect(probe_ids).to eq(["stdlib-host-method"])
       end
     end
   end
