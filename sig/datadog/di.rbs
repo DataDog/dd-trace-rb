@@ -15,7 +15,6 @@ module Datadog
     def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
 
     def self.active_trace: () -> Datadog::Tracing::TraceOperation?
-    def self.active_span: () -> Datadog::Tracing::SpanOperation?
     def self.exception_message: (Exception exception) -> untyped
     EXCEPTION_BACKTRACE_LOCATIONS: UnboundMethod
     EXCEPTION_BACKTRACE: UnboundMethod

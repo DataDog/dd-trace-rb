@@ -92,13 +92,11 @@ module Datadog
 
       attr_reader lock: Thread::Mutex
 
-      def emit?: (Probe probe) ?{ (Datadog::Tracing::TraceOperation? trace) -> void } -> bool
+      def emit?: (Probe probe) ?{ (SnapshotCorrelation? correlation) -> void } -> bool
 
       def current_trace: () -> Datadog::Tracing::TraceOperation?
 
-      def active_trace_at_admission: () -> Datadog::Tracing::TraceOperation?
-
-      def active_span_at_admission: () -> Datadog::Tracing::SpanOperation?
+      def correlation_at_admission: () -> SnapshotCorrelation?
 
       def reraise_per_policy: (Exception exc) -> void
 

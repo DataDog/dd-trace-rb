@@ -3,7 +3,9 @@ require "datadog/di"
 
 require_relative "correlation_integration_test_class"
 
-# The active APM trace is stubbed at the Datadog::DI.active_trace seam.
+# The active APM trace is stubbed at the Datadog::DI.active_trace seam,
+# except where the examples run the tracer to change the active trace inside
+# the probed method.
 # The examples run against the production default sampler and hard-limiter
 # limits; the ones that exhaust a process-wide limit freeze the
 # rate-limiter clock and drain the production default bucket.
@@ -193,7 +195,7 @@ RSpec.describe "Correlation integration" do
     it "keeps an early trace's per-probe cap across a burst of newer traces" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
 
-      first_trace = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+      first_trace = instance_double(Datadog::Tracing::TraceOperation, id: 1, active_span: nil)
       allow(Datadog::DI).to receive(:active_trace).and_return(first_trace)
       CorrelationIntegrationTestClass.new.inner
 
@@ -278,13 +280,12 @@ RSpec.describe "Correlation integration" do
 
   context "trace finishes inside the probed method" do
     it "labels the snapshot with the trace and span captured at admission" do
-      trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
       span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: 789, active_span: span)
       # The gate reads the trace once, for its decision and the admission
       # capture; by the time the builder runs, the probed method has finished
-      # the trace and no span is active.
+      # the trace and no trace is active.
       allow(Datadog::DI).to receive(:active_trace).and_return(trace, nil)
-      allow(Datadog::DI).to receive(:active_span).and_return(span, nil)
 
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 
@@ -297,16 +298,16 @@ RSpec.describe "Correlation integration" do
     end
 
     it "labels the snapshot with the admission pair when the method starts a new trace" do
-      trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
       span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
-      replacement_trace = instance_double(Datadog::Tracing::TraceOperation, id: 999)
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: 789, active_span: span)
       replacement_span = instance_double(Datadog::Tracing::SpanOperation, id: 222)
+      replacement_trace = instance_double(Datadog::Tracing::TraceOperation, id: 999,
+        active_span: replacement_span)
       # The gate reads trace A once, for its decision and the admission
       # capture; the probed method then starts trace B, whose trace and span
       # are active when the builder runs. The envelope keeps reporting the
       # admission pair, so its trace id and span id describe one trace.
       allow(Datadog::DI).to receive(:active_trace).and_return(trace, replacement_trace)
-      allow(Datadog::DI).to receive(:active_span).and_return(span, replacement_span)
 
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 
@@ -316,6 +317,54 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.size).to eq(1)
       expect(snapshots[0][:"dd.trace_id"]).to eq("789")
       expect(snapshots[0][:"dd.span_id"]).to eq("111")
+    end
+  end
+
+  context "trace changes inside the probed method, with the tracer" do
+    before do
+      Datadog.configure { |c| c.tracing.test_mode.enabled = true }
+    end
+
+    after do
+      Datadog.send(:reset!)
+    end
+
+    context "when a continued trace with no active span is active at admission" do
+      before do
+        Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(trace_id: 1111, span_id: 2222))
+
+        expect(Datadog::Tracing.active_trace.id).to eq(1111)
+        expect(Datadog::Tracing.active_span).to be_nil
+      end
+
+      it "reports the continued trace and no span after the method switches to another trace" do
+        probe_manager.add_probe(method_probe("p-switch", "switch_trace"))
+
+        other_digest = Datadog::Tracing::TraceDigest.new(trace_id: 3333, span_id: 4444)
+        CorrelationIntegrationTestClass.new.switch_trace(other_digest).finish
+        flush
+
+        expect(snapshots.size).to eq(1)
+        expect(snapshots[0][:"dd.trace_id"]).to eq("1111")
+        expect(snapshots[0][:"dd.span_id"]).to be_nil
+      end
+    end
+
+    context "when no trace is active at admission" do
+      before do
+        expect(Datadog::Tracing.active_trace).to be_nil
+      end
+
+      it "reports no trace and no span after the method leaves a trace active" do
+        probe_manager.add_probe(method_probe("p-start", "start_trace"))
+
+        CorrelationIntegrationTestClass.new.start_trace.finish
+        flush
+
+        expect(snapshots.size).to eq(1)
+        expect(snapshots[0][:"dd.trace_id"]).to be_nil
+        expect(snapshots[0][:"dd.span_id"]).to be_nil
+      end
     end
   end
 
@@ -338,7 +387,7 @@ RSpec.describe "Correlation integration" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
       # The gate's read and the admission capture both fail; the builder's
       # own read, after the customer method ran, then supplies the envelope.
-      builder_trace = instance_double(Datadog::Tracing::TraceOperation, id: 555)
+      builder_trace = instance_double(Datadog::Tracing::TraceOperation, id: 555, active_span: nil)
       reads = 0
       expect(Datadog::DI).to receive(:active_trace).at_least(:once) do
         reads += 1

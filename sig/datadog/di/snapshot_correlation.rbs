@@ -1,0 +1,17 @@
+module Datadog
+  module DI
+    class SnapshotCorrelation
+      @trace: Datadog::Tracing::TraceOperation?
+
+      @span: Datadog::Tracing::SpanOperation?
+
+      def self.capture: (Datadog::Tracing::TraceOperation? trace) -> SnapshotCorrelation
+
+      def initialize: (trace: Datadog::Tracing::TraceOperation?, span: Datadog::Tracing::SpanOperation?) -> void
+
+      attr_reader trace: Datadog::Tracing::TraceOperation?
+
+      attr_reader span: Datadog::Tracing::SpanOperation?
+    end
+  end
+end

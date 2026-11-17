@@ -4,20 +4,17 @@ require "datadog/di"
 RSpec.describe Datadog::DI do
   di_test
 
-  # The probe-path trace and span reads share one lookup contract: the
-  # read skips component-tree initialization, and the read is nil when
-  # tracing is absent.
-  shared_examples "a non-initializing active read" do |read|
+  describe ".active_trace" do
     context "with components" do
-      it "returns the tracer's value" do
+      it "returns the tracer's active trace" do
         components = instance_double(Datadog::Core::Configuration::Components)
         tracer = instance_double(Datadog::Tracing::Tracer)
-        value = Object.new
+        trace = instance_double(Datadog::Tracing::TraceOperation)
         expect(Datadog).to receive(:components).with(allow_initialization: false).and_return(components)
         expect(components).to receive(:tracer).and_return(tracer)
-        expect(tracer).to receive(read).and_return(value)
+        expect(tracer).to receive(:active_trace).and_return(trace)
 
-        expect(described_class.public_send(read)).to equal(value)
+        expect(described_class.active_trace).to equal(trace)
       end
     end
 
@@ -25,7 +22,7 @@ RSpec.describe Datadog::DI do
       it "returns nil" do
         expect(Datadog).to receive(:components).with(allow_initialization: false).and_return(nil)
 
-        expect(described_class.public_send(read)).to be_nil
+        expect(described_class.active_trace).to be_nil
       end
     end
 
@@ -34,7 +31,7 @@ RSpec.describe Datadog::DI do
         hide_const("Datadog::Tracing")
         expect(Datadog).not_to receive(:components)
 
-        expect(described_class.public_send(read)).to be_nil
+        expect(described_class.active_trace).to be_nil
       end
     end
 
@@ -47,19 +44,11 @@ RSpec.describe Datadog::DI do
         Datadog.send(:reset!)
       end
 
-      it "returns the tracing module's value" do
+      it "returns the tracing module's active trace" do
         Datadog::Tracing.trace("di active read") do
-          expect(described_class.public_send(read)).to equal(Datadog::Tracing.public_send(read))
+          expect(described_class.active_trace).to equal(Datadog::Tracing.active_trace)
         end
       end
     end
-  end
-
-  describe ".active_trace" do
-    include_examples "a non-initializing active read", :active_trace
-  end
-
-  describe ".active_span" do
-    include_examples "a non-initializing active read", :active_span
   end
 end
