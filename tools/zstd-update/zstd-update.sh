@@ -45,6 +45,7 @@ printf 'Checksum verified. Generating zstd.c...\n'
 (
   cd -- "$source_dir/build/single_file_libs"
   python3 combine.py -r ../../lib -x legacy/zstd_legacy.h \
+    -x common/zstd_trace.h -x compress/zstdmt_compress.h \
     -o "$temp_dir/zstd.c" "$script_dir/zstd-in.c"
 )
 

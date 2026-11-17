@@ -72,6 +72,8 @@
 #undef ZSTD_MULTITHREAD
 
 #define ZSTD_TRACE 0
+// @ivoanjo: Skip the tracing header so the generator can exclude it to reduce zstd.c size.
+#define ZSTD_NO_TRACE
 
 // @ivoanjo: We compress profiles at level 1, which only uses ZSTD_fast, so exclude all other strategies to reduce binary size && compression time.
 #define ZSTD_EXCLUDE_DFAST_BLOCK_COMPRESSOR
