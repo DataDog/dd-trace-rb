@@ -45,11 +45,10 @@ module Datadog
 
         # Returns the DD-Service value, or nil. It converts the service as the tracer does for spans, cuts it to 100 bytes
         # as the Agent does, then normalizes it with Core::TagNormalizer. Thus `My Service` becomes `my_service`. If the
-        # result is empty or not printable ASCII (for example `café-api`), the header is not sent. Net::HTTP sends non-ASCII bytes,
-        # but the HTTP clients of some other Datadog tracers reject them. All tracers skip such names, so a service sends
-        # the same header in every language. The CDN alone decides which values it attributes usage to, so this method
-        # does not check the CDN format. Only the header value changes. The tracer's service stays as configured.
-        # Normalization also replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
+        # result is empty (for example from `___`), the header is not sent. Net::HTTP sends a non-ASCII name, such as
+        # `café-api`, as raw UTF-8 bytes. The CDN alone decides which values it attributes usage to, so this method does
+        # not check the value. Only the header value changes. The tracer's service stays as configured. Normalization
+        # also replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
         def self.usage_service(service, logger)
           name = span_service(service.to_s)
           unless name
@@ -62,10 +61,10 @@ module Datadog
           return if name.strip.empty?
 
           normalized = Core::TagNormalizer.normalize((name.byteslice(0, USAGE_SERVICE_MAX_BYTES) || name).scrub(""))
-          return normalized if normalized.match?(/\A[\x21-\x7E]+\z/)
+          return normalized unless normalized.empty?
 
           logger.debug do
-            "Feature Flags: service #{service.inspect} has no ASCII normalized name; DD-Service header not sent"
+            "Feature Flags: service #{service.inspect} has an empty normalized name; DD-Service header not sent"
           end
           nil
         end

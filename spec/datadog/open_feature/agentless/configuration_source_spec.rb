@@ -150,12 +150,13 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       end
 
       # Core::TagNormalizer has its own specs. These rows check only that the source sends the normalized name, and
-      # that it sends no header when that name is empty or not ASCII.
+      # that it sends no header when that name is empty. Net::HTTP sends a non-ASCII name as raw UTF-8 bytes.
       [
         ["checkout", "checkout"],
         ["My Service", "my_service"],
         ["Default Web Site/Shop", "default_web_site/shop"],
-        ["caf\u00E9-api", nil],
+        ["caf\u00E9-api", "caf\u00E9-api"],
+        ["\u652F\u4ED8", "\u652F\u4ED8"],
         ["___", nil],
       ].each do |service, header|
         label = (service.length > 30) ? "#{service[0, 3].inspect}... (#{service.bytesize} bytes)" : service.inspect
@@ -181,25 +182,22 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         end
       end
 
-      ["caf\u00E9-api", "___"].each do |service|
-        context "when the service #{service.inspect} has no ASCII normalized name" do
-          before { settings.service = service }
+      context "when the service has an empty normalized name" do
+        before { settings.service = "___" }
 
-          it "logs why once, without a warning" do
-            message = "Feature Flags: service #{service.inspect} has no ASCII normalized name; DD-Service header not sent"
+        it "logs why once, without a warning" do
+          message = "Feature Flags: service \"___\" has an empty normalized name; DD-Service header not sent"
 
-            2.times { source.poll }
+          2.times { source.poll }
 
-            expect(debug_messages.count(message)).to eq(1)
-            expect(logger).not_to have_received(:warn)
-            expect(logger).not_to have_received(:error)
-          end
+          expect(debug_messages.count(message)).to eq(1)
+          expect(logger).not_to have_received(:warn)
+          expect(logger).not_to have_received(:error)
         end
       end
 
       # Each row is a service in another encoding or with invalid UTF-8, and the DD-Service value it sends, or nil for no
-      # header. The source converts the service as the tracer does for spans, then Core::TagNormalizer and the ASCII check
-      # run.
+      # header. The source converts the service as the tracer does for spans, then Core::TagNormalizer runs.
       [
         ["invalid UTF-8", "My caf\xFF", "my_caf"],
         ["invalid UTF-8 at the 100-byte cut", "#{"a" * 97}\xFFbc", "a" * 97],
@@ -287,13 +285,15 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         end
 
         ["caf\u00E9-api", "\u652F\u4ED8"].each do |name|
-          context "to #{name.inspect}, which has no ASCII normalized name" do
+          context "to the non-ASCII name #{name.inspect}" do
             let(:service) { name }
 
-            it "sends the request without DD-Service" do
+            it "sends the name as it is and does not change the configured service" do
               source.poll
 
-              expect(request_without_service).to have_been_made.once
+              expect(
+                a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => name}),
+              ).to have_been_made.once
               expect(Datadog.configuration.service).to eq(name)
             end
           end
