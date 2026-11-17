@@ -4,13 +4,13 @@ module Datadog
       module ActiveSupport
         module Cache
           module Instrumentation
-            def self?.start_trace_cache: (untyped payload) -> untyped
+            def self.start_trace_cache: (untyped payload) -> untyped
 
-            def self?.finish_trace_cache: (untyped payload) -> untyped
+            def self.finish_trace_cache: (untyped payload) -> untyped
 
-            def self?.finish_trace_cache_multi: (untyped payload) -> untyped
+            def self.finish_trace_cache_multi: (untyped payload) -> untyped
 
-            def self?.enabled?: () -> untyped
+            def self.enabled?: () -> untyped
             module Read
               def read: (*untyped args) ?{ () -> untyped } -> untyped
             end

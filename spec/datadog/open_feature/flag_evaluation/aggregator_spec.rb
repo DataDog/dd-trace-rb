@@ -178,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       snapshot, reasons = described_class.bounded_context_snapshot(
-        {"root" => {"k" * 10_000 => "value"}}
+        {"root" => {"k" * 10_000 => "value"}},
       )
 
       expect(snapshot).to eq({})
@@ -259,7 +259,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       snapshot, = described_class.bounded_context_snapshot(
-        {custom_string.new("key") => custom_string.new("value")}
+        {custom_string.new("key") => custom_string.new("value")},
       )
       expect(snapshot).to eq("key" => "value")
     end
@@ -336,7 +336,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         snapshot, reasons = described_class.bounded_context_snapshot(attrs)
 
         expect(described_class::MAX_VISITED_NODES).to eq(
-          described_class::MAX_CONTEXT_FIELDS * (described_class::MAX_SNAPSHOT_DEPTH + 1)
+          described_class::MAX_CONTEXT_FIELDS * (described_class::MAX_SNAPSHOT_DEPTH + 1),
         )
         expect(visited).to be <= described_class::MAX_VISITED_NODES
         expect(snapshot).to eq({})
@@ -357,6 +357,31 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         eval_time_ms: 1_700_000_000_000,
         attrs: {"env" => "prod"},
       }
+    end
+
+    context "evaluation features in the bucket key" do
+      it "separates full-tier buckets by feature values" do
+        aggregator.record(**base_event.merge(features: {"holdout.key" => "h-1"}))
+        aggregator.record(**base_event.merge(features: {"holdout.key" => "h-2"}))
+        aggregator.record(**base_event.merge(features: {"holdout.key" => "h-2"}))
+        aggregator.record(**base_event)
+
+        full = aggregator.flush_and_reset[:full]
+        expect(full.map { |key, entry| [key.last, entry[:count]] })
+          .to contain_exactly([{"holdout.key" => "h-1"}, 1], [{"holdout.key" => "h-2"}, 2], [{}, 1])
+      end
+
+      context "when the per-flag cap routes evaluations to the degraded tier" do
+        let(:per_flag_cap) { 0 }
+
+        it "separates degraded buckets by feature values" do
+          aggregator.record(**base_event.merge(features: {"holdout.key" => "h-1"}))
+          aggregator.record(**base_event.merge(features: {"holdout.key" => "h-2"}))
+
+          degraded = aggregator.flush_and_reset[:degraded]
+          expect(degraded.keys.map(&:last)).to contain_exactly({"holdout.key" => "h-1"}, {"holdout.key" => "h-2"})
+        end
+      end
     end
 
     context "two identical evaluations" do
@@ -412,12 +437,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
       it "coalesces runtime defaults with different variants and allocations" do
         aggregator.record(
-          **base_event.merge(variant: "a", allocation_key: "alloc-a", runtime_default: true)
+          **base_event.merge(variant: "a", allocation_key: "alloc-a", runtime_default: true),
         )
         aggregator.record(
           **base_event.merge(
-            variant: "b", allocation_key: "alloc-b", runtime_default: true, eval_time_ms: 2000
-          )
+            variant: "b", allocation_key: "alloc-b", runtime_default: true, eval_time_ms: 2000,
+          ),
         )
 
         snapshot = aggregator.flush_and_reset
@@ -510,8 +535,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: true))
 
         entries = aggregator.flush_and_reset[:full]
-        disabled_entry = entries.find { |key, _entry| key.last == false }.last
-        enabled_entry = entries.find { |key, _entry| key.last == true }.last
+        disabled_entry = entries.find { |key, _entry| key[7] == false }.last
+        enabled_entry = entries.find { |key, _entry| key[7] == true }.last
 
         expect(entries.size).to eq(2)
         expect(disabled_entry[:context_attrs]).to be_nil
@@ -523,13 +548,13 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       it "AND-folds mixed consent in a degraded bucket" do
         degraded_aggregator = described_class.new(global_cap: 0, per_flag_cap: 10, degraded_cap: 10)
         degraded_aggregator.record(
-          **base_event.merge(observe_full_evaluation_data: true)
+          **base_event.merge(observe_full_evaluation_data: true),
         )
         degraded_aggregator.record(
           **base_event.merge(
             targeting_key: "user-456", eval_time_ms: 1_700_000_000_001,
-            observe_full_evaluation_data: false
-          )
+            observe_full_evaluation_data: false,
+          ),
         )
 
         entries = degraded_aggregator.flush_and_reset[:degraded]
@@ -589,7 +614,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2}, observe_full_evaluation_data: true)
       aggregator_small.record(
         flag_key: "f", variant: "v", allocation_key: "", error_message: "boom",
-        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true
+        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true,
       )
 
       snapshot = aggregator_small.flush_and_reset

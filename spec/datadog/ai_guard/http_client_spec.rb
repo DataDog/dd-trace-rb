@@ -9,7 +9,7 @@ RSpec.describe Datadog::AIGuard::HTTPClient do
         endpoint: endpoint,
         api_key: "api-key",
         application_key: "application-key",
-        timeout: 10000
+        timeout: 10000,
       )
     end
 
@@ -68,7 +68,7 @@ RSpec.describe Datadog::AIGuard::HTTPClient do
         endpoint: "https://app.datadoghq.com/api/v2/ai-guard",
         api_key: "api-key",
         application_key: "application-key",
-        timeout: 10000
+        timeout: 10000,
       )
     end
 
@@ -119,7 +119,7 @@ RSpec.describe Datadog::AIGuard::HTTPClient do
 
       it "raises Datadog::AIGuard::AIGuardClientError" do
         expect { post }.to raise_error(
-          Datadog::AIGuard::AIGuardClientError, "Redirects for AI Guard API are not supported"
+          Datadog::AIGuard::AIGuardClientError, "Redirects for AI Guard API are not supported",
         )
       end
     end

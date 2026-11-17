@@ -49,12 +49,12 @@ module Datadog
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                 # DSM: Track consumer offset stats for batch processing
-                if Datadog.configuration.data_streams.enabled
+                if Datadog::DataStreams.enabled?
                   job.messages.each do |message|
                     Datadog::DataStreams.track_kafka_consume(
                       job.executor.topic.name,
                       job.executor.partition,
-                      message.metadata.offset
+                      message.metadata.offset,
                     )
                   end
                 end

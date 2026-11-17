@@ -72,7 +72,7 @@ class TracingTransportBenchmark
       Datadog::Tracing::TraceSegment.new(
         spans,
         id: trace_id,
-        root_span_id: spans.first.id
+        root_span_id: spans.first.id,
       )
     end
   end

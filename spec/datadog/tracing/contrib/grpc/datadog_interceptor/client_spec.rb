@@ -62,7 +62,7 @@ RSpec.describe "tracing on the client connection" do
       span = fetch_spans.last
       expect(span.service).to eq "cepsr"
       expect(
-        span.get_tag(Datadog::Tracing::Contrib::GRPC::Ext::TAG_CLIENT_DEADLINE)
+        span.get_tag(Datadog::Tracing::Contrib::GRPC::Ext::TAG_CLIENT_DEADLINE),
       ).to eq "2022-01-02T03:04:05.678Z"
     end
 

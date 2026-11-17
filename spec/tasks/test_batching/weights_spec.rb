@@ -18,7 +18,7 @@ RSpec.describe TestBatching::Weights do
         timings: [
           {"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => main_build, "test_seconds" => main_test},
           {"task" => "contrib", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 1, "test_seconds" => 5},
-        ]
+        ],
       )
     end
 
@@ -43,7 +43,7 @@ RSpec.describe TestBatching::Weights do
     runs = [10.12345, 20.0, 30.5, 40.0].map do |test_seconds|
       TestBatching::RunTimings.new(
         ruby_version: "3.1",
-        timings: [{"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 1, "test_seconds" => test_seconds}]
+        timings: [{"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 1, "test_seconds" => test_seconds}],
       )
     end
 
@@ -132,7 +132,7 @@ RSpec.describe TestBatching::Weights do
   it "aggregates a directory of timing files into the manifest" do
     run_timings = TestBatching::RunTimings.new(
       ruby_version: RUBY_VERSION[0..2],
-      timings: [{"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 10.0, "test_seconds" => 30.0}]
+      timings: [{"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 10.0, "test_seconds" => 30.0}],
     )
 
     Dir.mktmpdir do |directory|

@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         described_class.new(
           logger: logger,
           telemetry: telemetry,
-          experimental_propagate_process_tags_enabled: true
+          experimental_propagate_process_tags_enabled: true,
         )
       end
 
@@ -32,6 +32,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       it { expect(worker.loop_base_interval).to eq 10 }
       it { expect(worker.loop_back_off_ratio).to eq 1.2 }
       it { expect(worker.loop_back_off_max).to eq 30 }
+      it { expect(worker.fork_policy).to eq Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART }
       it "builds runtime metrics with process tags propagation setting" do
         expect(Datadog::Core::Runtime::Metrics).to receive(:new).with(
           logger: logger,
@@ -93,8 +94,8 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
           running?: true,
           started?: true,
           forked?: false,
-          fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP,
-          result: nil
+          fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
+          result: nil,
         )
       end
     end
@@ -289,7 +290,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       before do
         stub_const(
           "Datadog::Core::Workers::RuntimeMetrics::DEFAULT_FLUSH_INTERVAL",
-          default_flush_interval
+          default_flush_interval,
         )
       end
 

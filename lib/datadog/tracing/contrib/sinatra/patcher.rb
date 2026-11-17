@@ -42,13 +42,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "tracer"
             register_tracer
 
@@ -56,16 +54,16 @@ module Datadog
             setup_tracer
           end
 
-          def register_tracer
+          def self.register_tracer
             ::Sinatra::Base.register(Contrib::Sinatra::Tracer)
             ::Sinatra::Base.prepend(Sinatra::Tracer::Base)
           end
 
-          def setup_tracer
+          def self.setup_tracer
             ::Sinatra::Base.singleton_class.prepend(TracerSetupPatch)
           end
 
-          def patch_default_middlewares
+          def self.patch_default_middlewares
             ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
           end
         end

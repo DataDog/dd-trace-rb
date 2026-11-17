@@ -46,7 +46,7 @@ module Datadog
                     Datadog::DataStreams.set_consume_checkpoint(
                       type: "kafka",
                       source: message.topic,
-                      auto_instrumentation: true
+                      auto_instrumentation: true,
                     ) { |key| headers[key] }
                   rescue => e
                     Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
@@ -71,13 +71,11 @@ module Datadog
 
           ACTIVATE_FRAMEWORK_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "monitor"
             require_relative "framework"
             require_relative "../waterdrop"

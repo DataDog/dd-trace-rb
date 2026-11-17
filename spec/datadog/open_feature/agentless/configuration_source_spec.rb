@@ -4,6 +4,7 @@ require "spec_helper"
 require "timeout"
 require "datadog/open_feature/configuration/agentless_endpoint"
 require "datadog/open_feature/agentless/configuration_source"
+require "datadog/open_feature/flag_selection_reporter"
 
 RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
   subject(:source) do
@@ -14,6 +15,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       request_timeout_seconds: 5,
       apply: apply,
       logger: logger,
+      flag_selection_reporter: flag_selection_reporter,
       transport: transport,
       random: random,
       retry_wait: retry_wait,
@@ -27,7 +29,8 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     )
   end
   let(:transport) { instance_double(Datadog::OpenFeature::Agentless::Transport) }
-  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil, debug: nil, debug?: true) }
+  let(:flag_selection_reporter) { instance_double(Datadog::OpenFeature::FlagSelectionReporter, report_ignored: nil) }
   let(:apply) { ->(_configuration) {} }
   let(:random) { -> { 0.5 } }
   let(:retry_wait) { ->(_delay) { false } }
@@ -48,16 +51,27 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     )
   end
 
-  def response(status:, etag: nil, body: nil, error: nil)
+  def response(status:, etag: nil, body: nil, error: nil, flag_selection_ignored: nil)
     Datadog::OpenFeature::Agentless::Response.new(
       status: status,
       etag: etag,
       body: body,
       error: error,
+      flag_selection_ignored: flag_selection_ignored,
     )
   end
 
   describe ".build" do
+    subject(:built_source) do
+      described_class.build(
+        settings,
+        endpoint: endpoint,
+        apply: apply,
+        logger: logger,
+        flag_selection_reporter: flag_selection_reporter,
+      )
+    end
+
     let(:settings) { Datadog::Core::Configuration::Settings.new }
 
     before { settings.api_key = nil }
@@ -65,7 +79,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     it "rejects a managed endpoint without an API key" do
       expect(logger).to receive(:warn).with(a_string_including("requires DD_API_KEY"))
 
-      expect(described_class.build(settings, endpoint: endpoint, apply: apply, logger: logger)).to be_nil
+      expect(built_source).to be_nil
     end
 
     context "with a custom endpoint" do
@@ -77,8 +91,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       end
 
       it "does not require an API key" do
-        expect(described_class.build(settings, endpoint: endpoint, apply: apply, logger: logger))
-          .to be_a(described_class)
+        expect(built_source).to be_a(described_class)
       end
     end
   end
@@ -159,11 +172,14 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       source.poll
     end
 
-    [401, 403].each do |status|
+    {
+      401 => "configuration request lacks valid authentication credentials",
+      403 => "access to the configuration endpoint is forbidden",
+    }.each do |status, reason|
       it "reports HTTP #{status} as an authentication failure without retrying" do
         expect(transport).to receive(:get).with(nil).once.and_return(response(status: status))
         expect(logger).to receive(:warn).once.with(
-          "Feature Flags agentless endpoint returned HTTP #{status}; verify endpoint authentication"
+          "Feature Flags agentless #{reason}; verify endpoint authentication (HTTP #{status})",
         )
 
         source.poll
@@ -178,9 +194,9 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       source.poll
 
       expect(logger).to have_received(:warn)
-        .with("Feature Flags agentless endpoint returned HTTP 500 after 3 attempt(s)").once
+        .with("Feature Flags agentless configuration endpoint encountered an internal error after 3 attempt(s) (HTTP 500); next poll in 30s").once
       expect(logger).to have_received(:warn)
-        .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").once
+        .with("Feature Flags agentless configuration endpoint not found after 1 attempt(s) (HTTP 404)").once
     end
 
     it "keeps the ETag when the next payload is malformed" do
@@ -197,6 +213,159 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       allow(apply).to receive(:call).and_raise(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
 
       expect { source.poll }.not_to change(source, :etag).from(nil)
+    end
+
+    context "when the server ignored the flag selection" do
+      it "reports the ignored reason after applying the configuration" do
+        allow(transport).to receive(:get).with(nil)
+          .and_return(response(status: 200, etag: "next", body: body, flag_selection_ignored: "tag_load_failed"))
+        expect(apply).to receive(:call).ordered
+        expect(flag_selection_reporter).to receive(:report_ignored).with("tag_load_failed").ordered
+
+        source.poll
+      end
+
+      it "does not report it for a malformed payload" do
+        allow(transport).to receive(:get).with(nil)
+          .and_return(response(status: 200, body: "{", flag_selection_ignored: "tag_load_failed"))
+
+        source.poll
+
+        expect(flag_selection_reporter).not_to have_received(:report_ignored)
+      end
+
+      it "does not report it when the configuration cannot be applied" do
+        allow(transport).to receive(:get).with(nil)
+          .and_return(response(status: 200, body: body, flag_selection_ignored: "tag_load_failed"))
+        allow(apply).to receive(:call).and_raise(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
+
+        source.poll
+
+        expect(flag_selection_reporter).not_to have_received(:report_ignored)
+      end
+    end
+
+    it "retries through each response outcome with debug logging enabled" do
+      allow(logger).to receive(:debug) { |message, &block| block ? block.call : message }
+      allow(transport).to receive(:get).and_return(
+        response(status: nil, error: SocketError.new),
+        response(status: 503),
+        response(status: 304),
+      )
+
+      source.poll
+
+      expect(transport).to have_received(:get).exactly(3).times
+      expect(logger).not_to have_received(:error)
+    end
+
+    context "with debug logging enabled" do
+      let(:debug_messages) { [] }
+
+      before { allow(logger).to receive(:debug) { |message, &block| debug_messages << (block ? block.call : message) } }
+
+      [
+        [400, "configuration request rejected as invalid", 1],
+        [404, "configuration endpoint not found", 1],
+        [408, "configuration request timed out", 3],
+        [429, "configuration request rate limited", 3],
+        [500, "configuration endpoint encountered an internal error", 3],
+        [502, "configuration endpoint received an invalid upstream response", 3],
+        [503, "configuration endpoint is temporarily unavailable", 3],
+        [504, "configuration endpoint timed out waiting for an upstream response", 3],
+        [599, "configuration endpoint reported a server error", 3],
+        [302, "unexpected response from the configuration endpoint", 1],
+        [499, "unexpected response from the configuration endpoint", 1],
+      ].each do |status, reason, attempts|
+        it "explains HTTP #{status} in poll diagnostics and the failure warning" do
+          allow(transport).to receive(:get).and_return(response(status: status))
+
+          source.poll
+
+          expect(debug_messages.grep(/poll attempt/)).to eq(
+            (1..attempts).map do |attempt|
+              "Feature Flags: agentless configuration poll attempt #{attempt}/3: #{reason} (HTTP #{status})"
+            end,
+          )
+          refresh = (attempts == 3) ? "; next poll in 30s" : ""
+          expect(logger).to have_received(:warn).once.with(
+            "Feature Flags agentless #{reason} after #{attempts} attempt(s) (HTTP #{status})#{refresh}",
+          )
+        end
+      end
+
+      it "logs the ETag of a received configuration" do
+        allow(transport).to receive(:get).and_return(response(status: 200, etag: '"v42"', body: body))
+
+        source.poll
+
+        expect(debug_messages).to eq(['Feature Flags: agentless configuration poll attempt 1/3: configuration received (ETag "v42"; HTTP 200)'])
+      end
+
+      it "logs a received configuration without an ETag" do
+        allow(transport).to receive(:get).and_return(response(status: 200, body: body))
+
+        source.poll
+
+        expect(debug_messages).to eq(["Feature Flags: agentless configuration poll attempt 1/3: configuration received (HTTP 200)"])
+      end
+
+      it "logs when the configuration is unchanged" do
+        allow(transport).to receive(:get).and_return(response(status: 304))
+
+        source.poll
+
+        expect(debug_messages).to eq(["Feature Flags: agentless configuration poll attempt 1/3: configuration unchanged (HTTP 304)"])
+      end
+
+      it "logs when the configuration could not be retrieved" do
+        allow(transport).to receive(:get).and_return(response(status: 404))
+
+        source.poll
+
+        expect(debug_messages).to eq(["Feature Flags: agentless configuration poll attempt 1/3: configuration endpoint not found (HTTP 404)"])
+      end
+
+      it "logs every ignored malformed payload" do
+        allow(transport).to receive(:get).and_return(response(status: 200, body: "{"))
+
+        2.times { source.poll }
+
+        expect(debug_messages.grep(/ignoring malformed/)).to eq(
+          ["Feature Flags: ignoring malformed agentless configuration payload"] * 2,
+        )
+      end
+
+      it "logs when polling stops" do
+        source.stop
+
+        expect(debug_messages).to eq(["Feature Flags: stopped agentless configuration polling"])
+      end
+
+      it "logs repeated terminal failures at debug after the first warning" do
+        allow(transport).to receive(:get).and_return(response(status: 500))
+        message = "Feature Flags agentless configuration endpoint encountered an internal error after 3 attempt(s) (HTTP 500); next poll in 30s"
+
+        2.times { source.poll }
+
+        expect(logger).to have_received(:warn).with(message).once
+        expect(debug_messages.count(message)).to eq(1)
+      end
+
+      it "logs recovery once after failed polls" do
+        allow(transport).to receive(:get).and_return(
+          response(status: 404),
+          response(status: 401),
+          response(status: 304),
+          response(status: 304),
+        )
+
+        4.times { source.poll }
+
+        expect(debug_messages.grep(/recovered/)).to eq(
+          ["Feature Flags: agentless configuration delivery recovered after 2 failed poll(s)"],
+        )
+      end
     end
   end
 
@@ -220,7 +389,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       expect { 3.times { perform_iteration.call } }.not_to raise_error
       expect(request_count).to eq(3)
       expect(logger).to have_received(:error).once.with(
-        "Feature Flags agentless poll failed with TypeError; polling continues"
+        "Feature Flags agentless poll failed with TypeError; polling continues",
       )
     end
   end
@@ -231,13 +400,13 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
 
       2.times { source.poll }
       expect(logger).to have_received(:warn)
-        .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").once
+        .with("Feature Flags agentless configuration endpoint not found after 1 attempt(s) (HTTP 404)").once
 
       source.send(:after_fork)
       source.poll
 
       expect(logger).to have_received(:warn)
-        .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").twice
+        .with("Feature Flags agentless configuration endpoint not found after 1 attempt(s) (HTTP 404)").twice
     end
   end
 

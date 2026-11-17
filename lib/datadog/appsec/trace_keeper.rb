@@ -20,7 +20,7 @@ module Datadog
         if previous_dm.nil? || previous_dm == Tracing::Sampling::Ext::Decision::MANUAL
           trace.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-            Tracing::Sampling::Ext::Decision::ASM
+            Tracing::Sampling::Ext::Decision::ASM,
           )
         else
           trace.set_tag(

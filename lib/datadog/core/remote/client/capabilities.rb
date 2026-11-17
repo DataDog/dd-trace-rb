@@ -4,6 +4,7 @@ require_relative "../../utils/base64_codec"
 require_relative "../../../appsec/remote"
 require_relative "../../../tracing/remote"
 require_relative "../../../di/remote"
+require_relative "../../../profiling/remote"
 require_relative "../../../symbol_database"
 require_relative "../../../symbol_database/remote"
 
@@ -80,6 +81,9 @@ module Datadog
             register_capabilities(Datadog::Tracing::Remote.capabilities)
             register_products(Datadog::Tracing::Remote.products)
             register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
+
+            register_products(Datadog::Profiling::Remote.products)
+            register_receivers(Datadog::Profiling::Remote.receivers(@telemetry))
 
             if settings.respond_to?(:dynamic_instrumentation) &&
                 !Datadog::DI::Remote.explicitly_disabled?(settings) &&

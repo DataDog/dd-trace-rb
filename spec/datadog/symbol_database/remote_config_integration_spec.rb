@@ -75,7 +75,7 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger
+        symdb_logger,
       )
       expect(component).not_to be_nil
 
@@ -141,7 +141,7 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger
+        symdb_logger,
       )
 
       # Simulate RC change: insert with upload_symbols: true
@@ -163,7 +163,7 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger
+        symdb_logger,
       )
 
       content = instance_double("Datadog::Core::Remote::Configuration::Content", data: JSON.generate("upload_symbols" => false))
@@ -182,7 +182,7 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger
+        symdb_logger,
       )
 
       # First enable
@@ -223,7 +223,7 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger
+        symdb_logger,
       )
 
       begin
@@ -285,7 +285,7 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger
+        symdb_logger,
       )
 
       GC.start

@@ -4,9 +4,9 @@ module Datadog
       module ActionPack
         module ActionController
           module Instrumentation
-            def self?.start_processing: (untyped payload) -> untyped
+            def self.start_processing: (untyped payload) -> untyped
 
-            def self?.finish_processing: (untyped payload) -> untyped
+            def self.finish_processing: (untyped payload) -> untyped
             module Metal
               def process_action: (*untyped args) -> untyped
 

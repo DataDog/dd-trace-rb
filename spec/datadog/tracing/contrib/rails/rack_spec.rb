@@ -44,7 +44,7 @@ RSpec.describe "Rails Rack", execute_in_fork: Rails.version.to_i >= 8 do
           "test/_inner_partial.html.erb" => "a partial with type <%= Datadog::Tracing.active_span.type %>",
           "test/error_template.html.erb" => "<%= 1/0 %>",
           "test/error_partial.html.erb" => 'Oops <%= render "test/inner_error" %>',
-          "test/_inner_error.html.erb" => "<%= 1/0 %>"
+          "test/_inner_error.html.erb" => "<%= 1/0 %>",
         )]
 
         def full
@@ -110,7 +110,7 @@ RSpec.describe "Rails Rack", execute_in_fork: Rails.version.to_i >= 8 do
         def explicitly_not_found
           raise ActionController::RoutingError, :not_found
         end
-      end
+      end,
     )
   end
   let(:errors_controller) do
@@ -121,7 +121,7 @@ RSpec.describe "Rails Rack", execute_in_fork: Rails.version.to_i >= 8 do
           # Return 200, since the error been handled
           head :ok
         end
-      end
+      end,
     )
   end
 

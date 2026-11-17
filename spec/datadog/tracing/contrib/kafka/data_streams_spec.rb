@@ -132,7 +132,7 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         topic: "test_topic",
         partition: 0,
         offset: 100,
-        headers: {"dd-pathway-ctx-base64" => producer_ctx_b64}
+        headers: {"dd-pathway-ctx-base64" => producer_ctx_b64},
       )
 
       # Set the message for the consumer to yield
@@ -150,7 +150,7 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         expect(msg.topic).to eq("test_topic")
 
         # Verify the processor has updated its context after processing this message
-        current_ctx = processor.instance_variable_get(:@pathway_context)
+        current_ctx = processor.pathway_context
         expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).to be > 0
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consumer hash should differ (direction:in vs direction:out)
@@ -214,7 +214,7 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         topic: "test_topic",
         partition: 0,
         offset: 100,
-        headers: {"dd-pathway-ctx-base64" => "some-context"}
+        headers: {"dd-pathway-ctx-base64" => "some-context"},
       )
 
       consumer.test_message = message
@@ -223,6 +223,65 @@ RSpec.describe "Kafka Data Streams instrumentation" do
       expect {
         consumer.each_message { |msg| expect(msg).to eq(message) }
       }.not_to raise_error
+    end
+  end
+
+  describe "consumer loop when DSM is toggled at runtime" do
+    let(:test_consumer_class) do
+      Class.new do
+        attr_accessor :test_messages
+
+        def each_message(**_kwargs)
+          @test_messages.each { |message| yield(message) }
+        end
+
+        def each_batch(**_kwargs)
+          @test_messages.each { |batch| yield(batch) }
+        end
+
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
+      end
+    end
+
+    let(:consumer) { test_consumer_class.new }
+    let(:first) { OpenStruct.new(topic: "first_topic", headers: {}) }
+    let(:second) { OpenStruct.new(topic: "second_topic", headers: {}) }
+
+    before { consumer.test_messages = [first, second] }
+
+    it "sets a checkpoint once DSM is enabled after each_message started" do
+      allow(Datadog::DataStreams).to receive(:enabled?).and_return(false, true)
+      allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+      yielded = []
+      consumer.each_message { |msg| yielded << msg }
+
+      expect(yielded).to eq([first, second])
+      expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint).once
+      expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint)
+        .with(type: "kafka", source: "second_topic", auto_instrumentation: true)
+    end
+
+    it "sets a checkpoint once DSM is enabled after each_batch started" do
+      allow(Datadog::DataStreams).to receive(:enabled?).and_return(false, true)
+      allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+      consumer.each_batch { |_batch| }
+
+      expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint)
+        .once.with(type: "kafka", source: "second_topic", auto_instrumentation: true)
+    end
+
+    it "sets no checkpoint while DSM stays disabled" do
+      allow(Datadog::DataStreams).to receive(:enabled?).and_return(false)
+      allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+      yielded = []
+      consumer.each_message { |msg| yielded << msg }
+      consumer.each_batch { |batch| yielded << batch }
+
+      expect(yielded).to eq([first, second, first, second])
+      expect(Datadog::DataStreams).not_to have_received(:set_consume_checkpoint)
     end
   end
 
@@ -285,7 +344,7 @@ RSpec.describe "Kafka Data Streams instrumentation" do
           max_queue_size: 2,
           delivery_threshold: 1,
           instrumenter: Kafka::Instrumenter.new(client_id: "buffer-overflow-reproducer"),
-          logger: kafka_logger
+          logger: kafka_logger,
         )
       end
 

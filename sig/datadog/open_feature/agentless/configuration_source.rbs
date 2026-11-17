@@ -25,6 +25,8 @@ module Datadog
 
         @logger: Core::Logger
 
+        @flag_selection_reporter: FlagSelectionReporter
+
         @poll_interval_seconds: Integer
 
         @random: ^() -> Float
@@ -34,6 +36,8 @@ module Datadog
         @etag: String?
 
         @warned: Hash[Symbol, bool]
+
+        @failed_polls: Integer
 
         @lifecycle_mutex: Thread::Mutex
 
@@ -47,6 +51,7 @@ module Datadog
           Core::Configuration::Settings settings,
           endpoint: Configuration::AgentlessEndpoint,
           apply: ^(String) -> void,
+          flag_selection_reporter: FlagSelectionReporter,
           ?logger: Core::Logger
         ) -> ConfigurationSource?
 
@@ -57,6 +62,7 @@ module Datadog
           request_timeout_seconds: Integer,
           apply: ^(String) -> void,
           logger: Core::Logger,
+          flag_selection_reporter: FlagSelectionReporter,
           ?transport: Transport?,
           ?random: (^() -> Float)?,
           ?retry_wait: (^(Float) -> bool)?
@@ -64,7 +70,7 @@ module Datadog
 
         def start: () -> bool
 
-        def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> bool
+        def stop: (?bool force_stop, ?Integer | Float timeout) -> bool
 
         def perform: () -> void
 
@@ -75,6 +81,10 @@ module Datadog
         private
 
         def stopped?: () -> bool
+
+        def log_poll_attempt: (Response response, Integer attempt) -> void
+
+        def http_failure_reason: (Integer status) -> String
 
         def retryable?: (Response response) -> bool
 
@@ -93,6 +103,12 @@ module Datadog
         def apply_configuration: (Response response) -> void
 
         def warn_failure: (Response response, Integer attempts) -> void
+
+        def report_poll_failure: (Symbol category, String message) -> void
+
+        def log_recovery: () -> void
+
+        def request_error_class: (Response response) -> singleton(Exception)
 
         def warn_once: (Symbol category) { () -> void } -> void
       end

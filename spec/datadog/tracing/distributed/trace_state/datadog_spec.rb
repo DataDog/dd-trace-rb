@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::Datadog do
         origin: "synthetics",
         ts_parent_id: "000000000000000f",
         tags: {"_dd.p.test" => "value"},
-        unknown_fields: "future:value;"
+        unknown_fields: "future:value;",
       ).to_s
     end
 

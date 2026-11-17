@@ -247,7 +247,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer = described_class.new(transport: transport, logger: logger)
       writer.instance_variable_set(
         :@aggregator,
-        Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 100, per_flag_cap: 12, degraded_cap: 10)
+        Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 100, per_flag_cap: 12, degraded_cap: 10),
       )
       queue = writer.instance_variable_get(:@queue)
 
@@ -313,8 +313,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
           include(
             "flag" => {"key" => "prefork-flag"},
             "targeting_key" => "prefork-user",
-            "evaluation_count" => 1
-          )
+            "evaluation_count" => 1,
+          ),
         )
       end
     ensure
@@ -396,7 +396,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         3,
-        {reason: "pre_queue_overflow"}
+        {reason: "pre_queue_overflow"},
       )
       expect(writer.send(:read_and_reset_dropped_pre_queue_overflow)).to eq(0)
     end
@@ -422,6 +422,35 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
   describe "emitted payload shape" do
     let(:logger) { instance_double(Logger, debug: nil) }
+
+    it "splits rows by evaluation features and writes them on each row" do
+      payload = captured_payload do |writer|
+        [{"holdout.key" => "h-1"}, {"holdout.key" => "h-2"}, {"holdout.key" => "h-2"}, {}].each do |features|
+          writer.enqueue(
+            flag_key: "features-flag", variant: "on", allocation_key: "alloc-1", targeting_key: "user-42",
+            eval_time_ms: realistic_eval_ms, attrs: {}, features: features,
+          )
+        end
+      end
+
+      rows = payload["flagEvaluations"].map { |row| [row["features"], row["evaluation_count"]] }
+      expect(rows).to contain_exactly([{"holdout.key" => "h-1"}, 1], [{"holdout.key" => "h-2"}, 2], [nil, 1])
+    end
+
+    it "writes evaluation features on degraded rows" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      writer = described_class.new(transport: transport, logger: logger)
+      key = ["degraded-flag", "on", "alloc", false, "", {"holdout.key" => "h-1"}]
+      entry = {
+        count: 3, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
+        runtime_default: false, error_message: "", observe_full_evaluation_data: false,
+      }
+
+      events = writer.send(:build_events, {full: {}, degraded: {key => entry}, dropped_degraded_overflow: 0})
+      writer.stop
+
+      expect(events.first["features"]).to eq("holdout.key" => "h-1")
+    end
 
     it "emits a full-tier row with variant, allocation, targeting_key, and context" do
       payload = captured_payload do |writer|
@@ -603,7 +632,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.degraded",
         3,
-        {reason: "cardinality_cap"}
+        {reason: "cardinality_cap"},
       )
     end
 
@@ -798,7 +827,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.degraded",
         1,
-        {reason: "payload_limit"}
+        {reason: "payload_limit"},
       )
       expect(logged).to be_empty
     end
@@ -818,7 +847,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         1,
-        {reason: "payload_limit"}
+        {reason: "payload_limit"},
       )
     end
 
@@ -848,7 +877,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         1,
-        {reason: "serialization_error"}
+        {reason: "serialization_error"},
       )
     end
   end
@@ -880,7 +909,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       fake_aggregator = instance_double(Datadog::OpenFeature::FlagEvaluation::Aggregator)
       allow(fake_aggregator).to receive(:flush_and_reset).and_return(
-        {full: {}, degraded: {}, dropped_degraded_overflow: 7}
+        {full: {}, degraded: {}, dropped_degraded_overflow: 7},
       )
       writer.instance_variable_set(:@aggregator, fake_aggregator)
 
@@ -894,7 +923,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         7,
-        {reason: "degraded_cap"}
+        {reason: "degraded_cap"},
       )
     end
   end
@@ -915,7 +944,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       row = payload["flagEvaluations"].first
       expect(row["targeting_key"]).to eq(
-        "sha256_b4698f9b6d186781fa8dc59e533578fa2d8379a46b1cf6db85cda6aa9c99e51b"
+        "sha256_b4698f9b6d186781fa8dc59e533578fa2d8379a46b1cf6db85cda6aa9c99e51b",
       )
       expect(row).not_to have_key("context")
       expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include(raw_subject)
@@ -960,7 +989,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       row = payload["flagEvaluations"].first
       expect(row["targeting_key"]).to eq(
-        "sha256_4cc077537cc6902477f44195b98aaf13687f9d90ce37e9d6f70cb1ede363201c"
+        "sha256_4cc077537cc6902477f44195b98aaf13687f9d90ce37e9d6f70cb1ede363201c",
       )
     end
   end
@@ -996,13 +1025,13 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.send(:drain_and_flush)
 
       expect(telemetry).to have_received(:inc).with(
-        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"},
       )
       expect(telemetry).to have_received(:inc).with(
-        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_value_length"}
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_value_length"},
       )
       expect(telemetry).to have_received(:inc).with(
-        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_key_length"}
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_key_length"},
       )
     ensure
       writer&.stop
@@ -1035,7 +1064,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.context.truncated",
         2,
-        {reason: "snapshot_error"}
+        {reason: "snapshot_error"},
       )
       expect(transport).to have_received(:send_flag_evaluations) do |payload|
         row = payload["flagEvaluations"].first
@@ -1060,7 +1089,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.send(:drain_and_flush)
 
       expect(telemetry).not_to have_received(:inc).with(
-        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"},
       )
     ensure
       writer&.stop
@@ -1131,7 +1160,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       raw_subject = "jane.doe@datadoghq.com"
       # The synthetic key says consent is enabled, while the aggregate's AND-folded
       # consent says at least one evaluation disabled it.
-      key = ["pii-flag", "on", "alloc", false, "", raw_subject, nil, true]
+      key = ["pii-flag", "on", "alloc", false, "", raw_subject, nil, true, {}]
       entry = {
         count: 1, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
         runtime_default: false, error_message: "", targeting_key: raw_subject,

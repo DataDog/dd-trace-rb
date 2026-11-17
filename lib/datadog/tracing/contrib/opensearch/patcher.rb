@@ -16,9 +16,7 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def patch
+          def self.patch
             require "uri"
             require "json"
             require_relative "quantize"
@@ -59,7 +57,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 
@@ -99,7 +97,7 @@ module Datadog
                   if response.respond_to?(:headers) && (response.headers || {})["content-length"]
                     span.set_tag(
                       OpenSearch::Ext::TAG_RESPONSE_CONTENT_LENGTH,
-                      response.headers["content-length"].to_i
+                      response.headers["content-length"].to_i,
                     )
                   end
                 end
@@ -123,7 +121,7 @@ module Datadog
               quantize_options = datadog_configuration[:quantize]
               quantized_body = OpenSearch::Quantize.format_body(
                 body,
-                quantize_options
+                quantize_options,
               )
               span.set_tag(OpenSearch::Ext::TAG_BODY, quantized_body)
             end

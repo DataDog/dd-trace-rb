@@ -24,7 +24,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
               env: Datadog.configuration.env,
             },
           },
-        }
+        },
       )
     end
 
@@ -59,7 +59,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
 
       it "serializes the tool output" do
         expect(body.dig(:data, :attributes, :messages)).to eq(
-          [{role: :tool, tool_call_id: "call-1", content: "Some output"}]
+          [{role: :tool, tool_call_id: "call-1", content: "Some output"}],
         )
       end
     end

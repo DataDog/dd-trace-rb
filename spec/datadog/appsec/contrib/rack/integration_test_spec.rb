@@ -710,7 +710,7 @@ RSpec.describe "Rack integration tests" do
                 else
                   [200, {"Content-Type" => "text/html"}, ["OK"]]
                 end
-              end
+              end,
             )
           end
 
@@ -719,7 +719,7 @@ RSpec.describe "Rack integration tests" do
               proc do |_env|
                 Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: "blocked-user-id")
                 [200, {"Content-Type" => "text/html"}, ["OK"]]
-              end
+              end,
             )
           end
 
@@ -737,7 +737,7 @@ RSpec.describe "Rack integration tests" do
                 end
 
                 [200, {"Content-Type" => "application/json"}, [ext_response.body]]
-              end
+              end,
             )
           end
         end

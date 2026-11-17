@@ -13,14 +13,12 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
           # patch applies our patch if needed
-          def patch
+          def self.patch
             ::Net::HTTP.include(Instrumentation)
           end
         end

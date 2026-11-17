@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
           timeout: true,
           duration_ns: 400,
           duration_ext_ns: 500,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -47,7 +47,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -58,7 +58,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -71,7 +71,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Base.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Match.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -93,7 +93,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -112,7 +112,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Base.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -123,7 +123,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -134,7 +134,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -153,7 +153,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Match.new(
           events: [], actions: {}, attributes: {}, timeout: false, keep: true, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -164,7 +164,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, keep: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

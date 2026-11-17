@@ -12,13 +12,11 @@ module Datadog
           module Patcher
             include Contrib::Patcher
 
-            module_function
-
-            def target_version
+            def self.target_version
               Integration.version
             end
 
-            def patch
+            def self.patch
               if ::ActionPack.gem_version >= Gem::Version.new("8.1")
                 ::ActionDispatch::Journey::Router.prepend(ActionDispatch::Instrumentation::Journey::RecognizeRouter)
               elsif ::ActionPack.gem_version >= Gem::Version.new("7.1")

@@ -8,51 +8,50 @@ module Datadog
       module ActiveRecord
         # AppSec patcher module for ActiveRecord
         module Patcher
-          module_function
+          module AdapterInheritancePatch
+            def inherited(subclass)
+              super
 
-          def patched?
-            !!Patcher.instance_variable_get(:@patched)
-          end
-
-          def target_version
-            Integration.version
-          end
-
-          def patch
-            # Rails 7.0 intruduced new on-load hooks for sqlite3 and postgresql adapters
-            # The load hook for mysql2 adapter was introduced in Rails 7.1
-            #
-            # If the adapter is not loaded when the :active_record load hook is called,
-            # we need to add a load hook for the adapter
-            ActiveSupport.on_load :active_record do
-              if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
-                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_sqlite3_adapter
-              else
-                ActiveSupport.on_load :active_record_sqlite3adapter do
-                  ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_sqlite3_adapter
-                end
-              end
-
-              if defined?(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
-                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_mysql2_adapter
-              else
-                ActiveSupport.on_load :active_record_mysql2adapter do
-                  ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_mysql2_adapter
-                end
-              end
-
-              if defined?(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
-                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_postgresql_adapter
-              else
-                ActiveSupport.on_load :active_record_postgresqladapter do
-                  ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_postgresql_adapter
-                end
+              case subclass.name
+              when "ActiveRecord::ConnectionAdapters::SQLite3Adapter" then Patcher.patch_sqlite3_adapter
+              when "ActiveRecord::ConnectionAdapters::Mysql2Adapter" then Patcher.patch_mysql2_adapter
+              when "ActiveRecord::ConnectionAdapters::PostgreSQLAdapter" then Patcher.patch_postgresql_adapter
               end
             end
           end
 
-          def patch_sqlite3_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
+          def self.patched?
+            !!Patcher.instance_variable_get(:@patched)
+          end
+
+          def self.target_version
+            Integration.version
+          end
+
+          def self.patch
+            ActiveSupport.on_load :active_record do
+              ::ActiveRecord::ConnectionAdapters::AbstractAdapter.singleton_class.prepend(
+                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher::AdapterInheritancePatch,
+              )
+
+              if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
+                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_sqlite3_adapter
+              end
+
+              if defined?(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
+                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_mysql2_adapter
+              end
+
+              if defined?(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_postgresql_adapter
+              end
+            end
+          end
+
+          def self.patch_sqlite3_adapter
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+              Instrumentation::PreprocessQueryAdapterPatch
+            elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -64,8 +63,10 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_mysql2_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
+          def self.patch_mysql2_adapter
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+              Instrumentation::PreprocessQueryAdapterPatch
+            elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -77,15 +78,19 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_postgresql_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version.segments.first == 4
+          def self.patch_postgresql_adapter
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+              Instrumentation::PreprocessQueryAdapterPatch
+            elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecuteAndClearAdapterPatch
             else
               Instrumentation::ExecuteAndClearAdapterPatch
             end
 
             if defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+                Instrumentation::PreprocessQueryAdapterPatch
+              elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
                 Instrumentation::InternalExecQueryAdapterPatch
               elsif ::ActiveRecord.gem_version.segments.first == 4
                 Instrumentation::Rails4ExecQueryAdapterPatch

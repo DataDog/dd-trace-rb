@@ -8,9 +8,9 @@ module Datadog
 
         REDACTION_ERROR: String
 
-        def self?.report_evaluation: (Evaluation::Outcome outcome, blocked: bool) -> void
+        def self.report_evaluation: (Evaluation::Outcome outcome, blocked: bool) -> void
 
-        def self?.report_error: () -> void
+        def self.report_error: () -> void
       end
     end
   end

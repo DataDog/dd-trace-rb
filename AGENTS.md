@@ -118,6 +118,9 @@ no external grant needed. No local trigger otherwise.
 - Follow the `write-comment` skill (`.agents/skills/write-comment/SKILL.md`) for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
+- Calls to `logger` or `Datadog.logger` to log a message,
+`telemetry.report`, `telemetry.inc` and similar metric reporting may not raise
+exceptions. Callers may not blanket-rescue solely from such calls.
 
 ## Documentation
 
@@ -171,7 +174,7 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 
 - Push branches to `DataDog/dd-trace-rb`, not forks.
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
-- Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions. Follow the write-pull-request skill (`.agents/skills/write-pull-request/`).
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
 - Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.agents/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
 - Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
@@ -219,6 +222,7 @@ StandardRB enforces style: `bundle exec rake standard:fix`.
 
 Additional team preferences:
 - Use trailing commas in multi-line arrays, hashes, and arguments.
+Do not use trailing comma when the next token is a closing parenthesis with no token separator.
 - Mirror the `lib/` structure in RBS definitions under `sig/`.
 - Use `Type?` over `(nil | Type)`.
 - Type a value with its specific concrete type when it has one, rather than `untyped` or `any`.

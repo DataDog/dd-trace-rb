@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::Exporter do
       info_collector: info_collector,
       code_provenance_collector: code_provenance_collector,
       internal_metadata: internal_metadata,
-      **options
+      **options,
     )
   end
 
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Profiling::Exporter do
           profile_stats: profile_stats,
           # GC stats are slightly different between ruby versions.
           gc: hash_including(:count, :total_freed_objects),
-        }
+        },
       )
       expect(JSON.parse(flush.info_json, symbolize_names: true)).to eq(info)
     end

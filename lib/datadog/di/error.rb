@@ -92,6 +92,22 @@ module Datadog
       # expressions.
       class ExpressionEvaluationError < Error
       end
+
+      # Raised when expression evaluation exceeds the configured
+      # evaluation CPU-time budget, or a `matches` operator exceeds its
+      # per-match wall-clock bound.
+      class EvaluationTimeout < ExpressionEvaluationError
+        # Default message for EvaluationTimeout exceptions.
+        DEFAULT_MESSAGE = "expression evaluation timeout"
+
+        # Builds the exception, defaulting +message+ to DEFAULT_MESSAGE.
+        #
+        # @param message [String] exception message.
+        # @return [void]
+        def initialize(message: DEFAULT_MESSAGE)
+          super(message)
+        end
+      end
     end
   end
 end

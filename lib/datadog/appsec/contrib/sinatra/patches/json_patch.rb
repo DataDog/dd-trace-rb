@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "../../../utils/hash_coercion"
 require_relative "../../../instrumentation/gateway/argument"
 
 module Datadog
@@ -8,20 +7,22 @@ module Datadog
     module Contrib
       module Sinatra
         module Patches
-          # A patch targeting `Sinatra::JSON#json` method to capture JSON response
-          # body right before it is serialized.
+          # A patch for `Sinatra::JSON#json` that captures the serialized
+          # response body for AppSec inspection
           module JsonPatch
             def json(object, options = {})
               context = @request.env[Datadog::AppSec::Ext::CONTEXT_KEY] # : Context?
               return super unless context
 
-              data = Utils::HashCoercion.coerce(object)
-              return super unless data
+              # NOTE: Custom renderers can return streaming bodies, which we
+              #       currently do not inspect
+              body = super
+              return body unless body.is_a?(String)
 
-              container = Instrumentation::Gateway::DataContainer.new(data, context: context)
+              container = Instrumentation::Gateway::DataContainer.new(body, context: context)
               Instrumentation.gateway.push("sinatra.response.body.json", container)
 
-              super
+              body
             end
           end
         end

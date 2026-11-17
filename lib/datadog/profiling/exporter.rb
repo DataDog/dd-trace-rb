@@ -107,7 +107,7 @@ module Datadog
               profile_stats: profile_stats,
               recorder_stats: pprof_recorder.stats,
               gc: gc_stats,
-            }
+            },
           ),
           info_json: info_collector.info_json,
         )

@@ -14,7 +14,7 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Endpoint do
             def self.base
               "TestAPIBase"
             end
-          end
+          end,
         )
       end
 
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Endpoint do
         double(
           "Grape::Endpoint",
           options: {},
-          routes: [double("Route", namespace: "/api/v1", path: "/api/v1/widgets(.json)")]
+          routes: [double("Route", namespace: "/api/v1", path: "/api/v1/widgets(.json)")],
         )
       end
 

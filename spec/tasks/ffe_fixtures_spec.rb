@@ -51,6 +51,32 @@ RSpec.describe FfeFixtures do
     stub_const("FfeFixtures::COMMIT_SHA", commit)
   end
 
+  describe ".applicable?" do
+    it "includes cases without a platform filter" do
+      expect(described_class.applicable?({}, platform: "ruby")).to be(true)
+    end
+
+    it "excludes cases that skip Ruby" do
+      test_case = {"_skip" => [{"platform" => "ruby", "reason" => "unsupported"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(false)
+    end
+
+    it "includes cases that skip another platform" do
+      test_case = {"_skip" => [{"platform" => "php"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(true)
+    end
+
+    it "includes cases explicitly including Ruby" do
+      test_case = {"_include" => [{"platform" => "php"}, {"platform" => "ruby"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(true)
+    end
+
+    it "excludes cases that only include another platform" do
+      test_case = {"_include" => [{"platform" => "php"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(false)
+    end
+  end
+
   describe ".download" do
     it "pins a full upstream commit" do
       pin = File.read(File.expand_path("../../tasks/lib/fixtures/ffe/version", __dir__))
@@ -77,20 +103,24 @@ RSpec.describe FfeFixtures do
       expect(File.directory?(root)).to be(true)
     end
 
-    it "copies only the configuration and flat evaluation cases, skipping the rest of the tarball" do
+    it "copies only the configuration, flat evaluation cases, and flag selection vectors, skipping the rest of the tarball" do
       stub_upstream(
         commit => files_by_path.merge(
           "README.md" => "documentation",
           "ci/lint.yml" => "jobs",
           "evaluation-cases/nested/case.json" => "[]",
           "evaluation-cases/notes.txt" => "not a case",
-        )
+          "flag-selection/selection-vectors.json" => '{"cases":[]}',
+          "flag-selection/README.md" => "documentation",
+          "flag-selection/nested/vectors.json" => "{}",
+        ),
       )
 
       root = described_class.download(repository)
 
-      expect(Dir.children(root).sort).to eq(["evaluation-cases", "ufc-config.json"])
+      expect(Dir.children(root).sort).to eq(["evaluation-cases", "flag-selection", "ufc-config.json"])
       expect(Dir.children(File.join(root, "evaluation-cases"))).to eq(["cases.json"])
+      expect(Dir.children(File.join(root, "flag-selection"))).to eq(["selection-vectors.json"])
     end
 
     it "rejects a corpus without the configuration or cases, without leaving a cache entry" do

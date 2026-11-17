@@ -29,7 +29,7 @@ module Datadog
 
             @app.call(env)
           ensure
-            # @type var trace: Datadog::Tracing::TraceSegment?
+            # @type var trace: Datadog::Tracing::TraceOperation?
             # Steep: https://github.com/soutaro/steep/issues/919
             if trace
               tag_client_ip_on_request_span!(trace) if ai_guard_executed?(trace)
@@ -40,7 +40,6 @@ module Datadog
 
           private
 
-          # steep:ignore:start
           def store_anomaly_detection_tags!(trace, env)
             remote_ip = env["REMOTE_ADDR"]
             trace.set_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG, remote_ip) if remote_ip
@@ -54,9 +53,7 @@ module Datadog
           rescue => e
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to get request attributes")
           end
-          # steep:ignore:end
 
-          # steep:ignore:start
           def clean_up_ai_guard_temp_tags!(trace)
             Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
               trace.clear_tag(tag)
@@ -64,17 +61,13 @@ module Datadog
 
             trace.clear_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)
           end
-          # steep:ignore:end
 
           # AI Guard's evaluation flow sets `_dd.ai_guard.executed` on the
           # trace whenever an AI Guard span is created during the request.
-          # steep:ignore:start
           def ai_guard_executed?(trace)
             trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG) == "1"
           end
-          # steep:ignore:end
 
-          # steep:ignore:start
           def tag_client_ip_on_request_span!(trace)
             span = Datadog::Tracing.active_span
             return unless span
@@ -89,7 +82,6 @@ module Datadog
           rescue => e
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to tag client IP on root span")
           end
-          # steep:ignore:end
         end
       end
     end

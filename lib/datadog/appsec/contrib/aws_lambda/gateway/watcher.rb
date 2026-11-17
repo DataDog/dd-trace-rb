@@ -30,7 +30,7 @@ module Datadog
 
                   if result.match? || !result.attributes.empty?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
                   end
 
@@ -57,7 +57,7 @@ module Datadog
                     TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::ActionsHandler.handle(result.actions)

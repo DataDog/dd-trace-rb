@@ -17,7 +17,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           tool_calls: {
             "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: {"command" => "ls /"}),
             "call_2" => RubyLLM::ToolCall.new(id: "call_2", name: "search", arguments: {"query" => "secret"}),
-          }
+          },
         )
       end
 
@@ -44,7 +44,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           attachments: [
             RubyLLM::Attachment.new(StringIO.new("Account 123"), filename: "notes.txt"),
             RubyLLM::Attachment.new(StringIO.new("\x89PNG\r\n\x1A\n".b), filename: "photo.png"),
-          ]
+          ],
         )
       end
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           content: "Running the command",
           tool_calls: {
             "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: nested_arguments),
-          }
+          },
         )
       end
 
@@ -96,7 +96,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
         RubyLLM::Message.new(
           role: :user,
           content: "Account 123",
-          raw_content: [{"type" => "input_text", "text" => "Account 123"}]
+          raw_content: [{"type" => "input_text", "text" => "Account 123"}],
         )
       end
 
@@ -121,7 +121,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
         RubyLLM::Message.new(
           role: :assistant,
           content: "Running commands",
-          tool_calls: {"call_1" => first_tool_call, "call_2" => second_tool_call}
+          tool_calls: {"call_1" => first_tool_call, "call_2" => second_tool_call},
         )
       end
       let(:first_tool_call) do
@@ -151,7 +151,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
         RubyLLM::Message.new(
           role: :user,
           content: "Read this file",
-          attachments: [attachment]
+          attachments: [attachment],
         )
       end
       let(:attachment) { RubyLLM::Attachment.new(StringIO.new("Account 123"), filename: "notes.txt") }
@@ -176,7 +176,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
         RubyLLM::Message.new(
           role: :assistant,
           content: "Running the command",
-          tool_calls: {"call_1" => tool_call}
+          tool_calls: {"call_1" => tool_call},
         )
       end
       let(:tool_call) do
@@ -201,7 +201,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
         RubyLLM::Message.new(
           role: :assistant,
           content: "Running the command",
-          tool_calls: {"call_1" => tool_call}
+          tool_calls: {"call_1" => tool_call},
         )
       end
       let(:tool_call) do

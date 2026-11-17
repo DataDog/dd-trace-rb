@@ -15,9 +15,9 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          def self?.target_version: () -> untyped
+          def self.target_version: () -> untyped
 
-          def self?.patch: () -> void
+          def self.patch: () -> void
         end
       end
     end

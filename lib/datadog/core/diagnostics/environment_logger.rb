@@ -53,7 +53,7 @@ module Datadog
           end
         rescue => e
           logger.warn(
-            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
           )
         end
       end
@@ -149,12 +149,7 @@ module Datadog
           def vm
             # RUBY_ENGINE_VERSION returns the VM version, which
             # will differ from RUBY_VERSION for non-mri VMs.
-            if defined?(RUBY_ENGINE_VERSION)
-              "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
-            else
-              # Ruby < 2.3 doesn't support RUBY_ENGINE_VERSION
-              "#{RUBY_ENGINE}-#{RUBY_VERSION}"
-            end
+            "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
           end
 
           # @return [Boolean, nil] health metrics enabled in configuration

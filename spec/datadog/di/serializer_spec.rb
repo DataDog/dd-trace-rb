@@ -574,7 +574,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "returns a timeout stub for the top-level value and stops there" do
         expect(
-          serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline)
+          serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline),
         ).to eq(
           type: "Array", notCapturedReason: "timeout",
         )
@@ -743,6 +743,29 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  describe "#evaluation_deadline" do
+    let(:di_settings) do
+      double("di settings").tap do |settings|
+        stub_di_settings(settings, max_time_to_evaluate_ms: 250)
+      end
+    end
+
+    stub_cpu_clock([0.5])
+
+    before do
+      serializer
+    end
+
+    it "adds the budget resolved at construction to the thread CPU clock reading" do
+      expect(serializer.evaluation_deadline).to eq(0.75)
+    end
+
+    it "reads no settings per call" do
+      expect(di_settings).not_to receive(:max_time_to_evaluate_ms)
+      expect(serializer.evaluation_deadline).to be_a(Float)
+    end
+  end
+
   describe "#serialize_string_or_symbol_for_message" do
     [
       [100, "short", "short"],
@@ -891,7 +914,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value(invalid_utf8, deadline: Float::INFINITY)
@@ -918,7 +941,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value(invalid_utf8, deadline: Float::INFINITY)
@@ -942,7 +965,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(NotImplementedError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value("trigger non-standard", deadline: Float::INFINITY)
@@ -987,7 +1010,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "reports a serialization error for the value the block handles" do
         expect(guardrails_telemetry).to receive(:capture_incomplete).with(
-          reason: "runtimeError", event_type: "snapshot"
+          reason: "runtimeError", event_type: "snapshot",
         )
         described_class.register(condition: lambda { |value| String === value }) do |serializer, value, name:, depth:|
           {type: "String", value: "old signature"}
@@ -1519,7 +1542,7 @@ RSpec.describe Datadog::DI::Serializer do
       # Register a custom serializer that raises SystemStackError
       # This simulates what happens when a serializer creates infinite recursion
       Datadog::DI::Serializer.register(
-        condition: lambda { |value| DISerializerStackOverflowTestClass === value }
+        condition: lambda { |value| DISerializerStackOverflowTestClass === value },
       ) do |*args|
         raise SystemStackError, "stack level too deep (emulated infinite recursion)"
       end
@@ -1626,7 +1649,7 @@ RSpec.describe Datadog::DI::Serializer do
       # Register a custom serializer that raises NoMemoryError
       # This simulates what happens when trying to serialize extremely large objects
       Datadog::DI::Serializer.register(
-        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value }
+        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value },
       ) do |*args|
         raise NoMemoryError, "failed to allocate memory (emulated out of memory condition)"
       end

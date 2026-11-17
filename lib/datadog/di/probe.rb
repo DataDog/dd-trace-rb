@@ -143,6 +143,8 @@ module Datadog
       attr_reader :evaluate_at
 
       # Rate limit in effect, in invocations per second. Always present.
+      #
+      # @return [Integer]
       attr_reader :rate_limit
 
       # Rate limiter object. For internal DI use only.
@@ -158,6 +160,15 @@ module Datadog
       # probe rate limit for the errors).
       attr_reader :condition_evaluation_failed_rate_limiter
 
+      # Consumes one token from the probe's own rate limiter and reports
+      # whether this probe hit is admitted; a probe with no rate limiter is
+      # admitted.
+      #
+      # @return [Boolean]
+      def own_rate_limit_allows?
+        rate_limiter.nil? || rate_limiter.allow?
+      end
+
       def capture_snapshot?
         @capture_snapshot
       end
@@ -166,8 +177,8 @@ module Datadog
         !@capture_expressions.empty?
       end
 
-      # Whether this probe captures user data, either as a full snapshot
-      # or via capture expressions.
+      # Whether the probe captures data: a full snapshot, or at least one
+      # capture expression.
       #
       # @return [Boolean]
       def capturing?

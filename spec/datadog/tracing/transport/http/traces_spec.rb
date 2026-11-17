@@ -36,7 +36,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
     let(:request) { instance_double(Datadog::Tracing::Transport::Traces::Request) }
     let(:response) do
       double(Datadog::Tracing::Transport::HTTP::Traces::Response,
-        ok?: true,)
+        ok?: true)
     end
 
     before do
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
         verb: :post,
         path: path,
         encoder: encoder,
-        service_rates?: false
+        service_rates?: false,
       )
     end
   end
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
         expect(handler).to have_received(:body).with(data)
         expect(handler).to have_received(:headers).with(
           described_class::HEADER_CONTENT_TYPE => content_type,
-          described_class::HEADER_TRACE_COUNT => trace_count.to_s
+          described_class::HEADER_TRACE_COUNT => trace_count.to_s,
         )
       end
     end

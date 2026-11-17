@@ -44,7 +44,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
               expect(metrics.first).to have_attributes(
                 type: :api_responses,
                 name: nil,
-                value: 1
+                value: 1,
               )
             end
           end
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
               expect(metrics.first).to have_attributes(
                 type: :api_responses,
                 name: nil,
-                value: 1
+                value: 1,
               )
             end
           end
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
               expect(metrics.first).to have_attributes(
                 type: :api_responses,
                 name: nil,
-                value: 1
+                value: 1,
               )
             end
           end
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
               expect(metrics.first).to have_attributes(
                 type: :api_errors,
                 name: nil,
-                value: 1
+                value: 1,
               )
             end
           end
@@ -158,7 +158,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
             expect(metrics_for_response[:api_responses]).to have_attributes(
               type: :api_responses,
               name: nil,
-              value: 1
+              value: 1,
             )
           end
         end
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
             expect(metrics_for_response[:api_responses]).to have_attributes(
               type: :api_responses,
               name: nil,
-              value: 1
+              value: 1,
             )
           end
         end
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
             expect(metrics_for_response[:api_responses]).to have_attributes(
               type: :api_responses,
               name: nil,
-              value: 1
+              value: 1,
             )
           end
         end
@@ -218,7 +218,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
             expect(metrics_for_response[:api_errors]).to have_attributes(
               type: :api_errors,
               name: nil,
-              value: 1
+              value: 1,
             )
           end
         end
@@ -247,7 +247,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           expect(metrics.first).to have_attributes(
             type: :api_errors,
             name: nil,
-            value: 1
+            value: 1,
           )
         end
       end
@@ -265,7 +265,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
         expect(metrics_for_exception[:api_errors]).to have_attributes(
           type: :api_errors,
           name: nil,
-          value: 1
+          value: 1,
         )
       end
     end
@@ -282,7 +282,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics::Counts do
         client_error: 0,
         server_error: 0,
         internal_error: 0,
-        consecutive_errors: 0
+        consecutive_errors: 0,
       )
     end
   end

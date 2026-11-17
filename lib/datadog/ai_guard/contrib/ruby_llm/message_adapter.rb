@@ -66,7 +66,7 @@ module Datadog
             end
 
             Evaluation::Message.new(
-              role: message.role, content: content, tool_calls: builder.tool_calls, tool_call_id: message.tool_call_id
+              role: message.role, content: content, tool_calls: builder.tool_calls, tool_call_id: message.tool_call_id,
             )
           end
         end

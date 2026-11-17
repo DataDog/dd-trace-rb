@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Contrib::Support do
         Module.new do
           autoload :AutoloadedConstant, temp_file.path
           const_set(:LoadedConstant, Class.new)
-        end
+        end,
       )
     end
 

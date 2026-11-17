@@ -34,7 +34,7 @@ module Datadog
           SAFE_TRACK_USER_EVENTS_MODE, EXTENDED_TRACK_USER_EVENTS_MODE,
         ].freeze
         APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = ["1", "true"].concat(
-          APPSEC_VALID_TRACK_USER_EVENTS_MODE
+          APPSEC_VALID_TRACK_USER_EVENTS_MODE,
         ).freeze
 
         def self.extended(base)
@@ -78,7 +78,7 @@ module Datadog
               # is a collection of techniques and heuristics aimed at detecting malicious inputs and preventing
               # any potential side-effects on the application resulting from the use of said malicious inputs.
               option :rasp_enabled do |o|
-                o.type :bool, nilable: true
+                o.type :bool
                 o.env "DD_APPSEC_RASP_ENABLED"
                 o.default true
               end
@@ -297,7 +297,7 @@ module Datadog
                     Datadog.logger.warn(
                       "The appsec.auto_user_instrumentation.mode value provided is not supported. " \
                       "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(" | ")}. " \
-                      "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
+                      "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}.",
                     )
 
                     DISABLED_AUTO_USER_INSTRUMENTATION_MODE
@@ -342,7 +342,7 @@ module Datadog
                       Datadog.logger.warn(
                         "The appsec.track_user_events.mode value provided is not supported." \
                         "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(" | ")}." \
-                        "Using default value: #{SAFE_TRACK_USER_EVENTS_MODE}."
+                        "Using default value: #{SAFE_TRACK_USER_EVENTS_MODE}.",
                       )
 
                       SAFE_TRACK_USER_EVENTS_MODE

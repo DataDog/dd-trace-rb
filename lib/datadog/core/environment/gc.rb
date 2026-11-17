@@ -5,13 +5,11 @@ module Datadog
     module Environment
       # Retrieves garbage collection statistics
       module GC
-        module_function
-
-        def stat
+        def self.stat
           ::GC.stat
         end
 
-        def available?
+        def self.available?
           !!(defined?(::GC) && ::GC.respond_to?(:stat))
         end
       end

@@ -16,7 +16,7 @@ module Datadog
 
             attr_reader endpoint: Endpoint
 
-            def initialize: (Endpoint endpoint, untyped adapter, ?::Hash[untyped, untyped] options) -> void
+            def initialize: (Endpoint endpoint, untyped adapter, ?Hash[untyped, untyped] options) -> void
 
             def encoder: () -> untyped
 

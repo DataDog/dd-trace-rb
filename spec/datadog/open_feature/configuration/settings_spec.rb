@@ -13,7 +13,8 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => nil,
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS" => nil,
     "DD_FEATURE_FLAGS_ENABLED" => nil,
-    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => nil
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => nil,
+    "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED" => nil
 
   describe "open_feature" do
     describe "#enabled" do
@@ -54,6 +55,48 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
   end
 
   describe "feature_flags" do
+    describe "#experimentation_opt_out_mode" do
+      subject(:mode) { settings.feature_flags.experimentation_opt_out_mode }
+
+      context "when unset" do
+        with_env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => nil
+        it { is_expected.to eq("disabled") }
+      end
+
+      context "when set in the environment" do
+        with_env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => "immediate"
+        it { is_expected.to eq("immediate") }
+      end
+
+      context "when explicitly disabled" do
+        with_env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => "immediate"
+        before { settings.feature_flags.experimentation_opt_out_mode = "disabled" }
+        it { is_expected.to eq("disabled") }
+      end
+    end
+
+    describe "#exposures_datadog_logging_enabled" do
+      subject(:enabled) { settings.feature_flags.exposures_datadog_logging_enabled }
+
+      {nil => true, "true" => true, "false" => false}.each do |value, expected|
+        context "when DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED is #{value.inspect}" do
+          with_env "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED" => value
+
+          it { is_expected.to be(expected) }
+        end
+      end
+
+      [true, false].each do |value|
+        context "when explicit configuration is #{value}" do
+          with_env "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED" => (!value).to_s
+
+          before { settings.feature_flags.exposures_datadog_logging_enabled = value }
+
+          it { is_expected.to be(value) }
+        end
+      end
+    end
+
     describe "#evaluation_telemetry_per_subject_opt_out_enabled" do
       subject(:enabled) { settings.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled }
 
@@ -167,7 +210,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         context "when the environment variable is #{configured_value.inspect}" do
           around do |example|
             ClimateControl.modify(
-              "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => configured_value
+              "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => configured_value,
             ) { example.run }
           end
 

@@ -98,6 +98,9 @@ module Datadog
             # and DI.activate_tracking is defined.
             DI.activate_tracking
             was_started = component.started?
+            if repository && !was_started
+              remove_withdrawn_probes(repository, component)
+            end
             component.start!
             # A probe delivered in an earlier poll while the component was stopped
             # was dropped by #receivers (which ignores changes while !started?) and
@@ -145,7 +148,9 @@ module Datadog
             # DEV: Apply this refactor to AppSec as well if implemented.
 
             component = DI.component
-            if component&.started?
+            if changes.empty?
+              remove_withdrawn_probes(repository, component) if component
+            elsif component&.started?
               changes.each do |change|
                 case change.type
                 when :insert
@@ -176,7 +181,7 @@ module Datadog
 
         def receiver(products = [PRODUCT], &block)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(products)
-          [Core::Remote::Dispatcher::Receiver.new(matcher, &block)]
+          [Core::Remote::Dispatcher::Receiver.new(matcher, initial_reconcile: true, &block)]
         end
 
         private
@@ -263,6 +268,45 @@ module Datadog
             next if probe_id && probe_known?(probe_id, component)
 
             add_probe(content, component)
+          end
+        end
+
+        # Removes every probe the component tracks whose id is absent from all
+        # LIVE_DEBUGGING contents in the repository. Reconciles backend deletions that
+        # produced no delete change for {.receivers}. Skips removal while a
+        # LIVE_DEBUGGING content fails to parse, because that content can hold any
+        # tracked probe.
+        def remove_withdrawn_probes(repository, component)
+          # @type var present_probe_ids: Array[String]
+          present_probe_ids = []
+          content_failed_to_parse = false
+          repository.contents.each do |content|
+            next unless content.path.product == PRODUCT
+
+            begin
+              present_probe_ids << parse_content(content)["id"]
+            rescue => exc
+              component.logger.debug do
+                "di: skipping withdrawn-probe reconcile, a LIVE_DEBUGGING content failed to parse: " \
+                "#{exc.class}: #{exc.message}"
+              end
+              content_failed_to_parse = true
+              break
+            end
+          end
+          return if content_failed_to_parse
+
+          probe_repository = component.probe_manager.probe_repository
+          tracked_probe_ids = probe_repository.installed_probes.keys | probe_repository.pending_probes.keys
+          (tracked_probe_ids - present_probe_ids).each do |probe_id|
+            component.logger.trace { "di: removing probe #{probe_id} withdrawn from remote configuration" }
+            component.probe_manager.remove_probe(probe_id)
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
+            raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+            component.logger.debug { "di: error removing withdrawn probe #{probe_id}: #{exc.class}: #{exc.message}" }
+            component.telemetry&.report(exc, description: "Error removing withdrawn probe")
           end
         end
 

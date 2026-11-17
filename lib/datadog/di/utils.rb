@@ -85,7 +85,7 @@ module Datadog
       # Returns +path+ with Windows-style backslash separators translated to
       # forward slashes (DEBUG-5111). Used to normalize probe source paths
       # that originate from IDE tooling running on Windows.
-      module_function def normalize_windows_separators(path)
+      def self.normalize_windows_separators(path)
         path.tr("\\", "/")
       end
 
@@ -106,7 +106,7 @@ module Datadog
       #
       # If suffix is not an absolute path, the path matches if its suffix is
       # the provided suffix, at a path component boundary.
-      module_function def path_matches_suffix?(path, suffix, case_insensitive: false)
+      def self.path_matches_suffix?(path, suffix, case_insensitive: false)
         if path.nil?
           raise ArgumentError, "nil path passed"
         end
@@ -146,7 +146,7 @@ module Datadog
       # Matching is attempted case-sensitively first (steps 5-6 in the design
       # comment above) and only falls back to case-insensitive (steps 7-8)
       # when no case-sensitive match is found.
-      module_function def path_can_match_spec?(path, spec)
+      def self.path_can_match_spec?(path, spec)
         # Normalize Windows-style backslash separators (DEBUG-5111) so the
         # suffix-shortening loop's "/+" regex can strip leading components.
         spec = normalize_windows_separators(spec)

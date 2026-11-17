@@ -15,9 +15,7 @@ module Datadog
           QUEUE_START = "HTTP_X_QUEUE_START"
           MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000
 
-          module_function
-
-          def get_request_start(env, now = Core::Utils::Time.now.utc)
+          def self.get_request_start(env, now = Core::Utils::Time.now.utc)
             header = env[REQUEST_START] || env[QUEUE_START]
             return unless header
 

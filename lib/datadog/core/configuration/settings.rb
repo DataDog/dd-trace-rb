@@ -283,7 +283,8 @@ module Datadog
           # @public_api
           settings :advanced do
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
-            # produced profiles. Increasing this may increase the overhead of profiling.
+            # produced profiles. Increasing this may increase the overhead of profiling. Values outside of 400 to 600 are
+            # clamped to that range.
             #
             # @default `DD_PROFILING_MAX_FRAMES` environment variable, otherwise 400
             option :max_frames do |o|
@@ -519,7 +520,7 @@ module Datadog
                   Datadog.logger.warn(
                     "The profiling.advanced.preview_gvl_enabled setting has been deprecated for removal and " \
                     "no longer does anything. Please remove it from your Datadog.configure block. " \
-                    "GVL profiling is now controlled by the profiling.advanced.gvl_enabled setting instead."
+                    "GVL profiling is now controlled by the profiling.advanced.gvl_enabled setting instead.",
                   )
                 end
               end
@@ -646,10 +647,13 @@ module Datadog
             end
 
             # Whether the profiler samples include the class/module name in stack frames, like `Foo::Bar#baz`, or not (`baz`)
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED` environment variable as a boolean, otherwise `true`
             option :experimental_show_classes_enabled do |o|
               o.type :bool
               o.env "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED"
-              o.default false
+              # Keep in sync with latest_show_classes in collectors_thread_context.c
+              o.default true
             end
           end
 

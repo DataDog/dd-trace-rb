@@ -1,23 +1,23 @@
 module Datadog
   module Core
     class KnuthSampler
-      UINT64_MAX: ::Integer
+      UINT64_MAX: Integer
 
-      UINT64_MODULO: ::Integer
+      UINT64_MODULO: Integer
 
-      DEFAULT_KNUTH_FACTOR: ::Integer
+      DEFAULT_KNUTH_FACTOR: Integer
 
-      @knuth_factor: ::Integer
+      @knuth_factor: Integer
 
-      @rate: ::Float
+      @rate: Float
 
-      @threshold: ::Float
+      @threshold: Float
 
-      attr_reader rate: ::Float
+      attr_reader rate: Float
 
-      def initialize: (?::Float | ::Integer rate, ?knuth_factor: ::Integer) -> void
+      def initialize: (?Float | Integer rate, ?knuth_factor: Integer) -> void
 
-      def sample?: (::Integer input) -> bool
+      def sample?: (Integer input) -> bool
     end
   end
 end

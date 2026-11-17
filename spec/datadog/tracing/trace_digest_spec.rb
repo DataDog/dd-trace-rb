@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           trace_state_unknown_fields: nil,
           trace_otel_random_value: nil,
           trace_otel_threshold: nil,
-          trace_otel_unknown_fields: nil
+          trace_otel_unknown_fields: nil,
         )
       end
 
@@ -201,7 +201,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           is_expected.to have_attributes(
             trace_otel_random_value: be_a_frozen_copy_of(random_value),
             trace_otel_threshold: be_a_frozen_copy_of(threshold),
-            trace_otel_unknown_fields: be_a_frozen_copy_of(unknown_fields)
+            trace_otel_unknown_fields: be_a_frozen_copy_of(unknown_fields),
           )
         end
       end

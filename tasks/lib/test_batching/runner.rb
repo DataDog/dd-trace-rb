@@ -27,7 +27,7 @@ module TestBatching
           task: task,
           build_seconds: build_seconds,
           test_seconds: test_seconds,
-          junit_seconds: junit_seconds
+          junit_seconds: junit_seconds,
         )
 
         [task.name, junit_seconds]
@@ -40,7 +40,11 @@ module TestBatching
 
     def install(task)
       env = {"BUNDLE_GEMFILE" => task.gemfile}
-      cmd = "bundle check || bundle install"
+      # `--quiet` keeps bundle install output (including native gem builds)
+      # out of the CI job log. Re-running the job with debug logging
+      # (RUNNER_DEBUG=1) shows the full output.
+      quiet = ENV["RUNNER_DEBUG"] != "1"
+      cmd = "bundle check || bundle install#{quiet ? " --quiet" : ""}"
       # Retry mechanism to improve reliability in Github Actions,
       # since network issues can cause `bundle install` to fail.
       measure_duration do
@@ -166,7 +170,7 @@ module TestBatching
       rescue => e
         warn(
           "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-          Source:\n#{Array(e.backtrace).join("\n")}"
+          Source:\n#{Array(e.backtrace).join("\n")}",
         )
         sleep(2**retries)
         retries += 1

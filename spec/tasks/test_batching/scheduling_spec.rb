@@ -66,7 +66,7 @@ RSpec.describe TestBatching::Weighted do
     tasks = [["a", "a"], ["b", "b"], ["c", "c"]]
     ruby_weights = weights(
       {["a", "a"] => 9, ["b", "b"] => 8, ["c", "c"] => 7},
-      {"a.gemfile" => 1, "b.gemfile" => 1, "c.gemfile" => 1}
+      {"a.gemfile" => 1, "b.gemfile" => 1, "c.gemfile" => 1},
     )
 
     batches = plan(tasks, ruby_weights).batches
@@ -79,7 +79,7 @@ RSpec.describe TestBatching::Weighted do
     tasks = [["a", ""], ["b", ""], ["c", "other"]]
     ruby_weights = weights(
       {["a", ""] => 50, ["b", ""] => 50, ["c", "other"] => 60},
-      {"Gemfile" => 10, "other.gemfile" => 10}
+      {"Gemfile" => 10, "other.gemfile" => 10},
     )
 
     batches = plan(tasks, ruby_weights).batches
@@ -92,7 +92,7 @@ RSpec.describe TestBatching::Weighted do
     tasks = [["a", ""], ["b", ""], ["c", "other"]]
     ruby_weights = weights(
       {["a", ""] => 100, ["b", ""] => 100, ["c", "other"] => 20},
-      {"Gemfile" => 10, "other.gemfile" => 10}
+      {"Gemfile" => 10, "other.gemfile" => 10},
     )
 
     batches = plan(tasks, ruby_weights).batches
@@ -105,7 +105,7 @@ RSpec.describe TestBatching::Weighted do
     tasks = [["known", "known"], ["new", "new"]]
     ruby_weights = weights(
       {["a", ""] => 10, ["b", ""] => 20, ["c", ""] => 30, ["known", "known"] => 40},
-      {"a.gemfile" => 1, "b.gemfile" => 2, "c.gemfile" => 3, "known.gemfile" => 4}
+      {"a.gemfile" => 1, "b.gemfile" => 2, "c.gemfile" => 3, "known.gemfile" => 4},
     )
 
     batches = plan(tasks, ruby_weights, batch_count: 1).batches

@@ -37,7 +37,7 @@ module Datadog
 
                     sinatra_routes.each do |sinatra_route, _, _|
                       yielder.yield SinatraRouteSerializer.serialize(
-                        sinatra_route, method: method, path_prefix: route.path.spec.to_s
+                        sinatra_route, method: method, path_prefix: route.path.spec.to_s,
                       )
                     end
                   end

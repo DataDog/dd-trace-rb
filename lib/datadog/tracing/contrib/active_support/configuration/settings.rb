@@ -35,7 +35,7 @@ module Datadog
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   "",
-                  Ext::SERVICE_CACHE
+                  Ext::SERVICE_CACHE,
                 )
               end
             end

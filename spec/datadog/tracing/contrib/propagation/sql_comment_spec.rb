@@ -139,7 +139,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       let(:span_op) do
         Datadog::Tracing::SpanOperation.new(
           "sample_span",
-          service: "db_service"
+          service: "db_service",
         )
       end
       let(:trace_op) do
@@ -147,8 +147,8 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           to_digest: Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
-            trace_flags: 0xFE
-          )
+            trace_flags: 0xFE,
+          ),
         )
       end
 
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
         it do
           is_expected.to eq(
-            "/*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/ #{sql_statement}"
+            "/*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/ #{sql_statement}",
           )
         end
 
@@ -174,13 +174,13 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               "sample_span",
               service: "db_service",
-              tags: {"peer.service" => "db_peer_service"}
+              tags: {"peer.service" => "db_peer_service"},
             )
           end
 
           it do
             is_expected.to eq(
-              "/*dde='dev',ddps='api',ddpv='1.2',ddprs='db_peer_service',dddbs='db_peer_service'*/ #{sql_statement}"
+              "/*dde='dev',ddps='api',ddpv='1.2',ddprs='db_peer_service',dddbs='db_peer_service'*/ #{sql_statement}",
             )
           end
 
@@ -228,13 +228,13 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               Datadog::Tracing::SpanOperation.new(
                 "sample_span",
                 service: "db_service",
-                tags: {"peer.service" => "api"}
+                tags: {"peer.service" => "api"},
               )
             end
 
             it "omits the redundant dddbs" do
               is_expected.to eq(
-                "/*dde='dev',ddps='api',ddpv='1.2',ddprs='api'*/ #{sql_statement}"
+                "/*dde='dev',ddps='api',ddpv='1.2',ddprs='api'*/ #{sql_statement}",
               )
             end
           end
@@ -245,13 +245,13 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               "sample_span",
               service: "db_service",
-              tags: {"db.instance" => "db_name"}
+              tags: {"db.instance" => "db_name"},
             )
           end
 
           it do
             is_expected.to eq(
-              "/*dde='dev',ddps='api',ddpv='1.2',dddb='db_name',dddbs='db_service'*/ #{sql_statement}"
+              "/*dde='dev',ddps='api',ddpv='1.2',dddb='db_name',dddbs='db_service'*/ #{sql_statement}",
             )
           end
         end
@@ -261,13 +261,13 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               "sample_span",
               service: "db_service",
-              tags: {"peer.hostname" => "db_host"}
+              tags: {"peer.hostname" => "db_host"},
             )
           end
 
           it do
             is_expected.to eq(
-              "/*dde='dev',ddps='api',ddpv='1.2',ddh='db_host',dddbs='db_service'*/ #{sql_statement}"
+              "/*dde='dev',ddps='api',ddpv='1.2',ddh='db_host',dddbs='db_service'*/ #{sql_statement}",
             )
           end
         end
@@ -291,7 +291,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
         it "includes service metadata and the propagation hash in the SQL comment" do
           is_expected.to eq(
-            "/*dde='dev',ddps='api',ddpv='1.2',ddsh='1234567890',dddbs='db_service'*/ #{sql_statement}"
+            "/*dde='dev',ddps='api',ddpv='1.2',ddsh='1234567890',dddbs='db_service'*/ #{sql_statement}",
           )
         end
       end
@@ -308,7 +308,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             "ddpv='1.2'," \
             "dddbs='db_service'," \
             "traceparent='#{traceparent}'*/ " \
-            "#{sql_statement}"
+            "#{sql_statement}",
           )
         }
 
@@ -317,7 +317,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               "sample_span",
               service: "db_service",
-              tags: {"peer.service" => "db_peer_service"}
+              tags: {"peer.service" => "db_peer_service"},
             )
           end
 
@@ -330,7 +330,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               "ddprs='db_peer_service'," \
               "dddbs='db_peer_service'," \
               "traceparent='#{traceparent}'*/ " \
-              "#{sql_statement}"
+              "#{sql_statement}",
             )
           }
         end
@@ -354,7 +354,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         end
 
         allow(Datadog).to receive(:send).with(:components).and_return(
-          double(agent_info: agent_info, tracer: tracer)
+          double(agent_info: agent_info, tracer: tracer),
         )
       end
 
@@ -374,7 +374,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
       it do
         is_expected.to eq(
-          "/*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/ #{sql_statement}"
+          "/*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/ #{sql_statement}",
         )
       end
 

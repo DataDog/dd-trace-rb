@@ -1,0 +1,10 @@
+module Datadog
+  module Profiling
+    module Ext
+      module Transport
+        module HTTP
+        end
+      end
+    end
+  end
+end

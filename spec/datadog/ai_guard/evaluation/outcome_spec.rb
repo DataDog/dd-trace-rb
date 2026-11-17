@@ -8,14 +8,16 @@ RSpec.describe Datadog::AIGuard::Evaluation::Outcome do
       described_class.new(
         result: result,
         redaction: redaction,
-        blocking_enabled: decision.fetch(:blocking_enabled)
+        blocking_enabled: decision.fetch(:blocking_enabled),
+        extra_tags: nil,
+        extra_metastruct: nil,
       )
     end
     let(:result) do
       instance_double(
         Datadog::AIGuard::Evaluation::Result,
         deny?: decision.fetch(:deny),
-        abort?: decision.fetch(:abort)
+        abort?: decision.fetch(:abort),
       )
     end
     let(:redaction) { instance_double(Datadog::AIGuard::Redaction::Result) }

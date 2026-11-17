@@ -8,7 +8,7 @@ require "datadog/tracing/span"
 
 class CallbackFailure < Exception; end # rubocop:disable Lint/InheritException
 
-url, interrupt, callback_failure = ARGV
+url, interrupt, callback_failure, shape = ARGV
 exporter = Datadog::Tracing::Transport::Native::TraceExporter._native_new(
   url: url, tracer_version: nil, language: nil, language_version: nil,
   language_interpreter: nil, hostname: nil, env: nil, service: nil, version: nil,
@@ -26,8 +26,10 @@ begin
   ClimateControl.modify("OBSERVATION_READY_FD" => ready_write.fileno.to_s,
     "OBSERVATION_RELEASE_FD" => release_read.fileno.to_s) do
     sender = Thread.new do
-      span = Datadog::Tracing::Span.new("interrupt.test", id: 2, trace_id: 1)
-      exporter._native_send_traces([[span]], false) do |report|
+      traces = (shape || "1").split(",").each_with_index.map do |spans, trace|
+        Array.new(Integer(spans)) { |span| Datadog::Tracing::Span.new("interrupt.test", id: span + 2, trace_id: trace + 1) }
+      end
+      exporter._native_send_traces(traces, false) do |report|
         reports << report
         raise "callback failure" if callback_failure == "standard"
         raise CallbackFailure, "fatal callback failure" if callback_failure == "fatal"
@@ -44,7 +46,7 @@ begin
     raise "sender did not terminate" unless sender.join(5)
     puts JSON.generate(native: native, reports: reports, returned: returned,
       same_exception: received.equal?(failure), backtrace: received&.backtrace,
-      error: received && "#{received.class}: #{received.message}",)
+      error: received && "#{received.class}: #{received.message}")
   end
 ensure
   release_write.close

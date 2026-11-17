@@ -35,4 +35,29 @@ RSpec.describe Datadog::Core::Configuration::ComponentsState do
       expect(state.di_implicitly_enabled?).to be false
     end
   end
+
+  describe "#rc_enablement_signal_paths" do
+    let(:signal_path) do
+      Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+    end
+
+    it "defaults to an empty array when not provided" do
+      state = described_class.new(telemetry_enabled: true, remote_started: false)
+      expect(state.rc_enablement_signal_paths).to eq([])
+    end
+
+    it "returns the paths it was constructed with" do
+      state = described_class.new(
+        telemetry_enabled: true,
+        remote_started: false,
+        rc_enablement_signal_paths: [signal_path],
+      )
+      expect(state.rc_enablement_signal_paths).to eq([signal_path])
+    end
+
+    it "coerces nil to an empty array" do
+      state = described_class.new(telemetry_enabled: true, remote_started: false, rc_enablement_signal_paths: nil)
+      expect(state.rc_enablement_signal_paths).to eq([])
+    end
+  end
 end

@@ -5,6 +5,7 @@ module Datadog
       type known_addresses = ::Array[::String]
       type diagnostics = ::Hash[::String, untyped]
       type input = nil | bool | ::String | ::Symbol | ::Integer | ::Float | ::Array[input] | ::Hash[input, input]
+
       type result = {
         "keep" => bool,
         "events" => events,
@@ -43,6 +44,9 @@ module Datadog
       type action = ::Hash[::String, ::String]
       type attributes = ::Hash[::String, opaque]
       type opaque = nil | bool | ::String | ::Integer | ::Float | ::Array[opaque] | ::Hash[::String, opaque]
+
+      class JSONString < String
+      end
 
       # retain logging proc if set properly
       self.@log_callback: untyped

@@ -11,7 +11,7 @@ module Datadog
 
           @base64_capabilities: String
 
-          @mutex: ::Thread::Mutex
+          @mutex: Thread::Mutex
 
           @telemetry: Datadog::Core::Telemetry::Component
 
@@ -34,9 +34,9 @@ module Datadog
             receivers: Array[Core::Remote::Dispatcher::Receiver]
           ) -> void
 
-          def add_products: (*::String products) -> void
+          def add_products: (*String products) -> void
 
-          def remove_products: (*::String products) -> void
+          def remove_products: (*String products) -> void
 
           private
 

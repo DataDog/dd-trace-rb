@@ -23,8 +23,8 @@ module Datadog
             def from_tracestate_member(value)
               return new unless value
 
-              # @type var random_value: ::String?
-              # @type var threshold: ::String?
+              # @type var random_value: String?
+              # @type var threshold: String?
               random_value = nil
               threshold = nil
               unknown = []
@@ -85,7 +85,7 @@ module Datadog
             outbound_random_value = reconcile_random_value(
               random_value_for(trace_id),
               outbound_threshold,
-              !!trace_kept
+              !!trace_kept,
             )
             self.class.new(
               random_value: format_random_value(outbound_random_value),

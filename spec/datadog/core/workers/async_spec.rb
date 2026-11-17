@@ -96,7 +96,7 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
             error: nil,
             completed?: true,
             started?: true,
-            run_async?: true
+            run_async?: true,
           )
         end
 
@@ -459,7 +459,7 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
           "AsyncSpecThreadNaming",
           Class.new(Datadog::Core::Worker) do
             include Datadog::Core::Workers::Async::Thread
-          end
+          end,
         )
       end
 

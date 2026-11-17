@@ -8,7 +8,7 @@ module Datadog
 
         METRIC_EXPORT_FAILURES: "otel.metrics_export_failures"
 
-        def export: (untyped metrics, ?timeout: ::Float?) -> Integer
+        def export: (untyped metrics, ?timeout: Float?) -> Integer
       end
     end
   end

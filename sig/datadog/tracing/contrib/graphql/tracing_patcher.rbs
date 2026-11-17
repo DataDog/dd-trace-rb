@@ -4,7 +4,7 @@ module Datadog
       module GraphQL
         module TracingPatcher
 
-          def self?.patch!: (::Array[untyped] schemas,  ::Hash[Symbol, untyped] options) -> untyped
+          def self.patch!: (Array[untyped] schemas,  Hash[Symbol, untyped] options) -> untyped
         end
       end
     end

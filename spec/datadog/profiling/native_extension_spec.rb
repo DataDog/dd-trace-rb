@@ -8,6 +8,39 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:working?) { described_class.send(:working?) }
 
     it { is_expected.to be true }
+
+    describe "self_test_thread_struct" do
+      it "passes when Thread name method is overridden as in semantic_logger" do
+        expect_in_fork do
+          # Mirrors semantic_logger 5.1.0: https://github.com/DataDog/dd-trace-rb/issues/6582
+          Thread.class_eval do
+            undef :name if method_defined? :name
+            undef :name= if method_defined? :name=
+
+            def name
+              @name ||= object_id.to_s
+            end
+
+            def name=(name)
+              @name = name.to_s
+            end
+          end
+
+          is_expected.to be true
+        end
+      end
+
+      it "fails if the thread name we tried to set doesn't match thread_struct->name" do
+        expect_in_fork do
+          Thread.class_eval do
+            def name=(_name)
+            end
+          end
+
+          expect { working? }.to raise_error(RuntimeError, "rb_thread_t self-test failed: name does not match the assigned name")
+        end
+      end
+    end
   end
 
   describe "grab_gvl_and_raise" do

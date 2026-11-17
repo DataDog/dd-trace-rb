@@ -48,7 +48,7 @@ module Datadog
             host_prefix: host_prefix,
             url_override: url_override,
             url_override_source: url_override_source,
-            logger: logger
+            logger: logger,
           ).send(:call)
         end
 
@@ -162,7 +162,7 @@ module Datadog
               else
                 log_warning(
                   "Invalid URI scheme '#{parsed.scheme}' for #{url_override_source}. " \
-                  "Ignoring the contents of #{url_override_source}."
+                  "Ignoring the contents of #{url_override_source}.",
                 )
                 nil
               end

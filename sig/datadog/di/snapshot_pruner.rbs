@@ -1,0 +1,25 @@
+module Datadog
+  module DI
+    class SnapshotPruner
+      PRUNED_MARKER: String
+
+      MIN_LEVEL: Integer
+
+      @parser: Parser
+
+      def initialize: () -> void
+
+      attr_reader parser: Parser
+
+      def prune: (String json, max_size: Integer) -> String
+
+      private
+
+      def select_nodes: (Node root, Integer excess) -> Array[Node]
+
+      def replacement_saving: (Node node) -> Integer
+
+      def rewrite: (String json, Array[Node] selected_nodes) -> String
+    end
+  end
+end

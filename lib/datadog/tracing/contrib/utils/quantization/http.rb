@@ -18,9 +18,7 @@ module Datadog
             # and fragment components
             RFC3986_URL_BASE = /\A(?<URI>(?<scheme>[A-Za-z][+\-.0-9A-Za-z]*+):(?<hier-part>\/\/(?<authority>(?:(?<userinfo>(?:%\h\h|[!$&-.0-;=A-Z_a-z~])*+)@)?(?<host>(?<IP-literal>\[(?:(?<IPv6address>(?:\h{1,4}:){6}(?<ls32>\h{1,4}:\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]|\d)\.\g<dec-octet>\.\g<dec-octet>\.\g<dec-octet>))|::(?:\h{1,4}:){5}\g<ls32>|\h{1,4}?::(?:\h{1,4}:){4}\g<ls32>|(?:(?:\h{1,4}:)?\h{1,4})?::(?:\h{1,4}:){3}\g<ls32>|(?:(?:\h{1,4}:){,2}\h{1,4})?::(?:\h{1,4}:){2}\g<ls32>|(?:(?:\h{1,4}:){,3}\h{1,4})?::\h{1,4}:\g<ls32>|(?:(?:\h{1,4}:){,4}\h{1,4})?::\g<ls32>|(?:(?:\h{1,4}:){,5}\h{1,4})?::\h{1,4}|(?:(?:\h{1,4}:){,6}\h{1,4})?::)|(?<IPvFuture>v\h++\.[!$&-.0-;=A-Z_a-z~]++))\])|\g<IPv4address>|(?<reg-name>(?:%\h\h|[!$&-.0-9;=A-Z_a-z~])*+))(?::(?<port>\d*+))?)))(?:\/|\z)/.freeze # rubocop:disable Layout/LineLength
 
-            module_function
-
-            def client_resource(method, path, enabled:)
+            def self.client_resource(method, path, enabled:)
               return method unless enabled && path
 
               resource = method.dup
@@ -29,7 +27,7 @@ module Datadog
               resource << quantized_path.force_encoding(resource.encoding)
             end
 
-            def decode_path(path)
+            def self.decode_path(path)
               decoded = String.new(encoding: Encoding::BINARY)
               index = 0
 
@@ -58,7 +56,7 @@ module Datadog
               decoded.force_encoding(path.encoding)
             end
 
-            def quantize_path(path)
+            def self.quantize_path(path)
               slash = (+"/").force_encoding(path.encoding)
               normalized = if path.getbyte(0) == 47
                 path
@@ -110,7 +108,7 @@ module Datadog
               output
             end
 
-            def url(url, options = {})
+            def self.url(url, options = {})
               url!(url, options)
             rescue
               placeholder = options[:placeholder] || PLACEHOLDER
@@ -118,7 +116,7 @@ module Datadog
               (options[:base] == :exclude) ? placeholder : "#{base_url(url)}/#{placeholder}"
             end
 
-            def base_url(url, options = {})
+            def self.base_url(url, options = {})
               if (m = RFC3986_URL_BASE.match(url))
                 m[1]
               else
@@ -126,7 +124,7 @@ module Datadog
               end
             end
 
-            def url!(url, options = {})
+            def self.url!(url, options = {})
               options ||= {}
 
               URI.parse(url).tap do |uri|
@@ -147,7 +145,7 @@ module Datadog
               end.to_s
             end
 
-            def query(query, options = {})
+            def self.query(query, options = {})
               query!(query, options)
             rescue
               return "" if options && options[:obfuscate]
@@ -155,7 +153,7 @@ module Datadog
               options[:placeholder] || PLACEHOLDER
             end
 
-            def query!(query, options = {})
+            def self.query!(query, options = {})
               options ||= {}
               options[:obfuscate] = {} if options[:obfuscate] == :internal
               options[:show] = options[:show] || (options[:obfuscate] ? :all : [])
@@ -182,7 +180,7 @@ module Datadog
             # Iterate over each key value pair, yielding to the block given.
             # Accepts :uniq option, which keeps uniq copies of keys without values.
             # e.g. Reduces "foo&bar=bar&bar=bar&foo" to "foo&bar=bar&bar=bar"
-            def collect_query(query, options = {})
+            def self.collect_query(query, options = {})
               return query unless block_given?
 
               uniq = options[:uniq].nil? ? false : options[:uniq]
@@ -208,7 +206,7 @@ module Datadog
 
             private_class_method :collect_query
 
-            def decode_hex_byte(byte)
+            def self.decode_hex_byte(byte)
               if byte.between?(48, 57)
                 byte - 48
               elsif byte.between?(65, 70)
@@ -222,7 +220,7 @@ module Datadog
 
             # Scans over the query string and obfuscates sensitive data by
             # replacing matches with an opaque value
-            def obfuscate_query(query, options = {})
+            def self.obfuscate_query(query, options = {})
               options[:regex] = nil if options[:regex] == :internal
               re = options[:regex] || OBFUSCATOR_REGEX
               with = options[:with] || OBFUSCATOR_WITH

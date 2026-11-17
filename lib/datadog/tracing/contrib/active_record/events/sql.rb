@@ -20,17 +20,15 @@ module Datadog
             EVENT_NAME = "sql.active_record"
             PAYLOAD_CACHE = "CACHE"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_SQL
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               config = Utils.connection_config(payload[:connection], payload[:connection_id])
               settings = Datadog.configuration.tracing[:active_record, config]
               adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])

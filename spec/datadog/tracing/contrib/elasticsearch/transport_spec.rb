@@ -43,7 +43,7 @@ RSpec.describe "Elasticsearch::Transport::Client tracing" do
       .to_return(
         status: 200,
         headers: {"x-elastic-product" => "Elasticsearch", "content-type" => "application/yaml"},
-        body: "version:\n  number: 8.0.0"
+        body: "version:\n  number: 8.0.0",
       )
 
     # Elasticsearch always sends one sanity request to `/` per client before executing the desired request.
@@ -68,7 +68,7 @@ RSpec.describe "Elasticsearch::Transport::Client tracing" do
           def call(env)
             @app.call(env)
           end
-        end
+        end,
       )
     end
 

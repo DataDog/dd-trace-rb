@@ -53,7 +53,7 @@ module TestBatching
       entry = task.to_h.merge(
         "build_seconds" => build_seconds,
         "test_seconds" => test_seconds,
-        "junit_seconds" => junit_seconds
+        "junit_seconds" => junit_seconds,
       ).compact.freeze
 
       index = timings.index { |existing| entry_matches?(existing, task) }

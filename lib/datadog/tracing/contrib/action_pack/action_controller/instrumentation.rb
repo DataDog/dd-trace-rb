@@ -16,9 +16,7 @@ module Datadog
         module ActionController
           # Instrumentation for ActionController components
           module Instrumentation
-            module_function
-
-            def start_processing(payload)
+            def self.start_processing(payload)
               return unless Tracing.enabled?
 
               # trace the execution
@@ -48,7 +46,7 @@ module Datadog
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
-            def finish_processing(payload)
+            def self.finish_processing(payload)
               return unless Tracing.enabled?
 
               # retrieve the tracing context and the latest active span

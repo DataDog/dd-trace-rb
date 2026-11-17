@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
         it "skips invalid values" do
           expect(Datadog.logger).to receive(:warn).with(/Attribute invalid_.*/).exactly(6).times
 
-          expect(span_event.attributes).to eq("int" => 1, "string" => "bar",)
+          expect(span_event.attributes).to eq("int" => 1, "string" => "bar")
         end
       end
 
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
                          array_value: {values: [{type: 1, bool_value: true}, {type: 1, bool_value: false}]}},
           "int_arr" => {type: 4, array_value: {values: [{type: 2, int_value: 1}, {type: 2, int_value: 2}]}},
           "float_arr" => {type: 4,
-                          array_value: {values: [{type: 3, double_value: 1.0}, {type: 3, double_value: 2.0}]}}
+                          array_value: {values: [{type: 3, double_value: 1.0}, {type: 3, double_value: 2.0}]}},
         )
       end
     end

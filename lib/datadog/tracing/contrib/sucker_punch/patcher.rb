@@ -11,13 +11,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "exception_handler"
             require_relative "instrumentation"
 
@@ -25,7 +23,7 @@ module Datadog
             Instrumentation.patch!
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:sucker_punch].get_option(option)
           end
         end

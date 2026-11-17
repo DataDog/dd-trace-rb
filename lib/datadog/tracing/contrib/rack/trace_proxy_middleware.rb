@@ -11,9 +11,7 @@ module Datadog
       module Rack
         # Module to create virtual proxy span
         module TraceProxyMiddleware
-          module_function
-
-          def call(env, configuration, &block)
+          def self.call(env, configuration, &block)
             if configuration[:inferred_proxy_enabled] &&
                 (proxy_type = env[Ext::HEADER_X_DD_PROXY]) && !proxy_type.empty?
               return call_with_inferred_proxy(env, proxy_type, &block)
@@ -62,7 +60,7 @@ module Datadog
           # that wraps the actual request processing.
           #
           # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-          def call_with_inferred_proxy(env, proxy_type)
+          def self.call_with_inferred_proxy(env, proxy_type)
             span_name = Ext::PROXY_SPAN_NAMES[proxy_type]
             return yield unless span_name
 
@@ -118,7 +116,7 @@ module Datadog
           # Sets cloud provider metadata and constructs the resource ARN.
           #
           # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-          def set_optional_tags(span, env:, proxy_type:)
+          def self.set_optional_tags(span, env:, proxy_type:)
             api_id = env[Ext::HEADER_X_DD_PROXY_API_ID]
             region = env[Ext::HEADER_X_DD_PROXY_REGION]
 
@@ -146,7 +144,7 @@ module Datadog
 
           # Propagates response-level and security tags from the request span to
           # the inferred parent.
-          def propagate_request_span_tags(span, env:)
+          def self.propagate_request_span_tags(span, env:)
             rack_span = env[Ext::RACK_ENV_REQUEST_SPAN]
             return unless rack_span
 

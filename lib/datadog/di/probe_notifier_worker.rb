@@ -59,6 +59,17 @@ module Datadog
         @flush = 0
         @probe_repository = probe_repository
         @probe_notification_builder = probe_notification_builder
+        # The worker thread reads these options on every send cycle. Option
+        # reads resolve lazily by inserting into the settings' options hash,
+        # and Ruby raises "can't add a new key into hash during iteration"
+        # when that insert races a concurrent iteration of the same hash (for
+        # example a Datadog configuration reset). Resolving here moves the
+        # inserts onto the constructing thread; reads on the worker thread
+        # stay pure hash lookups. Components are rebuilt on reconfiguration,
+        # so the resolved options track configuration changes.
+        settings.dynamic_instrumentation.internal.min_send_interval
+        settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        settings.dynamic_instrumentation.internal.snapshot_queue_capacity
       end
 
       attr_reader :settings
@@ -220,7 +231,7 @@ module Datadog
       # @return [DI::Transport::Input::Transport]
       def snapshot_transport
         @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
-          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry,)
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry)
       end
 
       # Sends a batch of snapshot payloads to the agent.

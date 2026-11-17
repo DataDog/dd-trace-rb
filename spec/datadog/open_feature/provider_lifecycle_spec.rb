@@ -18,7 +18,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
   end
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, register: nil, start: nil) }
-  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, warn: nil, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, warn: nil, debug: nil, debug?: false) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil) }
   let(:activation) do
     Datadog::OpenFeature::Activation.new(settings, agent_settings, remote, logger: logger, telemetry: telemetry)

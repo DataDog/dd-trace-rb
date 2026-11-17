@@ -73,7 +73,7 @@ module Datadog
         @telemetry&.distribution(
           Tracing::Ext::TELEMETRY_METRICS_NAMESPACE,
           "symbol_database.payload_size",
-          compressed_data.bytesize
+          compressed_data.bytesize,
         )
 
         # Symbols for very large applications (>50MB after gzip) are dropped:

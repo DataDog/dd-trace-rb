@@ -27,8 +27,6 @@ module Datadog
         # Max bytes one input byte expands to as percent-encoded `%XX`
         MAX_ENCODED_BYTE_SIZE = 3
 
-        module_function
-
         # Escapes literal route text into normalized-route form
         #
         # Example:
@@ -39,7 +37,7 @@ module Datadog
         #
         # NOTE: {URI::Parser#escape} with {DISALLOWED_CHARS} gives the same output,
         #       but the generic gsub/sprintf path is slower and allocates more per request
-        def escape(text)
+        def self.escape(text)
           return text unless text.match?(DISALLOWED_CHARS)
 
           buffer = String.new(capacity: text.bytesize * MAX_ENCODED_BYTE_SIZE, encoding: Encoding::UTF_8)

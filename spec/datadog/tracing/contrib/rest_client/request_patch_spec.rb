@@ -342,8 +342,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         before do
           tracer.continue_trace!(
             Datadog::Tracing::TraceDigest.new(
-              trace_sampling_priority: sampling_priority
-            )
+              trace_sampling_priority: sampling_priority,
+            ),
           )
         end
 
@@ -382,8 +382,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         before do
           tracer.continue_trace!(
             Datadog::Tracing::TraceDigest.new(
-              trace_sampling_priority: sampling_priority
-            )
+              trace_sampling_priority: sampling_priority,
+            ),
           )
         end
 

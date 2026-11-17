@@ -6,17 +6,15 @@ module Datadog
       module Faraday
         # Patcher for Faraday
         module Patcher
-          module_function
-
-          def patched?
+          def self.patched?
             Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "ssrf_detection_middleware"
             require_relative "connection_patch"
             require_relative "rack_builder_patch"
@@ -27,7 +25,7 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def configure_default_faraday_connection
+          def self.configure_default_faraday_connection
             if target_version&.>= Gem::Version.new("1.0.0")
               # Patch the default connection (e.g. +Faraday.get+)
               ::Faraday.default_connection.use(:datadog_appsec)

@@ -131,6 +131,10 @@ module Datadog
         @logger = logger
         @guardrails_telemetry = guardrails_telemetry
         @telemetry = telemetry
+        # Evaluation budget for one expression evaluation, as thread CPU
+        # seconds, converted from max_time_to_evaluate_ms here so that
+        # deadline resolution per probe firing traverses no settings.
+        @evaluation_budget_seconds = settings.dynamic_instrumentation.max_time_to_evaluate_ms / 1000.0
       end
 
       attr_reader :settings
@@ -186,7 +190,7 @@ module Datadog
         collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
-          length: length, collection_size: collection_size, deadline: deadline,)
+          length: length, collection_size: collection_size, deadline: deadline)
       end
 
       # Serializes variables captured by a line probe.
@@ -205,7 +209,7 @@ module Datadog
         collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
-            length: length, collection_size: collection_size, deadline: deadline,)
+            length: length, collection_size: collection_size, deadline: deadline)
         end
       end
 
@@ -568,7 +572,21 @@ module Datadog
           settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
       end
 
+      # Computes the absolute thread CPU time deadline (in seconds) for an
+      # expression evaluation by adding the evaluation budget, converted
+      # from max_time_to_evaluate_ms once at construction, to the current
+      # thread CPU clock reading.
+      #
+      # @return [Float] absolute thread CPU clock reading, in seconds, at
+      #   which the evaluation budget is exhausted
+      def evaluation_deadline
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) +
+          evaluation_budget_seconds
+      end
+
       private
+
+      attr_reader :evaluation_budget_seconds
 
       def deadline_exceeded?(deadline)
         Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline

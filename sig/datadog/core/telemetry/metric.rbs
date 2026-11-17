@@ -9,7 +9,7 @@ module Datadog
         type metric_value = Array[input_value]
         type distribution_value = input_value
 
-        type tags_input = ::Hash[String | Symbol, String] | Array[String]
+        type tags_input = Hash[String | Symbol, String] | Array[String]
 
         class Base
           @name: String

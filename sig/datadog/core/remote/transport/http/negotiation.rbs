@@ -16,7 +16,7 @@ module Datadog
 
               @span_events: untyped
 
-              def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+              def initialize: (untyped http_response, ?Hash[untyped, untyped] options) -> void
             end
 
             class Client < Core::Transport::HTTP::Client

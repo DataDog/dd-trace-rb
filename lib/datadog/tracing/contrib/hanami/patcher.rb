@@ -13,13 +13,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             # For auto instrumentation, `plugin` must be required before `Hanami.boot`
             require_relative "plugin"
 

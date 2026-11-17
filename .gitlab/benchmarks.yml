@@ -156,6 +156,22 @@ profiling-and-tracing-and-appsec:
     DD_PROFILING_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
+# DSM overhead (baseline / apm-only / apm+dsm) on benchmarks/kafka_dsm. Report-only.
+dsm-throughput:
+  stage: macrobenchmarks
+  # install-dependencies (the only libdatadog_api build) is an SSI GEM_HOME skipped by SKIP_SHARED_PIPELINE,
+  # so the child job compiles it from this checkout instead.
+  needs: []
+  trigger:
+    include: .gitlab/benchmarks/dsm-throughput.yml
+  variables:
+    DD_DISABLE_VPA: "true"
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: on_success
+    - when: manual
+
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
 # -----------------------------------------------------

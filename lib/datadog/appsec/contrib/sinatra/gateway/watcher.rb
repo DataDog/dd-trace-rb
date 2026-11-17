@@ -56,7 +56,7 @@ module Datadog
 
                   if result.match? || !result.attributes.empty?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
                   end
 
@@ -87,7 +87,7 @@ module Datadog
                     TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::ActionsHandler.handle(result.actions)
@@ -101,14 +101,26 @@ module Datadog
                 gateway.watch("sinatra.response.body.json") do |stack, container|
                   context = container.context # : Context
 
+                  body_bytesize = container.data.bytesize
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+
                   persistent_data = {
-                    "server.response.body" => container.data,
+                    "server.response.body.byte_length" => body_bytesize,
                   }
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+
+                  if limit > 0 && body_bytesize <= limit
+                    persistent_data["server.response.body"] = WAF::JSONString.new(container.data)
+                  end
+
+                  result = begin
+                    context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  rescue WAF::ConversionError
+                    next stack.call(container)
+                  end
 
                   if result.match?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::Event.tag(context, result)

@@ -113,8 +113,8 @@ RSpec.describe Datadog::Core::Telemetry::Request do
             env: env,
             service: service_name,
             version: service_version,
-            experimental_propagate_process_tags_enabled: false
-          )
+            experimental_propagate_process_tags_enabled: false,
+          ),
         )
       end
 

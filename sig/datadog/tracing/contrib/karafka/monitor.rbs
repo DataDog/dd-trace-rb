@@ -5,7 +5,7 @@ module Datadog
         module Monitor
           @job_types_cache: untyped
 
-          TRACEABLE_EVENTS: ::Array["worker.processed"]
+          TRACEABLE_EVENTS: Array["worker.processed"]
 
           def instrument: (string event_id, ?untyped payload) { (?) -> untyped } -> untyped
 

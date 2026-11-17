@@ -48,7 +48,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
                 },
               },
             },
-          }
+          },
         ).and_return(raw_response)
 
         expect(outcome.result).to be_a(Datadog::AIGuard::Evaluation::Result)

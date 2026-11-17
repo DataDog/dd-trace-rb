@@ -49,7 +49,7 @@ module Datadog
                 #        passing them at first place.
                 #        This is a temporary situation until we refactor events model.
                 AppSec::Instrumentation.gateway.push(
-                  "identity.set_user", AppSec::Instrumentation::Gateway::User.new(user_id, nil, user_session_id)
+                  "identity.set_user", AppSec::Instrumentation::Gateway::User.new(user_id, nil, user_session_id),
                 )
               end
 

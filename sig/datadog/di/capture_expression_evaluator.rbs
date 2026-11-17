@@ -16,6 +16,12 @@ module Datadog
       attr_reader telemetry: Core::Telemetry::Component?
 
       def evaluate: (Probe probe, Context context) -> Result
+
+      private
+
+      def capture_deadline_passed?: (Float capture_deadline) -> bool
+
+      def record_capture_timeout: (Hash[String, untyped] output, String name, Probe probe) -> void
     end
   end
 end

@@ -119,6 +119,28 @@ ignore_gem_versions:
     version: 1.18.10
     reason: "Latest nokogiri installable on Ruby 3.1; 1.19.0+ requires Ruby >= 3.2"
 
+  - gem: loofah
+    version: 2.25.2
+    reason: "Latest loofah installable on Ruby 3.1 (GHSA-jcff-cj73-4w4f, GHSA-p9wj-w8xq-vjx6);
+      2.25.3 requires nokogiri >= 1.19.5, which requires Ruby >= 3.2"
+
+  - gem: resque
+    version: 2.4.0
+    reason: "resque2/contrib Gemfiles test the resque 2 line; no fixed 2.x release exists
+      (first fixes are 3.0.2 for GHSA-5r7x-x5pm-94xj/GHSA-r23w-h6cg-h95q and 3.2.0 for
+      GHSA-r5h4-xh93-f339, all resque-web UI only, never mounted by the test suite).
+      resque 3.x requires redis >= 4 (blocks the redis3 gemsets) and 3.2.0 requires
+      Ruby >= 3.2 (blocks the Ruby 3.1 locks); remove once the matrix drops resque 2"
+  - gem: resque
+    version: 2.5.0
+    reason: "See resque 2.4.0"
+  - gem: resque
+    version: 2.6.0
+    reason: "See resque 2.4.0"
+  - gem: resque
+    version: 2.7.0
+    reason: "See resque 2.4.0"
+
   - gem: sqlite3
     version: 2.8.1
     reason: "Latest sqlite3 installable on Ruby 3.1; 2.9.0+ requires Ruby >= 3.2"

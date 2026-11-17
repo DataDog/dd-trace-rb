@@ -2,16 +2,16 @@ module Datadog
   module Tracing
     module Sampling
       class RateSampler < Sampler
-        KNUTH_FACTOR: ::Integer
+        KNUTH_FACTOR: Integer
 
         @sampler: Core::KnuthSampler
-        @decision: ::String?
+        @decision: String?
 
-        def initialize: (?::Float | ::Integer sample_rate, ?decision: ::String?) -> void
+        def initialize: (?Float | Integer sample_rate, ?decision: String?) -> void
 
-        def sample_rate: (*untyped _) -> ::Float
+        def sample_rate: (*untyped _) -> Float
 
-        def sample_rate=: (::Float | ::Integer sample_rate) -> void
+        def sample_rate=: (Float | Integer sample_rate) -> void
 
         def sample?: (TraceOperation trace) -> bool
 

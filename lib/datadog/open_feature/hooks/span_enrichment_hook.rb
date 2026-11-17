@@ -94,7 +94,7 @@ module Datadog
             end
           end
         rescue => e
-          @logger.debug { "Error capturing span enrichment: #{e.class}: #{e.message}" }
+          @logger.debug { "OpenFeature: Error capturing span enrichment: #{e.class}: #{e.message}" }
         end
 
         # Provider-close cleanup: mark the hook inactive and drop all accumulated
@@ -153,7 +153,7 @@ module Datadog
 
             write_tags_on_root(span_op, finishing_trace_op, state)
           rescue => e
-            @logger.debug { "Error writing span enrichment tags: #{e.class}: #{e.message}" }
+            @logger.debug { "OpenFeature: Error writing span enrichment tags: #{e.class}: #{e.message}" }
           end
         end
 

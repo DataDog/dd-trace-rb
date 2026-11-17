@@ -16,17 +16,15 @@ module Datadog
 
             EVENT_NAME = "discard.active_job"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_DISCARD
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               span.name = span_name
               if configuration[:service_name]
                 span.service = configuration[:service_name]

@@ -7,21 +7,21 @@ syntaxes for methods: doc-style `# @rbs` annotations and compact
 
 ## Rules
 
-- Standalone `sig/` is the repo default – inline mode is opt-in per file via
-  `inline: true` in the `Steepfile`; without that line the comments go unchecked
-- Prefer one mode per file, but a file MAY keep a `sig/*.rbs` alongside
-  `inline: true` when some information can't yet live inline; Steep reads both
-- SHOULD keep a file inline only when it is small and self-contained; otherwise
-  mirror it in `sig/`
+- Standalone `sig/` is the repo default. Inline mode is opt-in per file via
+  `inline: true` in the `Steepfile`. Without that line the comments go unchecked.
+- Prefer one mode per file. A file MAY keep a `sig/*.rbs` alongside
+  `inline: true` when some information cannot yet live inline. Steep reads both.
+- SHOULD keep a file inline only when it is small and self-contained. Otherwise
+  mirror it in `sig/`.
 - SHOULD use doc-style annotations for new method signatures – one
-  `# @rbs <param>:` line per parameter plus a `# @rbs return:` line
+  `# @rbs <param>:` line per parameter plus a `# @rbs return:` line.
 - MUST NOT rewrite an existing valid compact `#: (...) -> ...` signature solely
-  for style
-- NEVER mix doc-style and compact annotations on the same method
+  for style.
+- NEVER mix doc-style and compact annotations on the same method.
 - When using doc-style annotations, ALWAYS give a `# @rbs return:` line, `void`
-  included – NEVER leave the return implicit
+  included – NEVER leave the return implicit.
 - Attributes have no `# @rbs` form – MUST type them with a trailing `#: Type`, their
-  only inline syntax
+  only inline syntax.
 
 ## Examples
 
@@ -43,7 +43,7 @@ end
 ```
 
 Prefer doc-style annotations for new signatures, preserve existing compact
-signatures, and don't mix the forms on the same method:
+signatures, and do not mix the forms on the same method:
 
 ```ruby
 # Good – preferred for new signatures

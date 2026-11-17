@@ -21,6 +21,9 @@ module Datadog
         # - handle configuration entries which are specific to Datadog tracing
         # - instrument parts of the framework when needed
         module Framework
+          # Rails integration options applied to the Rack integration.
+          RACK_OPTION_NAMES = [:service_name, :middleware_names, :distributed_tracing, :request_queuing, :web_service_name].freeze
+
           # After the Rails application finishes initializing, we configure the Rails
           # integration and all its sub-components with the application information
           # available.
@@ -58,14 +61,9 @@ module Datadog
           end
 
           def self.activate_rack!(datadog_config, rails_config)
-            datadog_config.tracing.instrument(
-              :rack,
-              application: ::Rails.application,
-              service_name: rails_config[:service_name],
-              middleware_names: rails_config[:middleware_names],
-              distributed_tracing: rails_config[:distributed_tracing],
-              request_queuing: rails_config[:request_queuing]
-            )
+            datadog_config.tracing.instrument(:rack, application: ::Rails.application) do |rack_config|
+              rack_config.copy_configured_options(rails_config, RACK_OPTION_NAMES)
+            end
           end
 
           def self.activate_active_support!(datadog_config, rails_config)
@@ -85,7 +83,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :action_mailer,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -94,7 +92,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :action_pack,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -103,7 +101,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :action_view,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -112,7 +110,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :active_job,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -127,7 +125,7 @@ module Datadog
 
             if datadog_config.tracing.log_injection
               datadog_config.tracing.instrument(
-                :lograge
+                :lograge,
               )
             end
           end
@@ -137,7 +135,7 @@ module Datadog
 
             if datadog_config.tracing.log_injection
               datadog_config.tracing.instrument(
-                :semantic_logger
+                :semantic_logger,
               )
             end
           end

@@ -96,7 +96,7 @@ RSpec.describe Datadog::Tracing do
           start_time: start_time,
           tags: tags,
           type: type,
-          id: id
+          id: id,
         ) { |&b| expect(b).to be(block) }
         .and_return(returned)
       expect(trace).to eq(returned)

@@ -12,18 +12,16 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             ::Mongo::Client.include(Instrumentation::Client)
             add_mongo_monitoring
           end
 
-          def add_mongo_monitoring
+          def self.add_mongo_monitoring
             # Subscribe to all COMMAND queries with our subscriber class
             ::Mongo::Monitoring::Global.subscribe(::Mongo::Monitoring::COMMAND, MongoCommandSubscriber.new)
           end

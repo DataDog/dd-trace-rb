@@ -32,7 +32,7 @@ module Datadog
           on_failure_proc: ->(log_failure: true) do
             # @type var log_failure: bool
             component_failed(:worker, log_failure: log_failure)
-          end
+          end,
         )
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
@@ -45,6 +45,12 @@ module Datadog
         stop_worker
         scheduler.disable_reporting unless report_last_profile
         stop_scheduler
+      end
+
+      # @rbs timeout_seconds: Integer
+      # @rbs return: Exception?
+      def wait_for_start_or_failure(timeout_seconds:)
+        worker.wait_for_start_or_failure(timeout_seconds: timeout_seconds)
       end
 
       private
@@ -67,7 +73,7 @@ module Datadog
         if log_failure
           Datadog.logger.warn(
             "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
-            "See previous log messages for details."
+            "See previous log messages for details.",
           )
           Datadog::Core::Telemetry::Logger
             .error("Detected issue with profiler (#{failed_component} component), stopping profiling")

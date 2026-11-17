@@ -219,6 +219,12 @@ static inline void check_shared_runtime_error(const char *context,
  * Config helpers
  * ======================================================================== */
 
+// libdatadog v49 deprecated ddog_trace_exporter_config_* for a new builder API, but
+// ddog_trace_exporter_config_enable_observations has no builder equivalent yet.
+// Config and Builder are separate types, so we can't migrate piecemeal.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 typedef ddog_TraceExporterError *(*config_setter_fn)(
     ddog_TraceExporterConfig *, ddog_CharSlice);
 
@@ -242,6 +248,8 @@ static inline void set_config_field(
     check_exporter_error(label, err);
   }
 }
+
+#pragma GCC diagnostic pop
 
 /* ========================================================================
  * Conversion helpers (Ruby -> C, require the GVL)
@@ -1464,6 +1472,8 @@ static VALUE _native_exporter_new(
   }
 
   /* Phase 2: configure before creating the separately-owned runtime. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
   ddog_TraceExporterError *observation_error = ddog_trace_exporter_config_enable_observations(config);
@@ -1530,6 +1540,7 @@ static VALUE _native_exporter_new(
   ddog_TraceExporter *exporter = NULL;
   ddog_TraceExporterError *err = ddog_trace_exporter_new(&exporter, config);
   ddog_trace_exporter_config_free(config);
+#pragma GCC diagnostic pop
   config = NULL;
 
   if (err) {
@@ -1692,6 +1703,9 @@ static int check_if_pending_exception(void) {
  * On success returns [Response(ok: true, trace_count: N)].
  * On error returns [Response(ok: false, ...)].
  *
+ * The optional block receives one observation Hash: the native report, or
+ * cancelled drops when an interrupt prevented the native send from running.
+ *
  * The chunk-building loop calls into Ruby (ENFORCE_TYPE,
  * convert_ruby_span_to_rust) which may raise.  We use rb_ensure so
  * that the Rust-allocated chunks are freed if an exception fires
@@ -1704,21 +1718,39 @@ typedef struct {
   VALUE                     traces;
   VALUE                     native_events_supported;
   long                      trace_count;
+  size_t                    span_count;
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
   ddog_TraceExporterResponse *response;
 } send_traces_ctx;
 
 typedef struct {
-  const ddog_TraceExporterObservations *report;
+  const ddog_TraceExporterObservations *report;  /* NULL when the send never ran */
+  size_t cancelled_chunks;
+  size_t cancelled_spans;
+} send_outcome;
+
+typedef struct {
+  const send_outcome *outcome;
   VALUE block;
 } observations_callback_args;
 
+/* Only for chunks never handed to an HTTP attempt: a cancelled in-flight
+ * request may still have been received, so it must not be reported here. */
+static void add_cancelled_drop(VALUE values, size_t chunks, size_t spans) {
+  if (chunks == 0) return;
+  rb_hash_aset(values, ID2SYM(rb_intern_const("chunks_dropped_cancelled")), SIZET2NUM(chunks));
+  if (spans == 0) return;
+  rb_hash_aset(values, ID2SYM(rb_intern_const("spans_dropped_cancelled")), SIZET2NUM(spans));
+  VALUE enqueued = ID2SYM(rb_intern_const("spans_enqueued_for_serialization"));
+  rb_hash_aset(values, enqueued, ULL2NUM(NUM2ULL(rb_hash_lookup2(values, enqueued, INT2FIX(0))) + spans));
+}
+
 static VALUE yield_observations(VALUE arg) {
   observations_callback_args *callback = (observations_callback_args *)arg;
-  const ddog_TraceExporterObservations *report = callback->report;
+  const ddog_TraceExporterObservations *report = callback->outcome->report;
   VALUE values = rb_hash_new();
-#define ADD_OBSERVATION(field) if (report->field > 0) rb_hash_aset(values, ID2SYM(rb_intern_const(#field)), ULL2NUM(report->field))
+#define ADD_OBSERVATION(field) if (report != NULL && report->field > 0) rb_hash_aset(values, ID2SYM(rb_intern_const(#field)), ULL2NUM(report->field))
   ADD_OBSERVATION(requests_count);
   ADD_OBSERVATION(errors_network);
   ADD_OBSERVATION(errors_timeout);
@@ -1733,6 +1765,7 @@ static VALUE yield_observations(VALUE arg) {
   ADD_OBSERVATION(responses_count);
   ADD_OBSERVATION(status_code);
 #undef ADD_OBSERVATION
+  add_cancelled_drop(values, callback->outcome->cancelled_chunks, callback->outcome->cancelled_spans);
   return rb_proc_call_with_block(callback->block, 1, &values, Qnil);
 }
 
@@ -1751,7 +1784,7 @@ static VALUE protected_observations(RB_BLOCK_CALL_FUNC_ARGLIST(yielded, arg)) {
 
 static VALUE forward_observations(VALUE arg) {
   observations_callback_args callback = {
-    .report = (const ddog_TraceExporterObservations *)arg,
+    .outcome = (const send_outcome *)arg,
     .block = rb_block_proc(),
   };
   /* Deliver fresh interrupts after the callback's StandardError rescue has ended. */
@@ -1785,6 +1818,7 @@ static VALUE build_and_send_traces(VALUE arg) {
     ENFORCE_TYPE(chunk_spans, T_ARRAY);
 
     long span_count = RARRAY_LEN(chunk_spans);
+    ctx->span_count += (size_t)span_count;
     /* Propagate a begin_chunk failure instead of swallowing it: continuing
      * would build an incomplete payload and still report success. rb_ensure
      * frees chunks on the raise. Today this only fails for an absurd
@@ -1856,13 +1890,17 @@ static VALUE build_and_send_traces(VALUE arg) {
   if (!pending_exception) {
     pending_exception = check_if_pending_exception();
   }
-  if (args.send_ran && rb_block_given_p()) {
+  if (rb_block_given_p()) {
+    /* A send that never ran left only an interrupt, and the chunks are freed unsent. */
+    send_outcome outcome = args.send_ran
+        ? (send_outcome){.report = &args.observations}
+        : (send_outcome){.cancelled_chunks = (size_t)ctx->trace_count, .cancelled_spans = ctx->span_count};
     if (pending_exception) {
       /* rb_ensure preserves Thread#kill's fatal sentinel, which rb_set_errinfo cannot restore. */
       rb_ensure(rethrow_interrupt, INT2FIX(pending_exception),
-          ensure_observations, (VALUE)&args.observations);
+          ensure_observations, (VALUE)&outcome);
     } else {
-      forward_observations((VALUE)&args.observations);
+      forward_observations((VALUE)&outcome);
     }
   }
   if (pending_exception) {

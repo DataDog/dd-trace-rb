@@ -2,115 +2,120 @@ module Datadog
   module Tracing
     module Metadata
       module Ext
-        TAG_COMPONENT: ::String
-        TAG_OPERATION: ::String
-        TAG_PEER_HOSTNAME: ::String
-        TAG_PEER_SERVICE: ::String
-        TAG_KIND: ::String
-        TAG_TOP_LEVEL: ::String
-        TAG_APM_ENABLED: ::String
+        TAG_COMPONENT: String
+        TAG_OPERATION: String
+        TAG_PEER_HOSTNAME: String
+        TAG_PEER_SERVICE: String
+        TAG_KIND: String
+        TAG_TOP_LEVEL: String
+        TAG_PROFILING_ENABLED: String
+        TAG_APM_ENABLED: String
         TAG_SDK_OTLP_EXPORT: String
-        TAG_BASE_SERVICE: ::String
-        TAG_SVC_SRC: ::String
-        SVC_SRC_MANUAL: ::String
+        TAG_BASE_SERVICE: String
+        TAG_SVC_SRC: String
+        SVC_SRC_MANUAL: String
 
         module Analytics
-          DEFAULT_SAMPLE_RATE: ::Float
-          TAG_ENABLED: ::String
-          TAG_MEASURED: ::String
-          TAG_SAMPLE_RATE: ::String
+          DEFAULT_SAMPLE_RATE: Float
+          TAG_ENABLED: String
+          TAG_MEASURED: String
+          TAG_SAMPLE_RATE: String
         end
 
         module AppTypes
-          TYPE_WEB: ::String
-          TYPE_DB: ::String
-          TYPE_CACHE: ::String
-          TYPE_WORKER: ::String
-          TYPE_CUSTOM: ::String
+          TYPE_WEB: String
+          TYPE_DB: String
+          TYPE_CACHE: String
+          TYPE_WORKER: String
+          TYPE_CUSTOM: String
         end
 
         module Distributed
-          TAG_TRACE_SOURCE: ::String
-          TAG_DECISION_MAKER: ::String
-          TAG_KNUTH_SAMPLING_RATE: ::String
-          TAG_DD_PARENT_ID: ::String
-          TAG_ORIGIN: ::String
-          TAG_SAMPLING_PRIORITY: ::String
-          TAGS_PREFIX: ::String
-          TID: ::String
+          TAG_TRACE_SOURCE: String
+          TAG_DECISION_MAKER: String
+          TAG_KNUTH_SAMPLING_RATE: String
+          TAG_DD_PARENT_ID: String
+          DD_PARENT_ID_DEFAULT: String
+          TAG_ORIGIN: String
+          TAG_SAMPLING_PRIORITY: String
+          TAGS_PREFIX: String
+          TID: String
+          TAG_TID: String
         end
 
         module Errors
-          STATUS: ::Integer
-          TAG_MSG: ::String
-          TAG_STACK: ::String
-          TAG_TYPE: ::String
-          ATTRIBUTE_MESSAGE: ::String
-          ATTRIBUTE_STACKTRACE: ::String
-          ATTRIBUTE_TYPE: ::String
-          EVENT_NAME: ::String
+          STATUS: Integer
+          TAG_MSG: String
+          TAG_STACK: String
+          TAG_TYPE: String
+          ATTRIBUTE_MESSAGE: String
+          ATTRIBUTE_STACKTRACE: String
+          ATTRIBUTE_TYPE: String
+          EVENT_NAME: String
         end
 
         module HTTP
-          TAG_BASE_URL: ::String
-          TAG_ENDPOINT: ::String
-          TAG_METHOD: ::String
-          TAG_STATUS_CODE: ::String
-          TAG_USER_AGENT: ::String
-          TAG_URL: ::String
-          TAG_ROUTE: ::String
+          TAG_BASE_URL: String
+          TAG_ENDPOINT: String
+          TAG_METHOD: String
+          TAG_STATUS_CODE: String
+          TAG_USER_AGENT: String
+          TAG_URL: String
+          TAG_ROUTE: String
+          TAG_ROUTE_PATH: String
           TYPE_INBOUND: untyped
-          TYPE_OUTBOUND: ::String
-          TYPE_PROXY: ::String
-          TYPE_TEMPLATE: ::String
-          TAG_CLIENT_IP: ::String
-          HEADER_USER_AGENT: ::String
+          TYPE_OUTBOUND: String
+          TYPE_PROXY: String
+          TYPE_TEMPLATE: String
+          TAG_CLIENT_IP: String
+          HEADER_USER_AGENT: String
 
           module Headers
-            INVALID_TAG_CHARACTERS: ::Regexp
+            INVALID_TAG_CHARACTERS: Regexp
 
-            def self?.to_tag: (::String name, allow_nested: bool) -> ::String
+            def self.to_tag: (String name, ?allow_nested: bool) -> String
           end
 
           module RequestHeaders
-            PREFIX: ::String
+            PREFIX: String
 
-            def self?.to_tag: (::String name) -> ::String
+            def self.to_tag: (String name) -> String
           end
 
           module ResponseHeaders
-            PREFIX: ::String
+            PREFIX: String
 
-            def self?.to_tag: (::String name) -> ::String
+            def self.to_tag: (String name) -> String
           end
         end
 
         module NET
-          TAG_HOSTNAME: ::String
-          TAG_TARGET_HOST: ::String
-          TAG_TARGET_PORT: ::String
-          TAG_DESTINATION_NAME: ::String
-          TAG_DESTINATION_PORT: ::String
+          TAG_HOSTNAME: String
+          TAG_TARGET_HOST: String
+          TAG_TARGET_PORT: String
+          TAG_DESTINATION_NAME: String
+          TAG_DESTINATION_PORT: String
         end
 
         module Sampling
-          TAG_AGENT_RATE: ::String
-          TAG_RULE_SAMPLE_RATE: ::String
-          TAG_RATE_LIMITER_RATE: ::String
-          TAG_SAMPLE_RATE: ::String
+          TAG_AGENT_RATE: String
+          TAG_RULE_SAMPLE_RATE: String
+          TAG_RATE_LIMITER_RATE: String
+          TAG_SAMPLE_RATE: String
         end
 
         module SQL
-          TYPE: ::String
-          TAG_QUERY: ::String
+          TYPE: String
+          TAG_QUERY: String
         end
 
         module SpanKind
-          TAG_SERVER: ::String
-          TAG_CLIENT: ::String
-          TAG_PRODUCER: ::String
-          TAG_CONSUMER: ::String
-          TAG_INTERNAL: ::String
+          TAG_PROXY: String
+          TAG_SERVER: String
+          TAG_CLIENT: String
+          TAG_PRODUCER: String
+          TAG_CONSUMER: String
+          TAG_INTERNAL: String
         end
       end
     end

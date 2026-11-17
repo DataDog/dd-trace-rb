@@ -8,8 +8,6 @@ module Datadog
       class SpanEnrichmentHook
         # Encoding/crypto helpers implementing the fixed cross-SDK wire format.
         module Codec
-          module_function
-
           # ULEB128 stores 7 bits per byte; the high bit flags that more bytes follow.
           LOW_7_BITS_MASK = 0x7F
           CONTINUATION_BIT = 0x80
@@ -19,7 +17,7 @@ module Datadog
           # byte >= 0x80 would be re-encoded as a 2-byte UTF-8 sequence and corrupt
           # the varint (e.g. serial 2312 -> bytes 88 12, but UTF-8 would emit
           # C2 88 12 = 296002 on decode). `(+'').b` gives a mutable binary string.
-          def encode_varint(value)
+          def self.encode_varint(value)
             bytes = (+"").b
             while value > LOW_7_BITS_MASK
               bytes << ((value & LOW_7_BITS_MASK) | CONTINUATION_BIT)
@@ -31,7 +29,7 @@ module Datadog
 
           # Encode a Set of serial ids as base64(ULEB128 delta-varint).
           # Empty set -> empty string (the caller omits the tag).
-          def encode_delta_varint(serial_ids)
+          def self.encode_delta_varint(serial_ids)
             sorted = serial_ids.to_a.sort
             return "" if sorted.empty?
 
@@ -48,7 +46,7 @@ module Datadog
 
           # Lowercase hex SHA256 of the targeting key: it is hashed before
           # emission so raw user identifiers never leave the process.
-          def hash_targeting_key(targeting_key)
+          def self.hash_targeting_key(targeting_key)
             Digest::SHA256.hexdigest(targeting_key)
           end
         end

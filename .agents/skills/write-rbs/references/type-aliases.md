@@ -1,22 +1,22 @@
 # Type aliases
 
 Use a type alias when the same composite shape repeats, or a shape carries a
-domain meaning worth naming
+domain meaning worth naming.
 
 ## Rules
 
 - SHOULD extract a repeated shape into `type name =` and bind every use, so it
-  cannot drift between declarations
-- MUST define the alias where the value is produced, not where it is consumed
+  cannot drift between declarations.
+- MUST define the alias where the value is produced, not where it is consumed.
 - MUST name the alias after the domain concept, NEVER after its representation
-  (`struct`, `structure`, `hash`)
+  (`struct`, `structure`, `hash`).
 - NEVER alias a single-use shape – inline it, and promote only on reuse or domain
-  meaning
-- SHOULD layer aliases when a value is a union of already-named types
+  meaning.
+- SHOULD layer aliases when a value is a union of already-named types.
 
 ## Examples
 
-Bind every signature to one name, so the shape can't drift apart:
+Bind every signature to one name, so the shape cannot drift apart:
 
 ```rbs
 # Good – one shape, one name
@@ -42,7 +42,7 @@ type dependency = Hash[Symbol, String]
 type struct = Hash[Symbol, String]
 ```
 
-Don't alias a shape used once – the indirection buys nothing:
+Do not alias a shape used once. The indirection buys nothing:
 
 ```rbs
 # Good – used once, inline it

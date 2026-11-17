@@ -13,11 +13,11 @@ module Datadog
           def initialize: (String? hierarchy, String? controllers, String? path, ?Integer? inode) -> void
         end
 
-        def self?.entries: () -> Array[Entry]
+        def self.entries: () -> Array[Entry]
 
-        def self?.parse: (String entry_line) -> Entry
+        def self.parse: (String entry_line) -> Entry
 
-        def self?.inode_for: (String? controllers, String? path) -> Integer?
+        def self.inode_for: (String? controllers, String? path) -> Integer?
       end
     end
   end

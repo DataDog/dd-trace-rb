@@ -2,15 +2,20 @@
 
 require_relative "ext"
 require_relative "../open_feature"
+require_relative "configuration/flag_selection"
 require_relative "../core/utils/time"
+require_relative "../core/utils/only_once"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
+require_relative "split_features"
+require_relative "exposure_hook"
 require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
     # OpenFeature feature flagging provider backed by Datadog configuration delivery.
     #
-    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
+    # Requires openfeature-sdk >= 0.5.1: exposures, evaluation counts and metrics are sent from provider
+    # hooks, and earlier releases run no hooks.
     #
     # Hook lifecycle note: FlagEvalEVPHook is returned from #hooks so EVP uses the SDK-final
     # EvaluationDetails. This matches FlagEvalMetricsHook and records defaults/errors produced
@@ -63,12 +68,22 @@ module Datadog
     class Provider
       include ::OpenFeature::SDK::Provider::EventEmitter
 
-      NAME = "Datadog Feature Flagging Provider"
+      NAME = Ext::PROVIDER_NAME
       INITIALIZATION_CANCELLED_MESSAGE = "Feature Flags provider initialization was cancelled by shutdown"
+      HOOKS_UNSUPPORTED_MESSAGE = "Feature Flags: the installed openfeature-sdk does not run provider hooks, " \
+        "so Datadog exposures and evaluation counts are not sent; upgrade openfeature-sdk to 0.5.1 or later"
+      HOOKS_UNSUPPORTED_WARNING = Core::Utils::OnlyOnce.new
 
       attr_reader :metadata
 
-      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+      def initialize(experimentation_opt_out_mode: nil, enable_evaluation_telemetry_opt_out_parameter: nil, flag_selection: nil)
+        mode = experimentation_opt_out_mode
+        mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
+        # Preserve the requested policy if this provider is activated after configuration changes.
+        @requested_experimentation_opt_out_mode = mode.to_s.dup.freeze
+        @experimentation_opt_out_mode = if OpenFeature.enabled? && Core::LIBDATADOG_API_FAILURE.nil?
+          resolve_experimentation_opt_out_mode(@requested_experimentation_opt_out_mode)
+        end
         @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
         when nil
           Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
@@ -77,6 +92,7 @@ module Datadog
         else
           raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
+        @flag_selection = Configuration::FlagSelection.canonicalize(flag_selection)
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -95,6 +111,7 @@ module Datadog
       end
 
       def init
+        warn_if_hooks_unsupported
         @initialization_mutex.synchronize do
           raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
 
@@ -108,6 +125,7 @@ module Datadog
           @stale_emitted = false
           @stale_pending = false
         end
+        Datadog.logger.debug { "Feature Flags: provider initialization started" }
         ready_handler_installed = install_initialization_ready_handler
 
         component, failure = OpenFeature.activate_provider(self)
@@ -126,6 +144,7 @@ module Datadog
         case wait_result
         when Component::CONFIGURATION_READY
           @initialization_mutex.synchronize { @initializing = false } unless ready_handler_installed
+          Datadog.logger.debug { "Feature Flags: provider initialized successfully" }
         when Component::CONFIGURATION_TIMEOUT
           message = "Feature Flags provider initialization timed out while waiting for configuration"
           Datadog.logger.error(message)
@@ -173,17 +192,20 @@ module Datadog
           )
         end
         OpenFeature.deactivate_provider(self)
+        Datadog.logger.debug { "Feature Flags: provider shut down" }
       end
 
       def hooks
         component = Datadog.send(:components).open_feature
-        hooks = [
+        telemetry_hooks = [
           component&.flag_eval_metrics_hook,
           component&.flag_eval_evp_hook,
         ].compact
-        return hooks unless @enable_evaluation_telemetry_opt_out_parameter
+        if @enable_evaluation_telemetry_opt_out_parameter
+          telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
+        end
 
-        hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
+        [component&.exposure_logging_hook, *telemetry_hooks, component&.debug_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -212,6 +234,14 @@ module Datadog
 
       private
 
+      attr_reader :flag_selection
+
+      def warn_if_hooks_unsupported
+        return if defined?(::OpenFeature::SDK::Hooks::HookExecutor)
+
+        HOOKS_UNSUPPORTED_WARNING.run { Datadog.logger.warn(HOOKS_UNSUPPORTED_MESSAGE) }
+      end
+
       def after_fork(component)
         handler = @initialization_mutex.synchronize do
           return if @shutdown || !@initializing || @initialization_thread&.alive?
@@ -234,6 +264,8 @@ module Datadog
       def fail_initialization(component, message)
         prepare_initialization_failure(component)
         cancel_initialization_if_shutdown!
+        # Non-blocking set_provider surfaces this only as a PROVIDER_ERROR event.
+        Datadog.logger.debug { "Feature Flags: provider failed to initialize: #{message}" }
         raise message.to_s
       end
 
@@ -326,7 +358,7 @@ module Datadog
             end
           end
         end
-        emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY) if emit_ready
+        emit_state_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY) if emit_ready
       end
 
       def provider_ready(_details)
@@ -348,7 +380,7 @@ module Datadog
           end
         end
         configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler) if handler
-        emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE) if emit_stale
+        emit_state_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE) if emit_stale
       end
 
       def configuration_changed(event)
@@ -394,7 +426,25 @@ module Datadog
           end
         end
 
-        emit_event(event_type) if event_type
+        emit_state_event(event_type) if event_type
+      end
+
+      def emit_state_event(event_type)
+        log_state_event(event_type)
+        emit_event(event_type)
+      end
+
+      def log_state_event(event_type)
+        logger = Datadog.logger
+        logger.debug do
+          availability = case event_type
+          when ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+            "; configuration is available"
+          when ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
+            "; configuration is no longer available"
+          end
+          "Feature Flags: provider emitted #{event_type}#{availability}"
+        end
       end
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
@@ -404,7 +454,10 @@ module Datadog
         flag_meta = nil
 
         engine = OpenFeature.engine
-        return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
+        if engine.nil?
+          log_component_not_configured(flag_key, expected_type)
+          return component_not_configured_default(default_value, eval_time_ms)
+        end
 
         result = fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
 
@@ -428,23 +481,45 @@ module Datadog
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: error_message
+          error_message: error_message,
         )
         error_flag_meta = flag_meta
         error_flag_meta ||= build_flag_metadata(
-          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i
+          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i,
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
       end
 
       def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
+        mode = @experimentation_opt_out_mode ||= resolve_experimentation_opt_out_mode(@requested_experimentation_opt_out_mode)
         engine.fetch_value(
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context
+          evaluation_context: evaluation_context,
+          experimentation_opt_out_mode: mode,
         )
+      end
+
+      def resolve_experimentation_opt_out_mode(mode)
+        normalized = mode.strip.downcase
+        return :disabled if normalized.empty? || normalized == "disabled"
+
+        case normalized
+        when "immediate"
+          unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_options)
+            raise ArgumentError, "Immediate experimentation opt-out requires a libdatadog build with evaluation options"
+          end
+          :immediate
+        when "future_experiments_only"
+          unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+            raise ArgumentError, "Future experimentation opt-out requires a libdatadog build with opt-out modes"
+          end
+          :future_experiments_only
+        else
+          raise ArgumentError, "Experimentation opt-out mode must be disabled, immediate, or future_experiments_only"
+        end
       end
 
       def sdk_success_details(result, flag_meta)
@@ -462,7 +537,7 @@ module Datadog
           error_code: error_code,
           error_message: error_message,
           reason: reason,
-          flag_metadata: flag_meta
+          flag_metadata: flag_meta,
         )
       end
 
@@ -472,6 +547,13 @@ module Datadog
           metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
+        if result.log?
+          metadata[Ext::METADATA_DO_LOG] = true
+          serial_id = result.serial_id
+          metadata[Ext::METADATA_SPLIT_SERIAL_ID] = serial_id unless serial_id.nil?
+        end
+        features = result.features
+        SplitFeatures.write(metadata, features) if features && !features.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
@@ -509,6 +591,16 @@ module Datadog
         Datadog.send(:components).open_feature&.span_enrichment_hook
       end
 
+      # No component means no DebugLoggingHook and no raw-data warning, so only non-raw fields are logged.
+      def log_component_not_configured(flag_key, expected_type)
+        logger = Datadog.logger
+        logger.debug do
+          "Feature Flags: provider returned the default value for #{flag_key.inspect} (type=#{expected_type}): " \
+            "the Feature Flags component is not active; see the provider initialization logs " \
+            "(error_code=#{Ext::PROVIDER_FATAL})"
+        end
+      end
+
       def evaluation_telemetry_opted_out?(evaluation_context)
         @enable_evaluation_telemetry_opt_out_parameter &&
           Hooks::EvaluationTelemetryOptOutHook.opted_out?(evaluation_context)
@@ -523,7 +615,7 @@ module Datadog
           flag_metadata: {
             "dd.eval.timestamp_ms" => eval_time_ms,
             Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false,
-          }
+          },
         )
       end
     end

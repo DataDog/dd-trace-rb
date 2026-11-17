@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           agent_base_url: agent_base_url,
           ld_library_path: ld_library_path,
           path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-          logger: logger
+          logger: logger,
         ).and_return(component)
 
         expect(component).to receive(:start)
@@ -240,7 +240,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
         # Verify exception message
         expect(crash_report[:error][:message]).to eq(
-          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: Test unhandled exception with backtrace"
+          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: Test unhandled exception with backtrace",
         )
 
         # Verify stack trace is present and complete
@@ -275,7 +275,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
       it "updates the crash tracker" do
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
-          hash_including(action: :update_on_fork)
+          hash_including(action: :update_on_fork),
         )
 
         crashtracker = build_crashtracker(logger: logger)
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         allow(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(:latest_settings).and_return([:latest_tags])
 
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
-          hash_including(tags_as_array: [:latest_tags])
+          hash_including(tags_as_array: [:latest_tags]),
         )
 
         crashtracker = build_crashtracker(logger: logger)
@@ -399,7 +399,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           crash_tracker = build_crashtracker(
             agent_base_url: agent_base_url,
             tags: {"latest_settings" => "included"},
-            logger: logger
+            logger: logger,
           )
           crash_tracker.start
 
@@ -469,7 +469,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
               hash_including(
                 action: :update_on_fork,
                 agent_base_url: "http://google.com:12345/",
-              )
+              ),
             )
           end
         end
@@ -514,34 +514,80 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           # Check that the crashing function is captured
           expect(frames).to include(
             hash_including(
-              function: "free"
-            )
+              function: "free",
+            ),
           )
 
           # Sanity check some frames
           expect(frames).to include(
             hash_including(
-              function: "ruby_method_with_c_calls"
-            )
+              function: "ruby_method_with_c_calls",
+            ),
           )
 
           expect(frames).to include(
             hash_including(
-              function: "top_level_ruby_method"
-            )
+              function: "top_level_ruby_method",
+            ),
           )
 
           expect(frames).to include(
             hash_including(
-              function: "each"
-            )
+              function: "each",
+            ),
           )
 
           expect(frames).to include(
             hash_including(
-              function: "gsub"
-            )
+              function: "gsub",
+            ),
           )
+        end
+      end
+
+      describe "OTel thread context capture" do
+        before do
+          skip "OTel thread context capture is only supported on Linux" if PlatformHelpers.mac?
+        end
+
+        let(:otel_thread_contexts) {
+          crash_report_experimental[:otel_thread_contexts]
+        }
+
+        it "captures thread context when otel thread context is active" do
+          known_trace_id = 0xaabbccdd00112233aabbccdd00112233
+          expected_trace_id_hex = "aabbccdd00112233aabbccdd00112233"
+
+          # continue_from: sets the trace_id, but the span created by .trace gets a new span_id
+          trace_digest = Datadog::Tracing::TraceDigest.new(
+            trace_id: known_trace_id,
+            span_id: 0xdeadbeef12345678,
+          )
+
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
+            require "datadog/tracing/otel_thread_context"
+
+            Datadog.configure do |c|
+              c.tracing.otel_thread_context_enabled = true
+            end
+
+            crash_tracker = build_crashtracker(
+              agent_base_url: agent_base_url,
+            )
+            crash_tracker.start
+
+            Datadog::Tracing.trace("crash.test", continue_from: trace_digest) do
+              Process.kill("SEGV", Process.pid)
+            end
+          end
+
+          expect(otel_thread_contexts).to be_a(Array)
+          expect(otel_thread_contexts).to_not be_empty
+
+          crashing_thread_ctx = otel_thread_contexts.first
+          expect(crashing_thread_ctx[:trace_id]).to eq(expected_trace_id_hex)
+          expect(crashing_thread_ctx[:span_id]).to be_a(String)
+          expect(crashing_thread_ctx[:span_id]).to_not eq("0" * 16)
         end
       end
     end

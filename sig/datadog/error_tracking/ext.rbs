@@ -13,7 +13,7 @@ module Datadog
 
       DEFAULT_HANDLED_ERRORS: nil
 
-      VALID_HANDLED_ERRORS: ::Array[untyped]
+      VALID_HANDLED_ERRORS: Array[untyped]
 
       SPAN_EVENTS_HAS_EXCEPTION: "_dd.span_events.has_exception"
 

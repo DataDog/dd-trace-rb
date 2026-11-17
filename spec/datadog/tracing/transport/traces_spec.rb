@@ -66,19 +66,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
           encoder,
           traces[0],
           logger: logger,
-          native_events_supported: native_events_supported
+          native_events_supported: native_events_supported,
         ).and_return("1")
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[1],
           logger: logger,
-          native_events_supported: native_events_supported
+          native_events_supported: native_events_supported,
         ).and_return("22")
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[2],
           logger: logger,
-          native_events_supported: native_events_supported
+          native_events_supported: native_events_supported,
         ).and_return("333")
         allow(encoder).to receive(:join) { |arr| arr.join(",") }
       end
@@ -139,7 +139,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     let(:apis) do
       Datadog::Core::Transport::HTTP::API::Map[
         v2: api_v2,
-        v1: api_v1
+        v1: api_v1,
       ].with_fallbacks(v2: :v1)
     end
 

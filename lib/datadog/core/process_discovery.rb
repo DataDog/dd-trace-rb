@@ -26,7 +26,7 @@ module Datadog
           @file_descriptor = _native_store_tracer_metadata(
             Datadog.logger,
             settings.tracing.otel_thread_context_enabled,
-            **metadata
+            **metadata,
           )
         end
 

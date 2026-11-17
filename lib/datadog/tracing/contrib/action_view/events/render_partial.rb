@@ -17,17 +17,15 @@ module Datadog
 
             EVENT_NAME = "render_partial.action_view"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_RENDER_PARTIAL
             end
 
-            def on_start(span, _event, _id, payload)
+            def self.on_start(span, _event, _id, payload)
               if configuration[:service_name]
                 span.service = configuration[:service_name]
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
