@@ -147,8 +147,7 @@ module Datadog
       # @return [Numeric]
       attr_reader :global_rate
 
-      # Builds the process-scoped state objects: the mutex, the per-trace
-      # budget ledger and the TOP/GLOBAL buckets at the configured rates.
+      # Builds fresh process-scoped state.
       #
       # @return [void]
       def rebuild_state
@@ -159,8 +158,7 @@ module Datadog
         nil
       end
 
-      # Decides a hit with no active trace through the probe's own rate
-      # limit and the process-wide GLOBAL budget. Must hold the lock.
+      # Decides a hit with no active trace. Must hold the lock.
       #
       # @param probe [Datadog::DI::Probe]
       # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
@@ -186,19 +184,19 @@ module Datadog
       #   decision, nil when admitted
       def emit_first_probe?(probe, trace)
         unless global_limiter.try_consume && top_limiter.allow?
-          store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
+          trace_budgets.store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
           return [false, :top_gate]
         end
 
         budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
-        store(trace, budget)
+        trace_budgets.store(trace, budget)
         return [false, :trace_budget] unless budget.admit(probe.id)
 
         [true, nil]
       end
 
-      # A capturing probe firing inside an established unit. Bounded by the
-      # per-probe and all counters; consumes GLOBAL on emit. Must hold the lock.
+      # Decides a capturing probe hit inside an established trace. An admitted
+      # hit consumes GLOBAL even past zero. Must hold the lock.
       #
       # @param budget [TraceBudget]
       # @param probe [Datadog::DI::Probe]
@@ -209,15 +207,6 @@ module Datadog
 
         global_limiter.consume
         [true, nil]
-      end
-
-      # Stores the trace's budget in the ledger. Must hold the lock.
-      #
-      # @param trace [Datadog::Tracing::TraceOperation]
-      # @param budget [TraceBudget]
-      # @return [void]
-      def store(trace, budget)
-        trace_budgets.store(trace, budget)
       end
     end
   end
