@@ -225,6 +225,54 @@ RSpec.describe Datadog::DI::MetricEmitter do
       end
     end
 
+    context "when a submission raises without telemetry" do
+      let(:telemetry) { nil }
+
+      before { allow(statsd).to receive(:count).and_raise(IOError, "closed stream") }
+
+      it "logs the exception and drops the points" do
+        emitter.record(probe, 1)
+
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to match(/\Adi: metric flush failed: IOError: closed stream \(.+\)\z/)
+        end
+        expect(emitter.flush).to be false
+
+        expect(emitter.pending?).to be false
+      end
+    end
+
+    context "when a pending point has an unknown metric kind" do
+      it "logs and reports the internal error and drops the points" do
+        emitter.record(probe, 1)
+        allow(probe).to receive(:metric_kind).and_return(:summary)
+
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to start_with(
+            "di: metric flush failed: Datadog::DI::Error::InternalError: unknown metric kind :summary of probe probe-42 (",
+          )
+        end
+        expect(emitter.flush).to be false
+
+        expect(telemetry).to have_received(:report)
+          .with(an_instance_of(Datadog::DI::Error::InternalError), description: "Metric flush failed")
+        expect(statsd).to_not have_received(:flush)
+      end
+    end
+
+    it "logs the counts of the flushed points and probes at trace" do
+      trace_messages = []
+      allow(logger).to receive(:trace) { |&block| trace_messages << block.call }
+      histogram_probe = metric_probe(:histogram)
+      emitter.record(probe, 1)
+      emitter.record(histogram_probe, 1)
+      emitter.record(histogram_probe, 2)
+
+      emitter.flush
+
+      expect(trace_messages).to include("di: flushed 3 metric point(s) for 2 probe(s)")
+    end
+
     context "without a client" do
       let(:statsd) { nil }
 
