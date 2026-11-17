@@ -971,10 +971,15 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
-    let(:logger) { instance_double(Logger) }
+    let(:logger) do
+      instance_double(Logger).tap do |logger|
+        # The DI component's metric emitter logs its construction at debug.
+        allow(logger).to receive(:debug)
+      end
+    end
 
     let(:component) do
-      Datadog::DI::Component.build(settings, agent_settings, logger).tap do |c|
+      Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: nil, statsd: nil).tap do |c|
         raise "Component failed to build" if c.nil?
       end
     end

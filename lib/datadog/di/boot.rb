@@ -3,6 +3,7 @@
 require_relative "logger"
 require_relative "base"
 require_relative "error"
+require_relative "metric_emitter"
 require_relative "code_tracker"
 require_relative "component"
 require_relative "context"
@@ -29,8 +30,8 @@ if %w[1 true yes].include?(Datadog::DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_ENAB
   # Code tracking is required for line probes to work; see the comments
   # above for the implementation of the method.
   #
-  # If DI is enabled programmatically, the application can (and must,
-  # for line probes to work) activate tracking in an initializer.
+  # When DI is enabled programmatically, Components#startup! activates
+  # tracking.
   # We seem to have Datadog.logger here already
   Datadog.logger.debug("di: activating code tracking")
   Datadog::DI.activate_tracking

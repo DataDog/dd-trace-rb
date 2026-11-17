@@ -96,7 +96,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   let(:logger) { logger_allowing_debug }
 
   let(:component) do
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: nil, statsd: nil).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end

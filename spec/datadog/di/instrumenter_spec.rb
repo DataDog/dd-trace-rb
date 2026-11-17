@@ -72,7 +72,12 @@ RSpec.describe Datadog::DI::Instrumenter do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
       guardrails_telemetry: guardrails_telemetry,
       capture_expression_evaluator: capture_expression_evaluator,
-      correlation_sampler: correlation_sampler)
+      correlation_sampler: correlation_sampler,
+      metric_emitter: metric_emitter)
+  end
+
+  let(:metric_emitter) do
+    instance_double(Datadog::DI::MetricEmitter, available?: true)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1463,6 +1468,561 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls).to be_empty
         end
+      end
+    end
+  end
+
+  describe "metric probe availability gate" do
+    let(:logger) do
+      instance_double(Datadog::DI::Logger).tap do |logger|
+        allow(logger).to receive(:trace)
+        allow(logger).to receive(:debug)
+      end
+    end
+
+    let(:metric_probe) do
+      Datadog::DI::Probe.new(
+        id: "1234", type: :metric,
+        type_name: "HookTestClass", method_name: "hook_test_method",
+        metric_kind: :count, metric_name: "probe.metric",
+      )
+    end
+
+    let(:responder) { Datadog::DI::ProcResponder.new(->(_context) {}) }
+
+    after do
+      instrumenter.unhook(metric_probe)
+    end
+
+    context "when the metric emitter is unavailable" do
+      let(:metric_emitter) do
+        instance_double(
+          Datadog::DI::MetricEmitter,
+          available?: false,
+          unavailable_reason: Datadog::DI::MetricEmitter::DEPENDENCY_REQUIRED_REASON,
+        )
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+      end
+
+      it "raises MetricEmissionUnavailable with the emitter's reason and installs nothing" do
+        expect do
+          instrumenter.hook(metric_probe, responder)
+        end.to raise_error(
+          Datadog::DI::Error::MetricEmissionUnavailable,
+          "metric probes are unavailable: #{Datadog::DI::MetricEmitter::DEPENDENCY_REQUIRED_REASON}",
+        )
+
+        expect(metric_probe.instrumentation_module).to be nil
+      end
+
+      it "logs the reason at warn for the first rejected metric probe of the instrumenter" do
+        2.times do
+          expect do
+            instrumenter.hook(metric_probe, responder)
+          end.to raise_error(Datadog::DI::Error::MetricEmissionUnavailable)
+        end
+
+        expect(logger).to have_received(:warn)
+          .with("di: metric probes are unavailable: #{Datadog::DI::MetricEmitter::DEPENDENCY_REQUIRED_REASON}")
+          .once
+      end
+
+      it "logs the rejection at debug with the probe location" do
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to match(
+            /di: cannot install :metric probe at HookTestClass.hook_test_method \(1234\): metric probes are unavailable/,
+          )
+        end
+
+        expect do
+          instrumenter.hook(metric_probe, responder)
+        end.to raise_error(Datadog::DI::Error::MetricEmissionUnavailable)
+      end
+
+      it "does not raise for log probes" do
+        log_probe = Datadog::DI::Probe.new(
+          id: "1235", type: :log,
+          type_name: "HookTestClass", method_name: "hook_test_method",
+        )
+
+        begin
+          instrumenter.hook(log_probe, responder)
+
+          expect(log_probe.instrumentation_module).to_not be nil
+        ensure
+          instrumenter.unhook(log_probe)
+        end
+      end
+    end
+
+    context "when the metric emitter is available" do
+      it "hooks the metric probe like any method probe" do
+        instrumenter.hook(metric_probe, responder)
+
+        expect(metric_probe.instrumentation_module).to_not be nil
+      end
+    end
+  end
+
+  describe "metric probe execution" do
+    let(:debug_messages) { [] }
+
+    let(:logger) do
+      instance_double(Datadog::DI::Logger).tap do |logger|
+        allow(logger).to receive(:trace)
+        allow(logger).to receive(:debug) { |&block| debug_messages << block.call }
+      end
+    end
+
+    let(:recorded_probes) { [] }
+
+    let(:metric_responder) do
+      Datadog::DI::ProcResponder.new(
+        proc { |_context| fail "metric probes do not invoke the executed callback" },
+        proc { |_context, _exc| fail "metric probes do not invoke the evaluation failed callback" },
+        recorded_proc: proc { |probe| recorded_probes << probe },
+      )
+    end
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "metric-execution", type: :metric,
+        type_name: "HookTestClass", method_name: method_name,
+        metric_kind: metric_kind, metric_name: "test.metric",
+        metric_value: metric_value_expression,
+        evaluate_at: evaluate_at,
+        condition: condition_expression,
+      )
+    end
+
+    let(:method_name) { "hook_test_method" }
+
+    let(:metric_kind) { :count }
+
+    let(:metric_value_expression) { nil }
+
+    let(:evaluate_at) { :exit }
+
+    let(:condition_expression) { nil }
+
+    before do
+      allow(metric_emitter).to receive(:record).and_return(true)
+    end
+
+    after do
+      instrumenter.unhook(probe)
+    end
+
+    def hook_metric_probe(probe = self.probe)
+      instrumenter.hook_method(probe, metric_responder)
+    end
+
+    def compiled_ref_expression(reference)
+      compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => reference})
+      Datadog::DI::EL::Expression.new(reference, compiled)
+    end
+
+    shared_examples "method outcome unchanged" do
+      it "leaves the method result and exceptions unchanged" do
+        hook_metric_probe
+
+        expect(HookTestClass.new.hook_test_method).to eq 42
+
+        expect do
+          HookTestClass.new.exception_method
+        end.to raise_error(HookTestClass::TestException)
+      end
+    end
+
+    context "exit timing" do
+      include_examples "method outcome unchanged"
+
+      context "with no value expression" do
+        it "records 1 per hit for COUNT" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:record).with(probe, 1).twice
+          expect(recorded_probes).to eq [probe, probe]
+        end
+
+        context "with GAUGE kind" do
+          let(:metric_kind) { :gauge }
+
+          it "records 1 per hit" do
+            hook_metric_probe
+
+            expect(HookTestClass.new.hook_test_method).to eq 42
+
+            expect(metric_emitter).to have_received(:record).with(probe, 1).once
+          end
+        end
+      end
+
+      context "with a return value expression" do
+        let(:metric_value_expression) { compiled_ref_expression("@return") }
+
+        it "records the evaluated return value" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:record).with(probe, 42)
+        end
+
+        it "evaluates the value expression without a CPU-time deadline" do
+          expect(metric_value_expression).to receive(:evaluate)
+            .with(an_instance_of(Datadog::DI::Context), evaluation_deadline: Float::INFINITY)
+            .and_call_original
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:record).with(probe, 42)
+        end
+      end
+
+      context "with a duration expression" do
+        let(:metric_value_expression) { compiled_ref_expression("@duration") }
+        let(:metric_kind) { :gauge }
+
+        it "records the method duration in milliseconds" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:record).with(probe, a_kind_of(Float))
+        end
+      end
+
+      context "when the method raises" do
+        let(:method_name) { "exception_method" }
+
+        it "records for the firing and re-raises the method's exception" do
+          hook_metric_probe
+
+          expect do
+            HookTestClass.new.exception_method
+          end.to raise_error(HookTestClass::TestException)
+
+          expect(metric_emitter).to have_received(:record).with(probe, 1)
+        end
+      end
+
+      context "with a condition" do
+        let(:condition_expression) { compiled_ref_expression("missing") }
+
+        it "records every hit without evaluating the condition" do
+          expect(condition_expression).to_not receive(:satisfied?)
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:record).with(probe, 1)
+          expect(recorded_probes).to eq [probe]
+        end
+      end
+    end
+
+    context "entry timing" do
+      let(:evaluate_at) { :entry }
+
+      include_examples "method outcome unchanged"
+
+      context "with a return value expression" do
+        let(:metric_value_expression) { compiled_ref_expression("@return") }
+
+        it "records nothing because the return value is not in the entry scope" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to_not have_received(:record)
+          expect(debug_messages).to include(
+            a_string_starting_with(
+              "di: error evaluating metric probe value: metric-execution: " \
+              "Datadog::DI::Error::ExpressionEvaluationError: Metric value expression evaluated to non-numeric value: NilClass",
+            ),
+          )
+        end
+      end
+
+      context "with an argument value expression" do
+        let(:method_name) { "hook_test_method_with_arg" }
+        let(:metric_value_expression) { compiled_ref_expression("arg1") }
+
+        it "records the entry-time argument value" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
+
+          expect(metric_emitter).to have_received(:record).with(probe, 21)
+        end
+      end
+    end
+
+    context "value coercion" do
+      let(:method_name) { "hook_test_method_with_arg" }
+
+      let(:metric_value_expression) { compiled_ref_expression("arg1") }
+
+      context "Float value for COUNT" do
+        it "passes the float through unchanged" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(1.5)).to eq 1.5
+
+          expect(metric_emitter).to have_received(:record).with(probe, 1.5)
+        end
+      end
+
+      [
+        ["true", true, "non-numeric value: TrueClass"],
+        ["false", false, "non-numeric value: FalseClass"],
+        ["a string", "42", "non-numeric value: String"],
+        ["NaN", Float::NAN, "a value that is not finite: Float"],
+        ["an infinite Float", Float::INFINITY, "a value that is not finite: Float"],
+        ["an Integer beyond the Float range", 10**400, "a value that is not finite: Integer"],
+      ].each do |description, value, message|
+        context "with #{description}" do
+          it "records nothing and logs the evaluation error at debug" do
+            hook_metric_probe
+
+            HookTestClass.new.hook_test_method_with_arg(value)
+
+            expect(metric_emitter).to_not have_received(:record)
+            expect(recorded_probes).to be_empty
+            expect(debug_messages).to include(
+              a_string_starting_with(
+                "di: error evaluating metric probe value: metric-execution: " \
+                "Datadog::DI::Error::ExpressionEvaluationError: Metric value expression evaluated to #{message} (",
+              ),
+            )
+          end
+        end
+      end
+
+      context "nil value from a missing reference" do
+        let(:metric_value_expression) { compiled_ref_expression("undefined_ref") }
+
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil) }
+
+        it "records nothing and reports the evaluation error to telemetry" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
+
+          expect(metric_emitter).to_not have_received(:record)
+          expect(telemetry).to have_received(:report)
+            .with(an_instance_of(Datadog::DI::Error::ExpressionEvaluationError), description: "Error evaluating metric probe value")
+        end
+      end
+    end
+
+    context "when the emitter drops the value" do
+      before do
+        allow(metric_emitter).to receive(:record).and_return(false)
+      end
+
+      it "does not invoke the recorded callback" do
+        hook_metric_probe
+
+        expect(HookTestClass.new.hook_test_method).to eq 42
+
+        expect(metric_emitter).to have_received(:record).with(probe, 1)
+        expect(recorded_probes).to be_empty
+      end
+    end
+
+    context "when the recorded callback raises after the value evaluates" do
+      let(:propagate_all_exceptions) { false }
+
+      let(:method_name) { "hook_test_method_with_arg" }
+
+      let(:metric_value_expression) { compiled_ref_expression("arg1") }
+
+      let(:metric_responder) do
+        Datadog::DI::ProcResponder.new(
+          proc { |_context| fail "metric probes do not invoke the executed callback" },
+          recorded_proc: proc { |_probe| raise "recorded callback failure" },
+        )
+      end
+
+      it "reports the failure as an exception of the metric probe processing" do
+        hook_metric_probe
+
+        expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
+
+        expect(debug_messages).to include(
+          a_string_starting_with("di: unhandled exception in metric method probe: RuntimeError: recorded callback failure ("),
+        )
+        expect(debug_messages.grep(/error evaluating metric probe value/)).to be_empty
+      end
+
+      context "with entry timing" do
+        let(:evaluate_at) { :entry }
+
+        it "reports the failure and runs the method" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
+
+          expect(debug_messages).to include(
+            a_string_starting_with("di: unhandled exception in metric method probe: RuntimeError: recorded callback failure ("),
+          )
+        end
+      end
+
+      context "with telemetry" do
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil) }
+
+        it "reports the exception to telemetry" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
+
+          expect(telemetry).to have_received(:report)
+            .with(an_instance_of(RuntimeError), description: "Unhandled exception in metric method probe")
+        end
+      end
+
+      context "when DI propagates all exceptions" do
+        let(:propagate_all_exceptions) { true }
+
+        it "raises the exception to the caller of the probed method" do
+          hook_metric_probe
+
+          expect do
+            HookTestClass.new.hook_test_method_with_arg(21)
+          end.to raise_error(RuntimeError, "recorded callback failure")
+        end
+      end
+    end
+
+    context "when the value expression raises an exception other than an evaluation error" do
+      let(:method_name) { "hook_test_method_with_arg" }
+
+      let(:metric_value_expression) { compiled_ref_expression("arg1") }
+
+      before do
+        allow(metric_value_expression).to receive(:evaluate).and_raise(RuntimeError, "evaluator failure")
+      end
+
+      context "when DI propagates all exceptions" do
+        let(:propagate_all_exceptions) { true }
+
+        it "raises the exception to the caller of the probed method" do
+          hook_metric_probe
+
+          expect do
+            HookTestClass.new.hook_test_method_with_arg(21)
+          end.to raise_error(RuntimeError, "evaluator failure")
+          expect(metric_emitter).to_not have_received(:record)
+        end
+      end
+
+      context "when DI does not propagate exceptions" do
+        let(:propagate_all_exceptions) { false }
+
+        it "records nothing and logs the exception at debug" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
+
+          expect(metric_emitter).to_not have_received(:record)
+          expect(debug_messages).to include(
+            a_string_starting_with("di: error evaluating metric probe value: metric-execution: RuntimeError: evaluator failure ("),
+          )
+        end
+      end
+    end
+
+    context "when a probe with a value expression is recorded without an evaluation context" do
+      let(:metric_value_expression) { compiled_ref_expression("arg1") }
+
+      it "raises an internal error" do
+        expect do
+          instrumenter.send(:record_metric, probe, nil, metric_responder)
+        end.to raise_error(Datadog::DI::Error::InternalError, "metric probe value expression without evaluation context")
+      end
+    end
+
+    context "rate limiting" do
+      it "records for every hit regardless of the per-probe rate limit" do
+        probe = Datadog::DI::Probe.new(
+          id: "metric-rate-limit", type: :metric,
+          type_name: "HookTestClass", method_name: "hook_test_method",
+          metric_kind: :count, metric_name: "test.metric",
+          rate_limit: 1,
+        )
+
+        expect(probe.rate_limiter).to_not receive(:allow?)
+        expect(instrumenter.global_log_rate_limiter).to_not receive(:allow?)
+
+        begin
+          hook_metric_probe(probe)
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(metric_emitter).to have_received(:record).with(probe, 1).twice
+        ensure
+          instrumenter.unhook(probe)
+        end
+      end
+    end
+
+    context "CPU circuit breaker" do
+      let(:propagate_all_exceptions) { false }
+
+      let(:metric_responder) do
+        Datadog::DI::ProcResponder.new(
+          proc { |_context| fail "metric probes do not invoke the executed callback" },
+          recorded_proc: proc { |probe| recorded_probes << probe },
+        ).tap do |responder|
+          allow(responder).to receive(:probe_disabled_callback)
+        end
+      end
+
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
+      end
+
+      it "disables the probe after the first firing and stops recording" do
+        hook_metric_probe
+
+        expect(HookTestClass.new.hook_test_method).to eq 42
+        expect(HookTestClass.new.hook_test_method).to eq 42
+
+        expect(probe.enabled?).to be false
+        expect(metric_emitter).to have_received(:record).with(probe, 1).once
+      end
+    end
+
+    context "with a probe on Symbol#==, which the probe type check calls" do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "metric-symbol-eq", type: :metric,
+          type_name: "Symbol", method_name: "==",
+          metric_kind: :count, metric_name: "symbol.eq",
+        )
+      end
+
+      it "runs the original method in the nested call and records the outer call" do
+        hook_metric_probe
+        begin
+          result = (:metric_probe_left == :metric_probe_right)
+        ensure
+          instrumenter.unhook(probe)
+        end
+
+        expect(result).to be false
+        expect(metric_emitter).to have_received(:record).with(probe, 1).at_least(:once)
       end
     end
   end

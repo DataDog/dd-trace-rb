@@ -2,6 +2,7 @@
 
 require_relative "error"
 require_relative "utils"
+require_relative "el"
 require_relative "../core/rate_limiter"
 
 module Datadog
@@ -32,7 +33,9 @@ module Datadog
     #
     # @api private
     class Probe
-      KNOWN_TYPES = %i[log].freeze
+      KNOWN_TYPES = %i[log metric].freeze
+
+      METRIC_KINDS = %i[count gauge histogram distribution].freeze
 
       EVALUATE_AT_VALUES = %i[entry exit].freeze
 
@@ -45,11 +48,37 @@ module Datadog
         capture_expressions: [],
         evaluate_at: nil,
         condition: nil,
-        rate_limit: nil)
+        rate_limit: nil,
+        metric_kind: nil, metric_name: nil, metric_value: nil,
+        tags: [])
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
         unless KNOWN_TYPES.include?(type)
           raise ArgumentError, "Unknown probe type: #{type}"
+        end
+
+        if type == :metric
+          unless METRIC_KINDS.include?(metric_kind)
+            raise ArgumentError, "Unknown metric kind: #{metric_kind.inspect} (expected one of #{METRIC_KINDS.inspect})"
+          end
+
+          unless String === metric_name && !metric_name.empty?
+            raise ArgumentError, "Metric probe must have a non-empty metricName: #{id}"
+          end
+
+          unless Array === tags && tags.all? { |tag| String === tag }
+            raise ArgumentError, "Metric probe tags must be an array of strings: #{id}"
+          end
+
+          if metric_value && !(EL::Expression === metric_value)
+            raise ArgumentError, "Metric probe value must be a compiled expression: #{id}"
+          end
+
+          if capture_snapshot || !capture_expressions.empty? || template || template_segments
+            raise ArgumentError, "Metric probe must not specify log probe capture or template fields: #{id}"
+          end
+        elsif metric_kind || metric_name || metric_value
+          raise ArgumentError, "Log probe must not specify metric probe fields: #{id}"
         end
 
         # Probe should be inferred to be a line probe if the specification
@@ -76,6 +105,11 @@ module Datadog
           raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
         end
 
+        # The other tracers install metric probes on lines.
+        if type == :metric && line_no
+          raise ArgumentError, "Metric probes on lines are not supported: #{id}"
+        end
+
         @id = id
         @type = type
         @file = file
@@ -90,6 +124,10 @@ module Datadog
         @max_capture_collection_size = max_capture_collection_size
         @max_capture_string_length = max_capture_string_length
         @capture_expressions = capture_expressions || []
+        @metric_kind = metric_kind
+        @metric_name = metric_name
+        @metric_value = metric_value
+        @tags = tags
         evaluate_at = :exit if evaluate_at.nil?
         unless EVALUATE_AT_VALUES.include?(evaluate_at)
           raise ArgumentError, "Unknown evaluate_at value: #{evaluate_at.inspect} (expected one of #{EVALUATE_AT_VALUES.inspect})"
@@ -159,6 +197,22 @@ module Datadog
       # does not hold the evaluation may fail - we don't want to use up the
       # probe rate limit for the errors).
       attr_reader :condition_evaluation_failed_rate_limiter
+
+      # The metric kind of a metric probe, one of METRIC_KINDS; nil for
+      # log probes.
+      attr_reader :metric_kind
+
+      # The user-specified metric name of a metric probe; nil for log
+      # probes.
+      attr_reader :metric_name
+
+      # The compiled value expression of a metric probe, or nil when the
+      # metric probe emits a constant value.
+      attr_reader :metric_value
+
+      # User-specified tags of a metric probe, as verbatim key:value
+      # strings.
+      attr_reader :tags
 
       # Consumes one token from the probe's own rate limiter and reports
       # whether this probe hit is admitted; a probe with no rate limiter is

@@ -297,6 +297,23 @@ module Datadog
         end
       end
 
+      # Sends the EMITTING status for the probe once per probe lifetime,
+      # using the probe's emitting_notified flag. Java, Python and .NET
+      # re-send the stored statuses every diagnostics interval, and PHP in
+      # every request; the Ruby diagnostics path sends statuses on
+      # transition only, and the probe tracker computes "last captured" for
+      # metric probes from the metric query.
+      #
+      # @param probe [Probe] the probe that is emitting
+      # @return [void]
+      private def notify_emitting(probe)
+        unless probe.emitting_notified?
+          payload = probe_notification_builder.build_emitting(probe)
+          probe_notifier_worker.add_status(payload, probe: probe)
+          probe.emitting_notified = true
+        end
+      end
+
       # Entry point invoked from the instrumentation when the specfied probe
       # is invoked (that is, either its target method is invoked, or
       # execution reached its target file/line).
@@ -307,14 +324,27 @@ module Datadog
       def probe_executed_callback(context)
         probe = context.probe
         logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
-        unless probe.emitting_notified?
-          payload = probe_notification_builder.build_emitting(probe)
-          probe_notifier_worker.add_status(payload, probe: probe)
-          probe.emitting_notified = true
-        end
+        notify_emitting(probe)
 
         payload = probe_notification_builder.build_executed(context)
         probe_notifier_worker.add_snapshot(payload, probe: probe)
+      end
+
+      # Callback invoked when the metric emitter accepts a point of a
+      # metric probe.
+      #
+      # Sends the EMITTING status once per the probe's lifetime, after the
+      # first accepted point, and schedules the submission of the point
+      # within the minimum send interval. Points that the emitter drops do
+      # not reach this callback. Java and .NET also send EMITTING once
+      # their client queues the point, Python after its socket write, and
+      # PHP before it evaluates the value.
+      #
+      # @param probe [Probe] the probe whose point was recorded
+      # @return [void]
+      def probe_metric_recorded_callback(probe)
+        notify_emitting(probe)
+        probe_notifier_worker.schedule_metric_flush
       end
 
       # Callback invoked when a probe's condition expression fails to evaluate.

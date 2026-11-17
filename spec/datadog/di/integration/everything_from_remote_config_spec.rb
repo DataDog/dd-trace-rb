@@ -22,7 +22,12 @@ RSpec.describe "DI integration from remote config" do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-  let(:logger) { instance_double(Logger) }
+  let(:logger) do
+    instance_double(Logger).tap do |logger|
+      # The DI component's metric emitter logs its construction at debug.
+      allow(logger).to receive(:debug)
+    end
+  end
 
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
@@ -42,7 +47,7 @@ RSpec.describe "DI integration from remote config" do
     #
     # Call start! so RC change processing proceeds — DI::Remote.receivers
     # short-circuits when `component.started?` is false.
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: nil, statsd: nil).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end

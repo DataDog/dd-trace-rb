@@ -69,7 +69,7 @@ RSpec.describe "CodeTracker backfill integration" do
   let(:logger) { logger_allowing_debug }
 
   let(:component) do
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: nil, statsd: nil).tap do |component|
       raise "Component failed to create" if component.nil?
     end
   end

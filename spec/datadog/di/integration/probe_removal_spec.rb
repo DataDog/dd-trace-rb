@@ -47,7 +47,7 @@ RSpec.describe "DI probe removal via remote config" do
   end
 
   let(:component) do
-    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry, statsd: nil).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end
