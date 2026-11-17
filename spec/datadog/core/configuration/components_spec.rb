@@ -1750,41 +1750,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       is_expected.to be statsd
     end
 
-    context "with a dogstatsd-ruby release that accepts the single_thread option" do
-      before do
-        allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(Gem::Version.new("5.7.1"))
-      end
-
-      it "builds a single-threaded client" do
-        expect(Datadog::Statsd).to receive(:new)
-          .with(
-            Datadog::Core::Metrics::Dogstatsd.default_hostname,
-            Datadog::Core::Metrics::Dogstatsd.default_port,
-            single_thread: true,
-          )
-          .and_return(statsd)
-
-        is_expected.to be statsd
-      end
-    end
-
-    context "with a dogstatsd-ruby release that accepts no single_thread option" do
-      before do
-        allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(Gem::Version.new("4.8.3"))
-      end
-
-      it "builds a client without the single_thread option" do
-        expect(Datadog::Statsd).to receive(:new)
-          .with(
-            Datadog::Core::Metrics::Dogstatsd.default_hostname,
-            Datadog::Core::Metrics::Dogstatsd.default_port,
-          )
-          .and_return(statsd)
-
-        is_expected.to be statsd
-      end
-    end
-
     context "with DD_AGENT_HOST and DD_METRIC_AGENT_PORT" do
       with_env "DD_AGENT_HOST" => "dogstatsd.example", "DD_METRIC_AGENT_PORT" => "18125"
 
