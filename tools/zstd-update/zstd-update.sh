@@ -56,5 +56,8 @@ printf 'Checksum verified. Generating zstd.c...\n'
     -o "$temp_dir/zstd.c" "$script_dir/zstd-in.c"
 )
 
+# @ivoanjo: Strip documentation to further reduce zstd.c size
+ruby -0777 -i -pe '$_.gsub!(%r{^[[:blank:]]*/\*(?!\*\*)[!*].*?\*/}m, "")' "$temp_dir/zstd.c"
+
 install -m 644 "$temp_dir/zstd.c" "$output_path"
 printf 'Updated %s\n' "$output_path"
