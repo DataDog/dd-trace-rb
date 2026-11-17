@@ -172,34 +172,9 @@ runs:
         REPO: ${{ github.repository }}
         SCRATCH: ${{ steps.stage.outputs.scratch }}
         GUARDED_SHA: ${{ steps.scratch.outputs.head-sha }}
+        CANDIDATE_SHA: ''
         ACTION_PATH: ${{ github.action_path }}
-      run: |
-        sleep 30
-        head_sha=""
-        for _ in 1 2 3; do
-          if head_sha="$(gh api "repos/$REPO/git/refs/heads/$SCRATCH" --jq .object.sha)"; then
-            break
-          fi
-          sleep 10
-        done
-        if [ -z "$head_sha" ]; then
-          echo "Could not re-read the scratch head after three attempts." >&2
-          exit 1
-        fi
-        echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
-        record_head_commit_verdict() {
-          verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$head_sha")"
-          if [ "$verdict" = "match" ]; then
-            echo "The failed attempt applied the mutation as $head_sha; using that commit."
-            echo "applied-hash=$head_sha" >> "$GITHUB_OUTPUT"
-          elif [ "$verdict" = "unreadable" ]; then
-            echo "Recording $head_sha as an unverified candidate."
-            echo "candidate-sha=$head_sha" >> "$GITHUB_OUTPUT"
-          fi
-        }
-        if [ "$head_sha" != "$GUARDED_SHA" ]; then
-          record_head_commit_verdict
-        fi
+      run: ${{ github.action_path }}/recheck-scratch-head.sh
 
     - name: Create signed commit (attempt 2 of 3)
       id: commit-2
@@ -228,35 +203,7 @@ runs:
         GUARDED_SHA: ${{ steps.backoff-1.outputs.head-sha }}
         CANDIDATE_SHA: ${{ steps.backoff-1.outputs.candidate-sha }}
         ACTION_PATH: ${{ github.action_path }}
-      run: |
-        sleep 30
-        head_sha=""
-        for _ in 1 2 3; do
-          if head_sha="$(gh api "repos/$REPO/git/refs/heads/$SCRATCH" --jq .object.sha)"; then
-            break
-          fi
-          sleep 10
-        done
-        if [ -z "$head_sha" ]; then
-          echo "Could not re-read the scratch head after three attempts." >&2
-          exit 1
-        fi
-        echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
-        record_head_commit_verdict() {
-          verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$head_sha")"
-          if [ "$verdict" = "match" ]; then
-            echo "The failed attempt applied the mutation as $head_sha; using that commit."
-            echo "applied-hash=$head_sha" >> "$GITHUB_OUTPUT"
-          elif [ "$verdict" = "unreadable" ]; then
-            echo "Recording $head_sha as an unverified candidate."
-            echo "candidate-sha=$head_sha" >> "$GITHUB_OUTPUT"
-          fi
-        }
-        if [ "$head_sha" != "$GUARDED_SHA" ]; then
-          record_head_commit_verdict
-        elif [ -n "$CANDIDATE_SHA" ] && [ "$head_sha" = "$CANDIDATE_SHA" ]; then
-          record_head_commit_verdict
-        fi
+      run: ${{ github.action_path }}/recheck-scratch-head.sh
 
     - name: Create signed commit (attempt 3 of 3)
       id: commit-3
