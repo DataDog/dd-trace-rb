@@ -96,7 +96,7 @@ static inline VALUE str_from_borrow(ddog_ffe_BorrowedStr str) {
 }
 
 static VALUE evaluator_capabilities(DDTRACE_UNUSED VALUE self) {
-#ifdef HAVE_DDOG_FFE_ASSIGNMENT_DEPENDENCY_RESULT
+#ifdef HAVE_DDOG_FFE_ASSIGNMENT_GET_DEPENDENCY_RESULT
   return rb_ary_new_from_args(1, rb_str_new_lit("dependent-flag-variant-key-v1"));
 #else
   return rb_ary_new();
@@ -105,15 +105,15 @@ static VALUE evaluator_capabilities(DDTRACE_UNUSED VALUE self) {
 
 static VALUE resolution_details_dependencies(VALUE self) {
   VALUE dependencies = rb_ary_new();
-#ifdef HAVE_DDOG_FFE_ASSIGNMENT_DEPENDENCY_RESULT
+#ifdef HAVE_DDOG_FFE_ASSIGNMENT_GET_DEPENDENCY_RESULT
   ddog_ffe_Handle_ResolutionDetails root =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
-  size_t count = ddog_ffe_assignment_dependency_count(root);
+  size_t count = ddog_ffe_assignment_get_dependency_count(root);
   for (size_t index = 0; index < count; index++) {
-    VALUE key = str_from_borrow(ddog_ffe_assignment_dependency_key(root, index));
-    VALUE eligible = ddog_ffe_assignment_dependency_exposure_eligible(root, index) ? Qtrue : Qfalse;
+    VALUE key = str_from_borrow(ddog_ffe_assignment_get_dependency_key(root, index));
+    VALUE eligible = ddog_ffe_assignment_get_dependency_exposure_eligible(root, index) ? Qtrue : Qfalse;
     VALUE result = TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, NULL);
-    DATA_PTR(result) = ddog_ffe_assignment_dependency_result(root, index);
+    DATA_PTR(result) = ddog_ffe_assignment_get_dependency_result(root, index);
     rb_ary_push(dependencies, rb_ary_new_from_args(3, key, result, eligible));
   }
 #else
