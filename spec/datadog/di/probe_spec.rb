@@ -308,6 +308,7 @@ RSpec.describe Datadog::DI::Probe do
       end
 
       it "denies once the probe's own rate limiter is exhausted" do
+        freeze_rate_limiter_clock
         probe.own_rate_limit_allows?
         expect(probe.own_rate_limit_allows?).to be false
       end
