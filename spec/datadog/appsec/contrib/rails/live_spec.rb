@@ -147,7 +147,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
       Timeout.timeout(5) do
         get_live
         live_signals[:resumed].push(true)
-        live_signals[:result].pop
+        live_signals[:result].pop.tap { wait_for_controller_thread }
       end
     end
 
@@ -163,13 +163,14 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
 
     context "when request thread returns before live thread ends" do
       before do
+        threads = finalized_threads
+
         allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:finalize!).and_wrap_original do |method|
-          finalized_threads << Thread.current
+          threads << Thread.current
           method.call
         end
 
         after_action_result
-        wait_for_controller_thread
       end
 
       let(:finalized_threads) { [] }
@@ -378,7 +379,9 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     before do
       Timeout.timeout(5) do
         get_live
+        wait_for_controller_thread
         get_live
+        wait_for_controller_thread
       end
     end
 
