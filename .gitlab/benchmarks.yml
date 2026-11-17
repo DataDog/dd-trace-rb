@@ -10,7 +10,7 @@ variables:
   # `.gitlab/benchmarks/container/` (see `.gitlab/benchmarks/README.md`).
   MICROBENCHMARKS_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb-152903368
   # The Dockerfile is located at: .gitlab/benchmarks/container/Dockerfile
-  # Image build, consumed by the included build-ci-images template. The per-pipeline
+  # The per-pipeline
   # suffix pins each build to a unique tag so a rebuild can't shift what older
   # pipelines pulled.
   BASE_CI_IMAGE_SUFFIX: dd-trace-rb-${CI_PIPELINE_ID}

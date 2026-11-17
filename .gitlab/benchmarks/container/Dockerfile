@@ -2,7 +2,7 @@ ARG DD_TRACE_RB_BASE_IMAGE=registry.ddbuild.io/ci/benchmarking-platform:dd-trace
 
 # Base image providing Ruby environment and dd-trace-rb dependencies.
 # Built from dd-trace-rb/benchmarks/Dockerfile during the build-ci-images job.
-# See .gitlab-ci.yml for the full build chain.
+# See .gitlab/benchmarks/README.md (How to rebuild the CI Docker image) for the build chain.
 FROM ${DD_TRACE_RB_BASE_IMAGE}
 
 ARG CI_JOB_TOKEN
