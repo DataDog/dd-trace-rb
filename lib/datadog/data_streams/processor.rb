@@ -183,9 +183,14 @@ module Datadog
 
       # Called periodically by the worker to flush stats to the agent
       def perform
+        flush
+        true
+      end
+
+      # Drains buffered events and sends the aggregated stats to the agent.
+      def flush
         process_events
         flush_stats
-        true
       end
 
       private

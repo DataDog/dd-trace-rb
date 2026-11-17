@@ -2,6 +2,7 @@
 
 require_relative "ext"
 require_relative "../open_feature"
+require_relative "configuration/flag_selection"
 require_relative "../core/utils/time"
 require_relative "../core/utils/only_once"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
@@ -75,7 +76,7 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize(experimentation_opt_out_mode: nil, enable_evaluation_telemetry_opt_out_parameter: nil)
+      def initialize(experimentation_opt_out_mode: nil, enable_evaluation_telemetry_opt_out_parameter: nil, flag_selection: nil)
         mode = experimentation_opt_out_mode
         mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
         # Preserve the requested policy if this provider is activated after configuration changes.
@@ -91,6 +92,7 @@ module Datadog
         else
           raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
+        @flag_selection = Configuration::FlagSelection.canonicalize(flag_selection)
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -231,6 +233,8 @@ module Datadog
       end
 
       private
+
+      attr_reader :flag_selection
 
       def warn_if_hooks_unsupported
         return if defined?(::OpenFeature::SDK::Hooks::HookExecutor)

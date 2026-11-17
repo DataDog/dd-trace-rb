@@ -55,6 +55,8 @@ module Datadog
 
         def pathway_context=: (PathwayContext? context) -> PathwayContext?
 
+        def flush: () -> void
+
         private
 
         def encode_pathway_context: () -> String?

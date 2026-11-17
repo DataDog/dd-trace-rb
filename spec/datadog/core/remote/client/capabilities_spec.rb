@@ -18,20 +18,21 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     # JRuby and old Rubies). The unsupported-runtime paths are covered below.
     allow(Datadog::DI).to receive(:supported_runtime?).and_return(true)
     allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
   end
 
   shared_examples "tracing and DI capabilities" do
     it "includes tracing capabilities and the DI enablement bit" do
-      # Bits 12, 13, 14, 29, 45 (tracing) + 38 (DI enablement, registered with the DI block)
-      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
+      # Bits 12, 13, 14, 20, 29, 45 (tracing) + 38 (DI enablement, registered with the DI block)
+      expect(capabilities.base64_capabilities).to eq("IEAgEHAA")
     end
   end
 
   shared_examples "tracing capabilities only" do
     it "includes only tracing capabilities (DI not registered)" do
-      # Bits 12, 13, 14, 29, 45 (tracing). Bit 38 lives in the DI block, which is
+      # Bits 12, 13, 14, 20, 29, 45 (tracing). Bit 38 lives in the DI block, which is
       # not registered here (DI settings absent or explicitly disabled).
-      expect(capabilities.base64_capabilities).to eq("IAAgAHAA")
+      expect(capabilities.base64_capabilities).to eq("IAAgEHAA")
     end
   end
 
@@ -337,8 +338,16 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context "Tracing component" do
+    context "when DDSketch is not supported" do
+      before { allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false) }
+
+      it "does not advertise the Data Streams enablement bit 20" do
+        expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
+      end
+    end
+
     it "register capabilities, products, and receivers" do
-      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 20, 1 << 29, 1 << 45)
       expect(capabilities.products).to include("APM_TRACING")
       expect(capabilities.receivers).to include(
         lambda { |r|
@@ -499,7 +508,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       )
       # Same bits as "tracing and DI capabilities": the backend defines no capability for profiling, so
       # profiling only subscribes to its products.
-      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
+      expect(capabilities.base64_capabilities).to eq("IEAgEHAA")
     end
   end
 end

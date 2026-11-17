@@ -18,6 +18,8 @@ module Datadog
 
           @datadog_pathway_context_before_job: (Datadog::DataStreams::PathwayContext | false)?
 
+          @datadog_data_streams_processor_before_job: Datadog::DataStreams::Processor?
+
           def deserialize: (Hash[String, any] job_data) -> void
 
           def perform_now: () -> untyped
