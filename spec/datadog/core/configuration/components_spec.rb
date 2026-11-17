@@ -940,6 +940,161 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "#swap_data_streams" do
+    subject(:swap_data_streams) { components.swap_data_streams }
+
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
+
+    before do
+      components # built with the default disabled setting, before build_data_streams is stubbed
+      allow(described_class).to receive(:build_data_streams).and_return(processor)
+      allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
+    end
+
+    context "when the setting is enabled" do
+      before { settings.data_streams.enabled = true }
+
+      it "builds the processor once and retires nothing" do
+        components.swap_data_streams
+
+        expect(swap_data_streams).to be_nil
+        expect(described_class).to have_received(:build_data_streams).once
+        expect(components.data_streams).to be(processor)
+      end
+
+      context "when DDSketch is not supported" do
+        before { allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false) }
+
+        it "does not build the processor" do
+          expect(swap_data_streams).to be_nil
+          expect(described_class).not_to have_received(:build_data_streams)
+          expect(components.data_streams).to be_nil
+        end
+      end
+    end
+
+    context "when the setting is disabled and a processor is running" do
+      before do
+        settings.data_streams.enabled = true
+        components.swap_data_streams
+        settings.data_streams.enabled = false
+      end
+
+      it "detaches and returns the processor without stopping it" do
+        expect(swap_data_streams).to be(processor)
+        expect(components.data_streams).to be_nil
+        expect(processor).not_to have_received(:stop)
+      end
+
+      it "lets #stop_retired_data_streams stop then flush it" do
+        components.stop_retired_data_streams(swap_data_streams)
+
+        expect(processor).to have_received(:stop).with(true).ordered
+        expect(processor).to have_received(:flush).ordered
+      end
+
+      it "lets #shutdown! stop it when it was never stopped" do
+        swap_data_streams
+        allow(telemetry).to receive(:emit_closing!)
+        allow(telemetry).to receive(:shutdown!)
+        allow(components.runtime_metrics.metrics.statsd).to receive(:close)
+        allow(components.health_metrics.statsd).to receive(:close)
+
+        components.shutdown!
+
+        expect(processor).to have_received(:stop).with(true)
+      end
+
+      it "no longer stops it on #shutdown! once stopped" do
+        components.stop_retired_data_streams(swap_data_streams)
+        allow(telemetry).to receive(:emit_closing!)
+        allow(telemetry).to receive(:shutdown!)
+        allow(components.runtime_metrics.metrics.statsd).to receive(:close)
+        allow(components.health_metrics.statsd).to receive(:close)
+
+        components.shutdown!
+
+        expect(processor).to have_received(:stop).once
+      end
+    end
+
+    context "when the setting is disabled and there is no processor" do
+      it { expect(swap_data_streams).to be_nil }
+    end
+
+    context "when the settings have no data_streams (only datadog/core loaded)" do
+      before do
+        allow(settings).to receive(:respond_to?).and_call_original
+        allow(settings).to receive(:respond_to?).with(:data_streams).and_return(false)
+      end
+
+      it "does nothing" do
+        expect(swap_data_streams).to be_nil
+        expect(described_class).not_to have_received(:build_data_streams)
+      end
+    end
+
+    context "when reconciling fails" do
+      before do
+        settings.data_streams.enabled = true
+        allow(described_class).to receive(:build_data_streams).and_raise("boom")
+      end
+
+      it { expect(swap_data_streams).to be_nil }
+    end
+  end
+
+  describe "#stop_retired_data_streams" do
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true) }
+
+    it "does not raise when flushing fails" do
+      allow(processor).to receive(:flush).and_raise("boom")
+
+      expect { components.stop_retired_data_streams(processor) }.not_to raise_error
+    end
+  end
+
+  describe ".reconfigure_data_streams" do
+    subject(:reconfigure_data_streams) { described_class.reconfigure_data_streams }
+
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
+
+    before do
+      components # built before Datadog.components is stubbed, as its construction reads the global logger
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(components)
+    end
+
+    it "selects the components and swaps the processor under the Components lock" do
+      expect(components).to receive(:swap_data_streams) do
+        expect(Datadog::Core::Configuration.const_get(:COMPONENTS_WRITE_LOCK)).to be_owned
+        nil
+      end
+
+      reconfigure_data_streams
+    end
+
+    it "stops the retired processor outside the Components lock" do
+      allow(components).to receive(:swap_data_streams).and_return(processor)
+      expect(processor).to receive(:stop).with(true) do
+        expect(Datadog::Core::Configuration.const_get(:COMPONENTS_WRITE_LOCK)).not_to be_owned
+      end
+
+      reconfigure_data_streams
+    end
+
+    it "does nothing when there are no components" do
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(nil)
+
+      expect(reconfigure_data_streams).to be_nil
+    end
+
+    it "does not raise when swapping fails" do
+      allow(components).to receive(:swap_data_streams).and_raise("boom")
+
+      expect { reconfigure_data_streams }.not_to raise_error
+    end
+  end
+
   describe "#after_fork" do
     subject(:after_fork) { components.after_fork }
 
