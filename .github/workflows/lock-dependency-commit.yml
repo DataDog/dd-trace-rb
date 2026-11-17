@@ -120,8 +120,6 @@ jobs:
         if: steps.check.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
         run: sleep 30
 
-      # The last attempt has no continue-on-error, so exhausted retries still
-      # fail the job.
       - name: Commit changes (attempt 3 of 3)
         id: commit-3
         if: steps.check.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
