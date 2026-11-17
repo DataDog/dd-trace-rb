@@ -245,8 +245,8 @@ runs:
         record_head_commit_verdict() {
           verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$head_sha")"
           if [ "$verdict" = "match" ]; then
-            echo "The failed attempt landed as $head_sha; adopting it."
-            echo "landed-hash=$head_sha" >> "$GITHUB_OUTPUT"
+            echo "The failed attempt applied the mutation as $head_sha; using that commit."
+            echo "applied-hash=$head_sha" >> "$GITHUB_OUTPUT"
           elif [ "$verdict" = "unreadable" ]; then
             echo "Recording $head_sha as an unverified candidate."
             echo "candidate-sha=$head_sha" >> "$GITHUB_OUTPUT"
@@ -260,7 +260,7 @@ runs:
 
     - name: Create signed commit (attempt 3 of 3)
       id: commit-3
-      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure' && steps.backoff-2.outputs.landed-hash == '' && steps.backoff-2.outputs.candidate-sha == ''
+      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure' && steps.backoff-2.outputs.applied-hash == '' && steps.backoff-2.outputs.candidate-sha == ''
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
         repo: ${{ github.repository }}
@@ -288,7 +288,7 @@ runs:
         SECOND: ${{ steps.commit-2.outputs.commit-hash }}
         THIRD: ${{ steps.commit-3.outputs.commit-hash }}
         LANDED_FIRST: ${{ steps.backoff-1.outputs.applied-hash }}
-        LANDED_SECOND: ${{ steps.backoff-2.outputs.landed-hash }}
+        LANDED_SECOND: ${{ steps.backoff-2.outputs.applied-hash }}
         CANDIDATE_FIRST: ${{ steps.backoff-1.outputs.candidate-sha }}
         CANDIDATE_SECOND: ${{ steps.backoff-2.outputs.candidate-sha }}
       run: |
