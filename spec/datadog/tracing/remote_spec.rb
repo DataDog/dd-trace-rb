@@ -19,6 +19,14 @@ RSpec.describe Datadog::Tracing::Remote do
   end
 
   it "declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)" do
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
+
+    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 20, 1 << 29, 1 << 45)
+  end
+
+  it "omits the Data Streams enablement bit 20 when DDSketch is not supported" do
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false)
+
     expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
   end
 
@@ -73,6 +81,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -92,6 +101,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -120,6 +130,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", "X-Test-Header:test_header_rc,Content-Length:"],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -150,6 +161,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", "[{\"sample_rate\":1.0,\"tags\":{\"service\":\"web-*\"}}]"],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -395,6 +407,14 @@ RSpec.describe Datadog::Tracing::Remote do
       expect(remote.merge_lib_configs(ordered)).to eq("y" => 1)
     end
 
+    it "skips a non-boolean data_streams_enabled so a less-specific boolean wins" do
+      ordered = [
+        {"lib_config" => {"data_streams_enabled" => "yes"}},
+        {"lib_config" => {"data_streams_enabled" => true}},
+      ]
+      expect(remote.merge_lib_configs(ordered)).to eq("data_streams_enabled" => true)
+    end
+
     it "skips a config whose lib_config is missing or not a hash" do
       ordered = [{"lib_config" => nil}, {}, {"lib_config" => {"x" => 1}}]
       expect(remote.merge_lib_configs(ordered)).to eq("x" => 1)
@@ -514,6 +534,7 @@ RSpec.describe Datadog::Tracing::Remote do
             ["DD_TRACE_HEADER_TAGS", nil],
             ["DD_TRACE_SAMPLE_RATE", nil],
             ["DD_TRACE_SAMPLING_RULES", nil],
+            ["DD_DATA_STREAMS_ENABLED", nil],
           ))
 
         remote.merge_and_apply_configs(repository)
@@ -773,6 +794,7 @@ RSpec.describe Datadog::Tracing::Remote do
             ["DD_TRACE_HEADER_TAGS", nil],
             ["DD_TRACE_SAMPLE_RATE", nil],
             ["DD_TRACE_SAMPLING_RULES", nil],
+            ["DD_DATA_STREAMS_ENABLED", nil],
           ))
 
         remote.merge_and_apply_configs(repository)

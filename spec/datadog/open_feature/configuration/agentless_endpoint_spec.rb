@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "datadog/open_feature/configuration/agentless_endpoint"
+require "datadog/open_feature/configuration/flag_selection"
 
 RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
   subject(:endpoint) do
@@ -100,6 +101,104 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
           expect(endpoint).to be_nil
           expect(logger).to have_received(:warn).with(expected_warning)
         end
+      end
+    end
+  end
+
+  describe "#with_flag_selection" do
+    subject(:selected_endpoint) { endpoint.with_flag_selection(selection) }
+
+    let(:selection) do
+      Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(tags: ["team:a b"], key_patterns: ["checkout.*"])
+    end
+
+    it "does not send a selection from the endpoint as built" do
+      expect(endpoint).not_to be_flag_selection_sent
+    end
+
+    context "with the managed endpoint and an environment" do
+      let(:environment) { "my env" }
+
+      it "appends the selection after the environment" do
+        expect(selected_endpoint.uri.to_s).to eq(
+          "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server" \
+            "?dd_env=my+env&selected_flag_tags=team%3Aa%20b&selected_flag_key_patterns=checkout.%2A",
+        )
+        expect(selected_endpoint).to be_managed
+        expect(selected_endpoint).to be_flag_selection_sent
+      end
+
+      it "leaves the endpoint as built unchanged" do
+        selected_endpoint
+
+        expect(endpoint.uri.to_s).to eq(
+          "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server?dd_env=my+env",
+        )
+        expect(endpoint).not_to be_flag_selection_sent
+      end
+    end
+
+    context "with the managed endpoint and no environment" do
+      it "starts the query with the selection" do
+        expect(selected_endpoint.uri.query).to eq(
+          "selected_flag_tags=team%3Aa%20b&selected_flag_key_patterns=checkout.%2A",
+        )
+      end
+    end
+
+    context "with a custom endpoint carrying credentials and a query" do
+      let(:base_url) { "https://user:pa%40ss@proxy.example.test/custom/path?dd_env=sys+tests&sig=a%2Fb" }
+
+      it "keeps the credentials and the query and appends the selection" do
+        expect(selected_endpoint.uri.to_s).to eq(
+          "https://user:pa%40ss@proxy.example.test/custom/path?dd_env=sys+tests&sig=a%2Fb" \
+            "&selected_flag_tags=team%3Aa%20b&selected_flag_key_patterns=checkout.%2A",
+        )
+        expect(selected_endpoint).not_to be_managed
+      end
+    end
+
+    context "with a custom endpoint whose query ends in a stray percent sign" do
+      let(:base_url) { "https://proxy.example.test/ufc?token=abc%" }
+
+      it "returns nil instead of raising" do
+        expect(endpoint.uri.query).to eq("token=abc%")
+        expect(selected_endpoint).to be_nil
+      end
+    end
+
+    context "with a custom endpoint without a query" do
+      let(:base_url) { "http://localhost:8126" }
+
+      it "appends the selection as the query" do
+        expect(selected_endpoint.uri.to_s).to eq(
+          "http://localhost:8126/api/v2/feature-flagging/config/rules-based/server" \
+            "?selected_flag_tags=team%3Aa%20b&selected_flag_key_patterns=checkout.%2A",
+        )
+      end
+    end
+
+    context "near the request URL limit" do
+      let(:base_url) { "https://proxy.example.test/ufc" }
+      let(:wide_tags) { Array.new(13) { |index| format("%02d", index) + "\u00E9" * 99 } }
+
+      def selection_with_url_bytes(url_bytes)
+        tags = wide_tags + ["x"]
+        padding = url_bytes - endpoint.with_flag_selection(
+          Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(tags: tags),
+        ).uri.to_s.bytesize
+        Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(tags: wide_tags + ["x" * (1 + padding)])
+      end
+
+      it "measures the whole URL after percent-encoding and allows 8192 bytes" do
+        selected = endpoint.with_flag_selection(selection_with_url_bytes(8192))
+
+        expect(selected.uri.to_s.bytesize).to eq(8192)
+        expect(selected).to be_flag_selection_sent
+      end
+
+      it "returns nil above 8192 bytes" do
+        expect(endpoint.with_flag_selection(selection_with_url_bytes(8193))).to be_nil
       end
     end
   end

@@ -136,6 +136,23 @@ module Datadog
             nil
           end
 
+          # Starts or stops Data Streams Monitoring on the current Components instance to match the
+          # `data_streams.enabled` setting. Used by remote configuration; never raises.
+          def reconfigure_data_streams
+            current = nil
+            retired = nil
+            Datadog.send(:safely_synchronize) do
+              # allow_initialization: false to avoid building the component tree from the remote-config worker thread.
+              current = Datadog.send(:components, allow_initialization: false)
+              retired = current&.swap_data_streams
+            end
+            current&.stop_retired_data_streams(retired) if retired
+            nil
+          rescue => e
+            Datadog.logger.debug { "Failed to reconfigure Data Streams Monitoring: #{e.class}: #{e.message}" }
+            nil
+          end
+
           # Rebuilds the profiler of the current Components instance if it is outdated, under the Components lock.
           # We added this for profiling remote configuration: We don't want to use
           # `Datadog.configure` directly as that rebuilds every component, including
@@ -241,6 +258,8 @@ module Datadog
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
+          @retiring_data_streams = []
+          @retiring_data_streams_lock = Mutex.new
           # Reflects "the customer configured DI to be on" — true iff the
           # component was built AND the env-var-driven enabled flag is set.
           # This is the post-initialize / pre-startup value visible to tests
@@ -371,6 +390,7 @@ module Datadog
 
           # Shutdown Data Streams Monitoring processor
           data_streams&.stop(true)
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams.dup }.each { |processor| processor.stop(true) }
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)
@@ -424,6 +444,41 @@ module Datadog
 
         def open_feature
           @open_feature_activation.component
+        end
+
+        # Builds or detaches the Data Streams processor to match `settings.data_streams.enabled`.
+        # Caller must hold the Components lock. Returns the detached processor for stop_retired_data_streams; never raises.
+        def swap_data_streams
+          # Settings lack data_streams when only datadog/core is loaded.
+          return unless settings.respond_to?(:data_streams)
+
+          if settings.data_streams.enabled
+            # Skipped when unsupported so each configure/RC dispatch doesn't repeat the build failure warning.
+            if Core::DDSketch.supported?
+              @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
+            end
+            return
+          end
+
+          retired = @data_streams
+          return unless retired
+
+          @data_streams = nil
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams << retired }
+          retired
+        rescue => e
+          logger.debug { "Failed to reconcile Data Streams Monitoring: #{e.class}: #{e.message}" }
+          nil
+        end
+
+        # Stops a processor detached by swap_data_streams, outside the Components lock.
+        # It stays listed until stopped, so shutdown! stops it if this thread is killed first.
+        def stop_retired_data_streams(processor)
+          processor.stop(true)
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams.delete(processor) }
+          processor.flush
+        rescue => e
+          logger.debug { "Failed to stop Data Streams Monitoring: #{e.class}: #{e.message}" }
         end
 
         def rebuild_profiler

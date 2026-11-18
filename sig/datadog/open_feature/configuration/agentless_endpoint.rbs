@@ -14,13 +14,19 @@ module Datadog
 
         @managed: bool
 
+        @flag_selection_sent: bool
+
         attr_reader uri: URI::HTTP
 
         def self.build: (site: String?, environment: String?, ?base_url: String?, ?logger: Datadog::Core::Logger) -> AgentlessEndpoint?
 
-        def initialize: (URI::HTTP uri, managed: bool) -> void
+        def initialize: (URI::HTTP uri, managed: bool, ?flag_selection_sent: bool) -> void
 
         def managed?: () -> bool
+
+        def flag_selection_sent?: () -> bool
+
+        def with_flag_selection: (FlagSelection selection) -> AgentlessEndpoint?
 
         def origin: () -> String
 

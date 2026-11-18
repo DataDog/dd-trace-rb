@@ -15,6 +15,8 @@ module Datadog
     module Agentless
       # HTTP transport for agentless configuration delivery.
       class Transport
+        FLAG_SELECTION_IGNORED_HEADER = "DD-Flag-Selection-Ignored"
+
         def initialize(endpoint:, api_key:, service:, timeout_seconds:)
           @endpoint = endpoint
           @api_key = endpoint.managed? ? api_key : nil
@@ -33,6 +35,7 @@ module Datadog
             etag: response["ETag"],
             # Decoding another status can erase the status the poller needs to classify the response.
             body: (status == 200) ? response_body(response) : nil,
+            flag_selection_ignored: flag_selection_ignored(response, status),
           )
         # Net::HTTP uses several version-specific exception types. None may end
         # the delivery worker; the poller classifies every transport failure.
@@ -53,6 +56,11 @@ module Datadog
             URI::RFC2396_PARSER.unescape(username),
             URI::RFC2396_PARSER.unescape(uri.password.to_s),
           )
+        end
+
+        # Only a 200 is applied, so no other status can report that the full configuration loaded.
+        def flag_selection_ignored(response, status)
+          response[FLAG_SELECTION_IGNORED_HEADER] if status == 200 && @endpoint.flag_selection_sent?
         end
 
         def headers(etag)

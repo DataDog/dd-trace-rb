@@ -42,6 +42,8 @@ module Datadog
             result: result,
             redaction: redaction,
             blocking_enabled: response.blocking_enabled?,
+            extra_tags: response.extra_tags,
+            extra_metastruct: response.extra_metastruct,
           )
         end
       end
