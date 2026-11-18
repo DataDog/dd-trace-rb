@@ -21,6 +21,9 @@
 // Allocating memory in this way is slower than malloc, so this is intended for big chunks that
 // will back arenas/pools/large buffers and happen **rarely**, not small linked list nodes that
 // get allocated/deallocated all the time.
+//
+// Note: The allocator adds a header to every allocation, which means the size requested to the OS is bigger than
+// the `size` argument (e.g. alloc(4096) will allocate 2 pages not 1 if that's the system page size).
 void *miteruby_allocator_alloc(size_t size, const char *name);
 
 size_t miteruby_allocator_alloc_size(const void *allocation);
