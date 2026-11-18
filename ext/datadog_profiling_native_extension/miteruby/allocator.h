@@ -15,8 +15,12 @@
 // Finally, we get accurate accounting of the memory we use: they show up independently in /proc/pid/maps and
 // even get tagged with the name of the allocation on most Linux setups.
 
-// Returns zero-initialized memory, directly backed by mmap (does not rely on libc malloc)
+// Returns zero-initialized memory, directly backed by mmap (does not rely on libc malloc).
 // Guarantees 16-byte alignment (mmap guarantees it). types requiring stricter alignment are unsupported.
+//
+// Allocating memory in this way is slower than malloc, so this is intended for big chunks that
+// will back arenas/pools/large buffers and happen **rarely**, not small linked list nodes that
+// get allocated/deallocated all the time.
 void *miteruby_allocator_alloc(size_t size, const char *name);
 
 size_t miteruby_allocator_alloc_size(const void *allocation);
