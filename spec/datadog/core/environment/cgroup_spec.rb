@@ -130,20 +130,21 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
         include_examples "parsing cgroup file into an array of entries"
       end
 
-      context "in a cgroup v2 private namespace" do
-        include_context "cgroup file"
+      context "in a cgroup v2 private namespace environment" do
+        include_context "cgroup v2 private namespace environment"
+        include_examples "parsing cgroup file into an array of entries"
 
-        before do
-          cgroup_file.puts "0::/"
-          cgroup_file.rewind
-          allow(described_class).to receive(:inode_for).and_call_original
-          allow(described_class).to receive(:inode_for).with("", "/").and_return(1234)
-        end
+        context "when the cgroup filesystem root exists" do
+          let(:inode) { 12345 }
 
-        it "parses the root path without the trailing newline and finds its inode" do
-          is_expected.to contain_exactly(
-            have_attributes(hierarchy: "0", controllers: "", path: "/", inode: 1234)
-          )
+          before do
+            allow(File).to receive(:exist?).with("/sys/fs/cgroup/").and_return(true)
+            allow(File).to receive(:stat).with("/sys/fs/cgroup/").and_return(double(ino: inode))
+          end
+
+          it "parses the root path without the trailing newline" do
+            is_expected.to contain_exactly(have_attributes(path: "/", inode: inode))
+          end
         end
       end
     end

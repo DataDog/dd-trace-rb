@@ -186,6 +186,16 @@ RSpec.describe Datadog::Core::Environment::Container do
       end
     end
 
+    context "when in a Docker hybrid v1/v2 environment on the host" do
+      include_context "Docker hybrid v1/v2 environment"
+
+      before { allow(described_class).to receive(:running_on_host?).and_return(true) }
+
+      it_behaves_like "container entry" do
+        let(:task_uid) { nil }
+      end
+    end
+
     context "when parsing cgroup entries raises an error" do
       before do
         allow(Datadog.logger).to receive(:debug)

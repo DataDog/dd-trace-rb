@@ -141,6 +141,9 @@ module Datadog
               return @entry = Entry.new(nil, nil, nil, entry_obj.inode)
             end
 
+            # A root path on the host carries no container information, so keep looking at v1 entries.
+            next if parts.empty?
+
             platform = parts[0][PLATFORM_REGEX, :platform]
 
             # Extract container_id and task_uid based on path structure

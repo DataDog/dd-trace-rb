@@ -406,4 +406,30 @@ module ContainerHelpers
       cgroup_file.rewind
     end
   end
+
+  RSpec.shared_context "cgroup v2 private namespace environment" do
+    include_context "cgroup file"
+
+    let(:platform) { nil }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context "Docker hybrid v1/v2 environment" do
+    include_context "cgroup file"
+
+    let(:platform) { "docker" }
+    let(:container_id) { "3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860" }
+    let(:lines) { 2 }
+
+    before do
+      cgroup_file.puts "0::/"
+      cgroup_file.puts "1:cpuset:/#{platform}/#{container_id}"
+      cgroup_file.rewind
+    end
+  end
 end
