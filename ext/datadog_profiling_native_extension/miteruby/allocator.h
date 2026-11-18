@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-// Memory allocator is used as a replacement for libc malloc (or Ruby APIs) for keeping the miteruby state.
+// The miteruby allocator is used as a replacement for libc malloc (or Ruby APIs) for keeping the miteruby state.
 //
 // By *avoiding Ruby APIs*, we avoid:
 // * Triggering more GC cycles than without the profiler
@@ -16,7 +16,7 @@
 // even get tagged with the name of the allocation on most Linux setups.
 
 // Returns zero-initialized memory, directly backed by mmap (does not rely on libc malloc)
-// Guarantees 16-byte alignment; types requiring stricter alignment are unsupported.
+// Guarantees 16-byte alignment (mmap guarantees it). types requiring stricter alignment are unsupported.
 void *miteruby_allocator_alloc(size_t size, const char *name);
 
 size_t miteruby_allocator_alloc_size(const void *allocation);
