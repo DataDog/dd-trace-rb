@@ -9,6 +9,9 @@
 
 // Used by Collectors::CpuAndWallTimeWorker to setup SIGPROF signal handlers used for cpu/wall-time profiling.
 
+static sigset_t sigprof_signal_mask_storage;
+const sigset_t *const sigprof_signal_mask = &sigprof_signal_mask_storage;
+
 static VALUE existing_signal_handler_exception_class = Qnil;
 
 static void install_sigprof_signal_handler_internal(
@@ -99,11 +102,7 @@ void remove_sigprof_signal_handler(void) {
 }
 
 static inline void toggle_sigprof_signal_handler_for_current_thread(int action) {
-  sigset_t signals_to_toggle;
-  sigemptyset(&signals_to_toggle);
-  sigaddset(&signals_to_toggle, SIGPROF);
-
-  int error = pthread_sigmask(action, &signals_to_toggle, NULL);
+  int error = pthread_sigmask(action, sigprof_signal_mask, NULL);
   if (error) {
     const char *message = (action == SIG_BLOCK) ?
       "Unexpected failure in pthread_sigmask: action SIG_BLOCK" :
@@ -128,6 +127,9 @@ VALUE is_sigprof_blocked_in_current_thread(void) {
 }
 
 void setup_signal_handler_init(VALUE profiling_module) {
+  sigemptyset(&sigprof_signal_mask_storage);
+  sigaddset(&sigprof_signal_mask_storage, SIGPROF);
+
   existing_signal_handler_exception_class = rb_define_class_under(
     profiling_module,
     "ExistingSignalHandler",
