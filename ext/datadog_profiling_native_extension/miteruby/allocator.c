@@ -109,7 +109,7 @@ void miteruby_allocator_free_impl(void **allocation_storage) {
   if (munmap(header, mapping_size) != 0) {
     // ENOMEM can occur when splitting a VMA; keep the mapping counted and let the application continue.
     if (errno == ENOMEM) return;
-    rb_bug("Failed to unmap miteruby allocation at %p (size=%zu, errno=%d)", (void *) header, size, errno);
+    rb_bug("Failed to unmap miteruby mapping at %p (mapping_size=%zu, errno=%d)", (void *) header, mapping_size, errno);
   }
 
   atomic_fetch_sub_explicit(&currently_allocated_bytes_stat, rounded_to_page_size(mapping_size), memory_order_relaxed);
