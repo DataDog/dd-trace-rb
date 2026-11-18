@@ -41,7 +41,7 @@ module Datadog
 
         @definition_trace_point = TracePoint.new(:end) do |tp|
           install_pending_method_probes(tp.self)
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc.message}" }
@@ -195,7 +195,7 @@ module Datadog
             false
           end
         end
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         # In "propagate all exceptions" mode we will try to instrument again.
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -227,7 +227,7 @@ module Datadog
           begin
             instrumenter.unhook(probe)
             probe_repository.remove_installed(probe_id)
-          rescue Exception => exc # standard:disable Lint/RescueException
+          rescue Exception => exc # rubocop:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
             # Silence all exceptions?
@@ -258,7 +258,7 @@ module Datadog
                   break
                 rescue Error::DITargetNotDefined
                   # This should not happen... try installing again later?
-                rescue Exception => exc # standard:disable Lint/RescueException
+                rescue Exception => exc # rubocop:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 

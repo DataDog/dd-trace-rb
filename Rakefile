@@ -1,6 +1,5 @@
 require "bundler/gem_tasks"
 require "datadog/version"
-require "standard/rake" if Gem.loaded_specs.key? "standard"
 require "rspec/core/rake_task"
 require "rake/extensiontask"
 require_relative "tasks/lib/compatibility"
@@ -695,7 +694,7 @@ namespace :native_dev do
 end
 
 desc "Runs lint + main test suite"
-task default: ["rubocop", "standard", "typecheck", "spec:main"]
+task default: ["rubocop", "typecheck", "spec:main"]
 
 desc "Runs the default task in parallel"
-multitask fastdefault: ["rubocop", "standard", "typecheck", "spec:main"]
+multitask fastdefault: ["rubocop", "typecheck", "spec:main"]

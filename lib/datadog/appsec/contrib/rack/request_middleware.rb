@@ -139,7 +139,7 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          # standard:disable Metrics/MethodLength
+          # rubocop:disable Metrics/MethodLength
           def add_appsec_tags(context)
             span = context.span
             trace = context.trace
@@ -169,7 +169,7 @@ module Datadog
               end
             end
           end
-          # standard:enable Metrics/MethodLength
+          # rubocop:enable Metrics/MethodLength
 
           def add_request_tags(context, env)
             span = context.span

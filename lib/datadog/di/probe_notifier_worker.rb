@@ -121,7 +121,7 @@ module Datadog
 
             begin
               more = maybe_send
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -398,7 +398,7 @@ module Datadog
               @lock.synchronize do
                 @last_sent = time
               end
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
               logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }

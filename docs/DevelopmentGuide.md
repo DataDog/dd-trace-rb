@@ -394,28 +394,19 @@ https://github.com/datadog/dd-apm-test-agent#readme
 **Linting**
 
 [RuboCop](https://github.com/rubocop/rubocop) is both a linting and autocorrection engine and a
-collection of default rules (called cops). [StandardRB](https://github.com/standardrb/standard)
-uses the RuboCop engine with an opinionated ruleset and exposes it through the `standardrb` program.
+collection of default rules (called cops). This repository uses the
+[Standard](https://github.com/standardrb/standard) ruleset as its baseline, with
+project-specific overrides and custom cops configured in `.rubocop.yml`.
 
-This repository uses the Standard ruleset as its baseline, then configures RuboCop with project-specific
-overrides and custom cops under the `CustomCops/` namespace. The programs and rulesets are therefore:
+The Standard rulesets and its custom cop are vendored under `rubocop/vendor/`;
+the Standard gems and `standardrb` program are not used. See the
+[vendoring guide](../rubocop/vendor/README.md) for provenance and update instructions.
 
-| Rake task | Program | Ruleset | Coverage |
-| --- | --- | --- | --- |
-| `standard` | `standardrb` | Standard minus project overrides | Baseline subset |
-| `rubocop` | `rubocop` | Standard with project overrides and custom cops | Full repository ruleset (strict superset) |
-
-Both CI checks must pass, but local tools should favour RuboCop because it checks the full ruleset. Run it directly or through Rake:
+RuboCop is the single linter and autocorrector, both locally and in CI. Run it directly or through Rake:
 
 ```
 bundle exec rubocop
 bundle exec rake rubocop
-```
-
-To mirror both CI checks, run:
-
-```
-bundle exec rake standard rubocop
 ```
 
 To apply automatic fixes using the full ruleset, run:

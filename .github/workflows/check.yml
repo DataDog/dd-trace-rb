@@ -33,26 +33,6 @@ jobs:
         id: bundle-cache
         uses: $/.github/actions/bundle-cache
 
-  standard:
-    name: standard/lint
-    runs-on: ubuntu-24.04
-    needs: ['build']
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
-      env:
-        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
-        BUNDLE_FROZEN: "true"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
-        uses: $/.github/actions/bundle-restore
-        with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake standard
-
   rubocop:
     name: rubocop/lint
     runs-on: ubuntu-24.04
@@ -320,7 +300,6 @@ jobs:
     needs:
       - 'steep-check'
       - 'steep-stats'
-      - 'standard'
       - 'rubocop'
       - 'semgrep'
       - 'zizmor'

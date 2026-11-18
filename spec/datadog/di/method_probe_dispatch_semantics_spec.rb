@@ -247,11 +247,11 @@ RSpec.describe "Method probe dispatch semantics" do
       expect(yielded).to eq("orphan")
 
       # Abandon the fiber by dropping the local-variable reference so the
-      # subsequent GC.start can actually collect it. StandardRB flags the
+      # subsequent GC.start can actually collect it. RuboCop flags the
       # assignment as useless because the variable is never read again,
       # but the dead-store is the entire point — it's what makes the fiber
       # collectable.
-      fiber = nil # standard:disable Lint/UselessAssignment
+      fiber = nil # rubocop:disable Lint/UselessAssignment
       GC.start
 
       # A subsequent firing on the parent fiber should produce a

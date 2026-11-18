@@ -398,9 +398,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       def introduce_distinct_stacktraces(i, obj)
         if i.even?
-          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+          sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
         else # rubocop:disable Lint/DuplicateBranch
-          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+          sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
         end
       end
 

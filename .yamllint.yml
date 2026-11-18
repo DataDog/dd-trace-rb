@@ -1,5 +1,8 @@
 extends: default
 
+ignore:
+  - rubocop/vendor/
+
 rules:
   document-start: disable
   line-length: disable

@@ -36,7 +36,7 @@ module Datadog
         # This is not a security vulnerability - we're computing file content hashes
         # to match against Git objects, not using SHA-1 for authentication/integrity.
         Digest::SHA1.hexdigest(git_blob)  # nosemgrep: ruby.lang.security.weak-hashes-sha1.weak-hashes-sha1
-      rescue Exception => e # standard:disable Lint/RescueException
+      rescue Exception => e # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         logger.debug { "symdb: file hash failed for #{file_path}: #{e.class}: #{e.message}" }
         nil

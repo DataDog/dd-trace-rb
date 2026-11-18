@@ -26,8 +26,8 @@ class HookLineLoadTestClass
   end                   # Line 26
 
   def test_method_with_local
-    local = 42 # standard:disable Style/RedundantAssignment
-    local               # Line 30 # standard:disable Style/RedundantAssignment
+    local = 42 # rubocop:disable Style/RedundantAssignment
+    local               # Line 30 # rubocop:disable Style/RedundantAssignment
   end
 
   def test_method_with_arg(arg)
@@ -50,7 +50,7 @@ class HookLineIvarLoadTestClass
   def test_exception
     local = 42
     raise TestException, "Intentional exception"       # Line 52
-    local               # Line 53 # standard:disable Lint/UnreachableCode
+    local               # Line 53 # rubocop:disable Lint/UnreachableCode
   end
 end
 

@@ -128,7 +128,7 @@ module Datadog
       # @return [void]
       def inc_metric(namespace, metric_name, value, tags:)
         telemetry&.inc(namespace, metric_name, value, tags: tags)
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         report_emission_failure(namespace, metric_name, exc)
@@ -139,7 +139,7 @@ module Datadog
         logger.debug { "di: error emitting #{namespace}.#{metric_name} metric: #{exc.class}: #{exc.message}" }
         begin
           telemetry&.report(exc, description: "Error emitting #{namespace}.#{metric_name} metric")
-        rescue Exception => nested_exc # standard:disable Lint/RescueException
+        rescue Exception => nested_exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(nested_exc)
           logger.debug do
             "di: error reporting #{namespace}.#{metric_name} metric emission failure: " \

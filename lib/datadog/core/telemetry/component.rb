@@ -54,7 +54,7 @@ module Datadog
         end
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        def initialize( # standard:disable Metrics/MethodLength
+        def initialize( # rubocop:disable Metrics/MethodLength
           settings:,
           agent_settings:,
           logger:,

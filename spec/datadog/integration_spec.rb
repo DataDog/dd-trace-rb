@@ -78,7 +78,7 @@ RSpec.describe "Datadog integration" do
       #
       # Ignore the pipes too.
       #
-      # standard:disable Lint/ConstantDefinitionInBlock:
+      # rubocop:disable Lint/ConstantDefinitionInBlock
       IGNORE_JRUBY_FDS_REGEXP = %r{
         \A (
           anon_inode:\[eventpoll\] |
@@ -86,7 +86,7 @@ RSpec.describe "Datadog integration" do
           pipe:\[\d+\]
         ) \z
       }x.freeze
-      # standard:enable Lint/ConstantDefinitionInBlock:
+      # rubocop:enable Lint/ConstantDefinitionInBlock
 
       it "closes tracer file descriptors", skip: "Flaky: intermittently fails in CI with leaked file descriptors, cause not yet identified" do
         before_open_file_descriptors = open_file_descriptors
