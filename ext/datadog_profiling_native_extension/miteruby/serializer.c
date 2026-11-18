@@ -223,9 +223,9 @@ static void serializer_mark(void *data) {
 }
 
 static void release_preparation_metadata(miteruby_serializer_persistent_state_t *state) {
-  miteruby_allocator_free(&state->mark_function_array.entries);
+  miteruby_allocator_free(state->mark_function_array.entries);
   state->mark_function_array = (miteruby_mark_function_array_t) {0};
-  miteruby_allocator_free(&state->location_array.entries);
+  miteruby_allocator_free(state->location_array.entries);
   state->location_array = (miteruby_location_array_t) {0};
   verstable_mark_threads_set_cleanup(&state->threads_set);
 }
@@ -233,10 +233,10 @@ static void release_preparation_metadata(miteruby_serializer_persistent_state_t 
 static void serializer_free(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
   release_preparation_metadata(state);
-  miteruby_allocator_free(&state->uncompressed_serialization_buffer);
-  miteruby_allocator_free(&state->compressed_serialization_buffer);
-  miteruby_allocator_free(&state->interned_events_queue);
-  miteruby_allocator_free(&state->compression_workspace);
+  miteruby_allocator_free(state->uncompressed_serialization_buffer);
+  miteruby_allocator_free(state->compressed_serialization_buffer);
+  miteruby_allocator_free(state->interned_events_queue);
+  miteruby_allocator_free(state->compression_workspace);
   verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
   ruby_xfree(state);
 }
@@ -334,7 +334,7 @@ static void reset_compressed_buffer(miteruby_serializer_persistent_state_t *stat
   state->compressed_serialization_size = 0;
   uint8_t *buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
   if (buffer == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
-  miteruby_allocator_free(&state->compressed_serialization_buffer);
+  miteruby_allocator_free(state->compressed_serialization_buffer);
   state->compressed_serialization_buffer = buffer;
 }
 
@@ -567,7 +567,7 @@ miteruby_serializer_exit_reason_t serializer_step1_serialize_with_gvl_with_consu
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   if (state->status == SERIALIZER_PREPARE || state->status == SERIALIZER_NO_GVL) return MITERUBY_SERIALIZER_ALREADY_WORKING;
 
-  miteruby_allocator_free(&state->interned_events_queue);
+  miteruby_allocator_free(state->interned_events_queue);
   state->interned_events_queue = interned_events_queue;
   state->interned_events_pos = interned_events_pos;
   state->mark_function_array = *mark_function_array;
@@ -602,7 +602,10 @@ static VALUE prepare_serialize_ensure(VALUE args_pointer) {
   miteruby_serializer_persistent_state_t *state = args->state;
   release_preparation_metadata(state);
   state->status = args->exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_NO_GVL : SERIALIZER_EMPTY;
-  if (state->status == SERIALIZER_EMPTY) miteruby_allocator_free(&state->interned_events_queue);
+  if (state->status == SERIALIZER_EMPTY) {
+    miteruby_allocator_free(state->interned_events_queue);
+    state->interned_events_queue = NULL;
+  }
   return Qnil;
 }
 
@@ -728,7 +731,8 @@ miteruby_serializer_exit_reason_t serializer_step3_serialize_no_gvl_no_consumer_
   rb_ensure(release_gvl_and_serialize, (VALUE) &args, serialize_no_gvl_ensure, (VALUE) &args);
 
   // Free and clear under the GVL so the size callback and fork cannot observe a dangling queue pointer.
-  miteruby_allocator_free(&state->interned_events_queue);
+  miteruby_allocator_free(state->interned_events_queue);
+  state->interned_events_queue = NULL;
 
   return args.exit_reason;
 }
@@ -849,7 +853,8 @@ static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serialize
   state->status = SERIALIZER_EMPTY;
   release_preparation_metadata(state);
   verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
-  miteruby_allocator_free(&state->interned_events_queue);
+  miteruby_allocator_free(state->interned_events_queue);
+  state->interned_events_queue = NULL;
   reset_compressed_buffer(state);
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
