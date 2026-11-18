@@ -247,7 +247,7 @@ static const rb_data_type_t consumer_typed_data = {
 
 void miteruby_consumer_stats(VALUE stats_as_hash) {
   mutex_lock(&consumer_state.mutex);
-  size_t allocator_requested_bytes = miteruby_allocator_requested_bytes();
+  size_t allocator_currently_allocated_bytes_stat = miteruby_allocator_currently_allocated_bytes_stat();
   size_t interned_events_used_size = consumer_state.interned_events_pos;
   size_t mark_threads_entries = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
   size_t mark_function_entries = consumer_state.mark_function_array.count;
@@ -256,7 +256,7 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   mutex_unlock(&consumer_state.mutex);
 
   VALUE arguments[] = {
-    ID2SYM(rb_intern("miteruby_allocator_requested_bytes")), SIZET2NUM(allocator_requested_bytes),
+    ID2SYM(rb_intern("miteruby_allocator_currently_allocated_bytes_stat")), SIZET2NUM(allocator_currently_allocated_bytes_stat),
     ID2SYM(rb_intern("miteruby_interned_events_queue_used_size_bytes")), SIZET2NUM(interned_events_used_size),
     ID2SYM(rb_intern("miteruby_mark_threads_entries")), SIZET2NUM(mark_threads_entries),
     ID2SYM(rb_intern("miteruby_mark_function_array_entries")), SIZET2NUM(mark_function_entries),

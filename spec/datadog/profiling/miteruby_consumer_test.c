@@ -1,6 +1,7 @@
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
 #include <ruby.h>
 #include <string.h>
+#include <unistd.h>
 
 void setup_signal_handler_init(VALUE profiling_module);
 
@@ -114,10 +115,26 @@ static const uint8_t *fill_max_size_ids(miteruby_stack_t stack) {
   return cursor;
 }
 
+static size_t mapped_allocation_size(const void *allocation) {
+  if (allocation == NULL) return 0;
+  size_t size = miteruby_allocator_alloc_size(allocation) + 16;
+  size_t page_size = (size_t)sysconf(_SC_PAGESIZE);
+  return ((size + page_size - 1) / page_size) * page_size;
+}
+
 static void assert_allocation_accounting(void) {
   assert(consumer_state.location_array.count == verstable_location_set_size(&consumer_state.location_set));
   assert(consumer_state.mark_function_array.count == verstable_mark_function_set_size(&consumer_state.mark_function_set));
-  assert(miteruby_allocator_requested_bytes() ==
+  assert(miteruby_allocator_currently_allocated_bytes_stat() ==
+    mapped_allocation_size(consumer_state.raw_events_queue) +
+    mapped_allocation_size(consumer_state.mark_threads_set.buckets) +
+    mapped_allocation_size(consumer_state.mark_function_set.buckets) +
+    mapped_allocation_size(consumer_state.mark_function_array.entries) +
+    mapped_allocation_size(consumer_state.location_set.buckets) +
+    mapped_allocation_size(consumer_state.location_array.entries) +
+    mapped_allocation_size(stack_dedup_state.unique_stacks.buckets) +
+    mapped_allocation_size(consumer_state.interned_events_queue));
+  assert(consumer_size(&consumer_state) == sizeof(consumer_state) + sizeof(stack_dedup_state.unique_stacks) +
     miteruby_allocator_alloc_size(consumer_state.raw_events_queue) +
     miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) +
     miteruby_allocator_alloc_size(consumer_state.mark_function_set.buckets) +
@@ -126,8 +143,6 @@ static void assert_allocation_accounting(void) {
     miteruby_allocator_alloc_size(consumer_state.location_array.entries) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) +
     miteruby_allocator_alloc_size(consumer_state.interned_events_queue));
-  assert(consumer_size(&consumer_state) == sizeof(consumer_state) +
-    sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_requested_bytes());
 }
 
 static VALUE initialize_consumer(DDTRACE_UNUSED VALUE unused) {
@@ -186,7 +201,7 @@ static void test_reset_failure(const char *allocation, const char *message) {
   size_t function_count = verstable_mark_function_set_size(&consumer_state.mark_function_set);
   size_t threads_count = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
   size_t stacks_count = verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks);
-  size_t allocated_bytes = miteruby_allocator_requested_bytes();
+  size_t allocated_bytes = miteruby_allocator_currently_allocated_bytes_stat();
   assert(events_count > 0 && stacks_count > 0 && threads_count > 0 && function_count > 0);
 
   failed_allocation_name = allocation;
@@ -206,7 +221,7 @@ static void test_reset_failure(const char *allocation, const char *message) {
   assert(verstable_mark_function_set_size(&consumer_state.mark_function_set) == function_count);
   assert(consumer_state.interned_events_pos == 0);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 0);
-  assert(miteruby_allocator_requested_bytes() == allocated_bytes);
+  assert(miteruby_allocator_currently_allocated_bytes_stat() == allocated_bytes);
   assert_allocation_accounting();
 
   pthread_t thread;
@@ -608,7 +623,7 @@ static void test_compact_events_and_reset(void) {
   assert(consumer_state.interned_events_queue == queue);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) > 0);
   assert_allocation_accounting();
-  size_t allocated_bytes = miteruby_allocator_requested_bytes();
+  size_t allocated_bytes = miteruby_allocator_currently_allocated_bytes_stat();
   size_t stacks_pos = consumer_state.interned_events_pos;
   event->thread.value = Qtrue;
   bytecode_positions_for(event)[0].value++;
@@ -623,7 +638,7 @@ static void test_compact_events_and_reset(void) {
   assert(consumer_state.interned_events_pos == stacks_pos);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == 1);
   assert(verstable_mark_function_set_size(&consumer_state.mark_function_set) == 1);
-  assert(miteruby_allocator_requested_bytes() == allocated_bytes);
+  assert(miteruby_allocator_currently_allocated_bytes_stat() == allocated_bytes);
   bytecode_positions_for(event)[0].value--;
 
   for (size_t i = 0; i < capacity; i++) {
@@ -663,12 +678,12 @@ static void test_compact_events_and_reset(void) {
 }
 
 static void assert_allocator_limit(void *(*allocate)(size_t), void (*release)(void *, size_t), size_t limit) {
-  size_t allocated_bytes = miteruby_allocator_requested_bytes();
+  size_t allocated_bytes = miteruby_allocator_currently_allocated_bytes_stat();
   void *allocation = allocate(limit);
   assert(allocation != NULL);
   release(allocation, limit);
   assert(allocate(limit + 1) == NULL);
-  assert(miteruby_allocator_requested_bytes() == allocated_bytes);
+  assert(miteruby_allocator_currently_allocated_bytes_stat() == allocated_bytes);
 }
 
 static void assert_function_id(miteruby_function_t function, uint32_t expected_id) {
@@ -877,9 +892,9 @@ static void test_mark_threads_capacity(void) {
   assert(miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) <= MARK_THREADS_MAX_SIZE);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == count);
   assert_allocation_accounting();
-  size_t allocated_bytes = miteruby_allocator_requested_bytes();
+  size_t allocated_bytes = miteruby_allocator_currently_allocated_bytes_stat();
   for (size_t i = 0; i < count; i++) assert(retain_thread((VALUE)i));
-  assert(miteruby_allocator_requested_bytes() == allocated_bytes);
+  assert(miteruby_allocator_currently_allocated_bytes_stat() == allocated_bytes);
 }
 
 static void test_function_capacity(void) {
@@ -892,7 +907,7 @@ static void test_function_capacity(void) {
   assert(miteruby_allocator_alloc_size(consumer_state.mark_function_set.buckets) <= MARK_FUNCTION_MAX_SIZE);
   assert(verstable_mark_function_set_size(&consumer_state.mark_function_set) == count);
   assert_allocation_accounting();
-  size_t allocated_bytes = miteruby_allocator_requested_bytes();
+  size_t allocated_bytes = miteruby_allocator_currently_allocated_bytes_stat();
   for (size_t i = 0; i < count; i++) {
     miteruby_function_t function = {.cme = (const rb_callable_method_entry_t *)(i + 1)};
     miteruby_function_id_t id = {.value = 123};
@@ -900,7 +915,7 @@ static void test_function_capacity(void) {
     assert(id.value == 123);
     assert_function_id(function, i);
   }
-  assert(miteruby_allocator_requested_bytes() == allocated_bytes);
+  assert(miteruby_allocator_currently_allocated_bytes_stat() == allocated_bytes);
 
   sample_storage storage = {0};
   storage.event.header.frame_count = 1;
@@ -1223,7 +1238,7 @@ int main(int argc, char **argv) {
   miteruby_allocator_free(&consumer_state.location_array.entries);
   miteruby_raw_events_queue_destroy(consumer_state.raw_events_queue);
   miteruby_allocator_free(&consumer_state.raw_events_queue);
-  assert(miteruby_allocator_requested_bytes() == 0);
+  assert(miteruby_allocator_currently_allocated_bytes_stat() == 0);
   assert(pthread_mutex_destroy(&consumer_state.mutex) == 0);
   puts("Miteruby consumer tests passed");
   return ruby_cleanup(0);
