@@ -98,14 +98,12 @@ size_t miteruby_allocator_alloc_size(const void *allocation) {
   return header->size;
 }
 
-void miteruby_allocator_free_impl(void **allocation_storage) {
-  void *allocation = *allocation_storage;
+void miteruby_allocator_free(void *allocation) {
   if (allocation == NULL) return;
 
   size_t size = miteruby_allocator_alloc_size(allocation);
   allocation_header *header = (allocation_header *)allocation - 1;
   size_t mapping_size = allocation_mapping_size(size);
-  *allocation_storage = NULL;
   if (munmap(header, mapping_size) != 0) {
     // ENOMEM can occur when splitting a VMA; keep the mapping counted and let the application continue.
     if (errno == ENOMEM) return;
