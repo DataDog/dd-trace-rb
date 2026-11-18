@@ -19,7 +19,11 @@ require "bootsnap/compile_cache/iseq"
 # the one Ruby executes (so targeted TracePoints on it fire correctly).
 #
 # This test uses the real Bootsnap gem — not a simulation.
-RSpec.describe "DI CodeTracker with Bootsnap" do
+#
+# Bootsnap::CompileCache::ISeq.install! prepends Bootsnap's load_iseq to
+# RubyVM::InstructionSequence for the life of the process. The examples run
+# in forked processes so that only the forked children install it.
+RSpec.describe "DI CodeTracker with Bootsnap", execute_in_fork: true do
   di_test
 
   let(:diagnostics_transport) do
@@ -108,12 +112,6 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       iseq_cache_dir = Bootsnap::CompileCache::ISeq.cache_dir
       FileUtils.remove_entry(iseq_cache_dir) if iseq_cache_dir && File.exist?(iseq_cache_dir)
       FileUtils.remove_entry(cache_dir)
-      # Point Bootsnap's cache at the now-deleted directory. load_iseq stays
-      # in the ancestor chain but fetch silently returns nil when the cache
-      # dir doesn't exist — effectively a no-op.
-      # Do NOT remove_method :load_iseq from the mixin: prepend is permanent,
-      # so a subsequent install! won't re-add it, breaking later examples.
-      Bootsnap::CompileCache::ISeq.cache_dir = cache_dir
       Object.send(:remove_const, :BootsnapTestClass) if defined?(BootsnapTestClass)
     end
 

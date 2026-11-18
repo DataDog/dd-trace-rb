@@ -93,14 +93,15 @@ module DIHelpers
   end
 
   module ClassMethods
+    # Deactivates code tracking once, before the example group runs.
     def deactivate_code_tracking
       before(:all) do
-        if Datadog::DI.respond_to?(:deactivate_tracking!)
-          Datadog::DI.deactivate_tracking!
-        end
+        deactivate_code_tracking_if_supported
       end
     end
 
+    # Sets up the shared DI spec scaffolding: skips unsupported runtimes
+    # and detects instrumentations that leak between examples.
     def di_test
       if PlatformHelpers.jruby?
         before(:all) do
@@ -113,9 +114,10 @@ module DIHelpers
         end
       end
 
-      around do |example|
-        check = true
-        if Datadog::DI.instrumented_count > 0
+      let(:di_instrumented_count_at_start) { Datadog::DI.instrumented_count }
+
+      prepend_before do
+        if di_instrumented_count_at_start > 0
           # Leaking instrumentations is a serious problem, but we want the
           # diagnostics to point to the root cause. If there are outstanding
           # instrumentations at the start of the test, the value at the end
@@ -124,12 +126,14 @@ module DIHelpers
           # that there are outstanding instrumentations here.
           # They just produce noise in logs but not meaningless test failures.
           warn "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected before test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
-          check = false
         end
+      end
 
-        example.run
-
-        if check && Datadog::DI.instrumented_count > 0
+      # Checked in an after hook: an exception raised by an around hook after
+      # example.run skips the rest of every enclosing around hook, including
+      # the global tracer_shutdown! hook.
+      append_after do
+        if di_instrumented_count_at_start == 0 && Datadog::DI.instrumented_count > 0
           raise "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected after test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
         end
       end
@@ -167,6 +171,7 @@ module DIHelpers
       around do |example|
         Datadog::DI.activate_tracking!
         example.run
+      ensure
         Datadog::DI.deactivate_tracking!
       end
     end
@@ -185,6 +190,15 @@ module DIHelpers
       end
     end
 
+    # Deactivates code tracking after each example, for examples whose
+    # Datadog.configure call starts DI, which activates code tracking for
+    # the rest of the process.
+    def deactivate_code_tracking_after_each
+      after do
+        deactivate_code_tracking_if_supported
+      end
+    end
+
     def load_yaml_file(path, **opts)
       if RubyVersion.is?("< 3.1")
         opts.delete(:permitted_classes)
@@ -194,6 +208,12 @@ module DIHelpers
   end
 
   module InstanceMethods
+    # Deactivates code tracking on runtimes that load DI code tracking
+    # (MRI 2.6+).
+    def deactivate_code_tracking_if_supported
+      Datadog::DI.deactivate_tracking! if Datadog::DI.respond_to?(:deactivate_tracking!)
+    end
+
     # Builds a telemetry component double whose metric increments raise the
     # given exception, for exercising emission containment paths.
     def telemetry_double_raising_on_inc(exception: StandardError.new("telemetry down"))
@@ -297,17 +317,25 @@ module ProbeNotifierWorkerLeakDetector
     attr_accessor :installed
     attr_accessor :workers
 
+    # Warns about each leaked worker, then stops tracking the reported
+    # workers so that each leak is reported once.
     def verify!
-      ProbeNotifierWorkerLeakDetector.workers.each do |(worker, example)|
-        warn "Leaked ProbeNotifierWorkerLeakDetector #{worker} from #{example.file_path}: #{example.full_description}"
+      leaked_workers = workers
+      self.workers = []
+      leaked_workers.each do |(worker, example)|
+        origin = example ? "in #{example.file_path}: #{example.full_description}" : "outside of an example"
+        warn "Leaked #{worker} started #{origin}"
       end
     end
   end
 
   ProbeNotifierWorkerLeakDetector.workers = []
 
+  # Records the starting worker in the leak registry, then starts it.
   def start
-    ProbeNotifierWorkerLeakDetector.workers << [self, RSpec.current_example]
+    unless ProbeNotifierWorkerLeakDetector.workers.any? { |(worker, _example)| worker.equal?(self) }
+      ProbeNotifierWorkerLeakDetector.workers << [self, RSpec.current_example]
+    end
     super
   end
 
@@ -326,14 +354,22 @@ RSpec.configure do |config|
   # DI does not do anything on Ruby < 2.6 therefore there is no need
   # to install a leak detector on lower Ruby versions.
   if RubyVersion.is?(">= 2.6")
-    config.before do
+    # Leaks are verified when the next example starts and when the suite
+    # finishes, because around hooks and the global tracer_shutdown! hook
+    # stop workers after every after hook has run.
+    config.before do |example|
       if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
         Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)
         ProbeNotifierWorkerLeakDetector.installed = true
       end
+
+      # Forked examples run this hook in a child process whose updates to
+      # the workers list never reach the parent, so verifying there only
+      # duplicates the parent's eventual report.
+      ProbeNotifierWorkerLeakDetector.verify! unless example.metadata[:execute_in_fork]
     end
 
-    config.after do |example|
+    config.after(:suite) do
       ProbeNotifierWorkerLeakDetector.verify!
     end
   end

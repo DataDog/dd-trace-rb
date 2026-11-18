@@ -4,6 +4,10 @@ RSpec.describe Datadog::DI::Configuration::Settings do
   subject(:settings) { Datadog::Core::Configuration::Settings.new }
 
   describe "dynamic_instrumentation" do
+    # Datadog::Core.log_deprecation records each logged deprecation key for
+    # the rest of the process and writes the warning to the global logger.
+    before { allow(Datadog::Core).to receive(:log_deprecation) }
+
     context "programmatic configuration" do
       [
         [nil, "enabled", true],

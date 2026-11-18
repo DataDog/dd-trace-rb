@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "datadog/di/spec_helper"
 
 require "datadog/core/telemetry/component"
 
@@ -119,6 +120,7 @@ RSpec.describe "Telemetry full integration tests" do
 
   context "when Datadog.configure is used and dynamic instrumentation is enabled" do
     skip_any_instance_on_buggy_jruby
+    deactivate_code_tracking_after_each
 
     before do
       Datadog.send(:reset!)

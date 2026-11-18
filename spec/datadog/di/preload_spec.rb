@@ -4,8 +4,8 @@ require "open3"
 RSpec.describe "DI initializer" do
   di_test
 
-  # rubocop:disable Lint/ConstantDefinitionInBlock
-  BOOTSTRAP_SCRIPT = <<-SCRIPT
+  let(:bootstrap_script) do
+    <<-SCRIPT
     if defined?(Datadog) && Datadog.constants != %i(VERSION)
       raise "Datadog code loaded too early"
     end
@@ -38,12 +38,12 @@ RSpec.describe "DI initializer" do
     if Datadog.constants.sort != %i(DI RubyVersion VERSION)
       raise "Too many datadog components loaded at the end of execution: \#{Datadog.constants}"
     end
-  SCRIPT
-  # rubocop:enable Lint/ConstantDefinitionInBlock
+    SCRIPT
+  end
 
   context "when loaded initially into a clean process" do
     it "loads only DI code tracker" do
-      out, status = Open3.capture2e("ruby", stdin_data: BOOTSTRAP_SCRIPT)
+      out, status = Open3.capture2e("ruby", stdin_data: bootstrap_script)
       unless status.exitstatus == 0
         fail("Test script failed with exit status #{status.exitstatus}:\n#{out}")
       end
@@ -53,7 +53,7 @@ RSpec.describe "DI initializer" do
   context "when entire library is loaded after di bootstrapper" do
     it "keeps the mappings in code tracker prior to datadog load" do
       script = <<-SCRIPT
-        #{BOOTSTRAP_SCRIPT}
+        #{bootstrap_script}
 
         require 'datadog'
 

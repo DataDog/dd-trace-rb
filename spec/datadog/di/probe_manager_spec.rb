@@ -418,6 +418,10 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe "#install_pending_method_probes" do
+    after do
+      manager.close
+    end
+
     context "when a class with the same name as target type is defined" do
       let(:probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "bar")

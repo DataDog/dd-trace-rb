@@ -20,34 +20,32 @@ RSpec.describe Datadog::DI::Component do
     end
 
     context "when remote config is enabled" do
+      let(:component) { described_class.build(settings, agent_settings, logger) }
+
       before do
         settings.remote.enabled = true
       end
 
+      after { component&.shutdown! }
+
       it "returns a Component in stopped state" do
-        component = described_class.build(settings, agent_settings, logger)
         expect(component).to be_a(described_class)
         expect(component.started?).to be false
-        component.shutdown!
       end
 
       it "wires the guardrails telemetry emitter into every consumer" do
-        component = described_class.build(settings, agent_settings, logger)
         expect(component.instrumenter.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
           .to equal(component.guardrails_telemetry)
         expect(component.probe_notification_builder.guardrails_telemetry).to equal(component.guardrails_telemetry)
-        component.shutdown!
       end
 
       it "builds one capture expression evaluator shared by its consumers" do
-        component = described_class.build(settings, agent_settings, logger)
         expect(component.capture_expression_evaluator)
           .to be_a(Datadog::DI::CaptureExpressionEvaluator)
         expect(component.instrumenter.capture_expression_evaluator)
           .to equal(component.probe_notification_builder.capture_expression_evaluator)
-        component.shutdown!
       end
     end
 
@@ -222,16 +220,16 @@ RSpec.describe Datadog::DI::Component do
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+
+    after { component&.shutdown! }
 
     it "registers the built component in DI.current_component" do
-      component = described_class.build(settings, agent_settings, logger)
       expect(component).not_to be_nil
       expect(Datadog::DI.current_component).to be component
-      component.shutdown!
     end
 
     it "removes the component from DI.current_component on shutdown!" do
-      component = described_class.build(settings, agent_settings, logger)
       component.shutdown!
       expect(Datadog::DI.current_component).not_to be component
     end
@@ -259,18 +257,19 @@ RSpec.describe Datadog::DI::Component do
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+
+    after { component&.shutdown! }
 
     it "completes synchronously without I/O" do
       baseline = Thread.list.size
       started = Datadog::Core::Utils::Time.get_time
-      component = described_class.build(settings, agent_settings, logger)
-      elapsed = Datadog::Core::Utils::Time.get_time - started
       expect(component).not_to be_nil
+      elapsed = Datadog::Core::Utils::Time.get_time - started
       expect(elapsed).to be < 1.0
       # build must not have spawned the probe notifier worker thread or
       # any other background thread — those start in #start!.
       expect(Thread.list.size).to eq baseline
-      component.shutdown!
     end
   end
 
@@ -327,34 +326,23 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be true
     end
 
-    context "when code tracking is activated after the component is built (in-product enablement)" do
-      before do
-        # Simulate DI disabled at boot: no global code tracker exists when the
-        # component (and its instrumenter) are built. Stop any tracker a prior
-        # example left active before dropping the global reference: nilling
-        # @code_tracker while its process-global :script_compiled TracePoint is
-        # still enabled orphans the TracePoint (deactivate_tracking! can no longer
-        # reach it), leaking it into later specs and double-firing
-        # code_tracker_spec's line-probe-installation examples.
-        Datadog::DI.deactivate_tracking!
-        Datadog::DI.instance_variable_set(:@code_tracker, nil)
-      end
+    context "when the global code tracker is created after the component is built (in-product enablement)" do
+      let(:code_tracker) { instance_double(Datadog::DI::CodeTracker) }
 
-      after do
-        Datadog::DI.deactivate_tracking!
-        Datadog::DI.instance_variable_set(:@code_tracker, nil)
+      # Stubbed because the real global code tracker is process-wide state
+      # shared with every other example.
+      before do
+        allow(Datadog::DI).to receive(:code_tracker).and_return(nil)
       end
 
       it "adopts the global code tracker on start!" do
         expect(component.instrumenter.code_tracker).to be_nil
 
-        Datadog::DI.activate_tracking!
-        expect(Datadog::DI.code_tracker).not_to be_nil
-
+        allow(Datadog::DI).to receive(:code_tracker).and_return(code_tracker)
         component.start!
 
-        expect(component.instrumenter.code_tracker).to be(Datadog::DI.code_tracker)
-        expect(component.code_tracker).to be(Datadog::DI.code_tracker)
+        expect(component.instrumenter.code_tracker).to be(code_tracker)
+        expect(component.code_tracker).to be(code_tracker)
       end
     end
 

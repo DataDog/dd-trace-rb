@@ -82,6 +82,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
 
   after do
     component.shutdown!
+  ensure
     Datadog::DI.deactivate_tracking!
   end
 

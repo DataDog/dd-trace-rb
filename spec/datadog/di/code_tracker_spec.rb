@@ -572,7 +572,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       end
 
       example.run
-
+    ensure
       tracker.stop
     end
 
@@ -623,7 +623,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       registry["/app/FOO.rb"] = "/app/FOO.rb"
 
       example.run
-
+    ensure
       tracker.stop
     end
 
@@ -667,7 +667,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       registry["/app/controllers/debugger_controller.rb"] = "/app/controllers/debugger_controller.rb"
 
       example.run
-
+    ensure
       tracker.stop
     end
 

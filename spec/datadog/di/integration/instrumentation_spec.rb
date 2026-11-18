@@ -209,12 +209,22 @@ RSpec.describe "Instrumentation integration" do
           end
         end
 
+        # Removes the top-level constants that the example defined, so its
+        # test classes do not leak into later examples.
+        def remove_top_level_constants(*names)
+          names.each do |name|
+            Object.send(:remove_const, name) if Object.const_defined?(name, false)
+          end
+        end
+
         context "when class with target method is defined after probe is added to probe manager" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedTestClass", method_name: "test_method",
               capture_snapshot: false)
           end
+
+          after { remove_top_level_constants(:InstrumentationDelayedTestClass) }
 
           it "installs probe which then is invoked and creates expected snapshot" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
@@ -265,6 +275,10 @@ RSpec.describe "Instrumentation integration" do
                 capture_snapshot: false)
             end
 
+            after do
+              remove_top_level_constants(:InstrumentationDelayedDerivedTestClass, :InstrumentationDelayedBaseClass)
+            end
+
             it "invokes probe and creates expected snapshot" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
@@ -309,6 +323,8 @@ RSpec.describe "Instrumentation integration" do
               type_name: "InstrumentationDelayedPartialTestClass", method_name: "test_method",
               capture_snapshot: false)
           end
+
+          after { remove_top_level_constants(:InstrumentationDelayedPartialTestClass) }
 
           it "invokes probe and creates expected snapshot" do
             class InstrumentationDelayedPartialTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
@@ -356,6 +372,8 @@ RSpec.describe "Instrumentation integration" do
               type_name: "InstrumentationVirtualTestClass", method_name: "test_method",
               capture_snapshot: false)
           end
+
+          after { remove_top_level_constants(:InstrumentationVirtualTestClass) }
 
           it "invokes probe and creates expected snapshot" do
             class InstrumentationVirtualTestClass # rubocop:disable Lint/ConstantDefinitionInBlock

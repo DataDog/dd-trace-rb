@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "datadog/di/spec_helper"
 
 require "datadog/core/telemetry/component"
 
@@ -710,6 +711,8 @@ RSpec.describe "Telemetry integration tests" do
       # of all before(:each) hooks in the group, so the skip lands before
       # the crash.
       before(:all) { skip "requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)" if RUBY_VERSION < "2.6" }
+
+      deactivate_code_tracking_after_each
 
       let(:product_mock_setup) do
         # DI requires a C extension and MRI Ruby 2.6+, which are not
