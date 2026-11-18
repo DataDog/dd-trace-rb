@@ -16,6 +16,10 @@ module Datadog
       def initialize(configuration)
         @configuration = Core::FeatureFlags::Configuration.new(configuration)
         @observe_full_evaluation_data = @configuration.observe_full_evaluation_data
+        # Parsed object values by flag key and variant. They are frozen and never change for this
+        # configuration, so repeat evaluations share them instead of copying and parsing the JSON again.
+        @object_values = {}
+        @object_values_mutex = Mutex.new
       end
 
       attr_reader :observe_full_evaluation_data
@@ -56,7 +60,7 @@ module Datadog
 
         return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
 
-        build_resolution_details(result, default_value)
+        build_resolution_details(result, resolved_value(flag_key, expected_type, result, default_value))
       end
 
       private
@@ -68,9 +72,25 @@ module Datadog
         native_timestamp.valid_encoding? && !native_timestamp.include?("\0")
       end
 
-      def build_resolution_details(result, default_value)
+      def resolved_value(flag_key, expected_type, result, default_value)
+        variant = result.variant
+        return default_value if variant.nil?
+        return result.value unless expected_type == :object
+
+        # Unlocked read: MRI never exposes a partially inserted entry, and a miss only parses once more.
+        @object_values.dig(flag_key, variant) || cache_object_value(flag_key, variant, result.value)
+      end
+
+      def cache_object_value(flag_key, variant, value)
+        @object_values_mutex.synchronize do
+          values_by_variant = @object_values[flag_key] ||= {}
+          values_by_variant.fetch(variant) { values_by_variant[variant] = value }
+        end
+      end
+
+      def build_resolution_details(result, value)
         ResolutionDetails.new(
-          value: result.variant.nil? ? default_value : result.value,
+          value: value,
           reason: result.reason,
           variant: result.variant,
           error_code: result.error_code,

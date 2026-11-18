@@ -96,6 +96,44 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       it "copies the parsed object value" do
         expect(result.value).to eq("feature" => "enabled")
       end
+
+      it "returns the same parsed value for a repeat evaluation of the variant" do
+        repeat = evaluator.get_assignment(flag_key, default_value: false, expected_type: expected_type, context: context)
+
+        expect(repeat.value).to be(result.value)
+        expect(assignment).to have_received(:value).once
+      end
+
+      it "parses again after a new configuration is loaded" do
+        result
+        described_class.new(configuration_json)
+          .get_assignment(flag_key, default_value: false, expected_type: expected_type, context: context)
+
+        expect(assignment).to have_received(:value).twice
+      end
+
+      context "when a repeat evaluation resolves to another variant" do
+        let(:other_assignment) do
+          instance_double(
+            resolution_details_class,
+            value: {"feature" => "disabled"}, reason: reason, error_code: nil, error_message: nil, variant: "off",
+            flag_metadata: flag_metadata, allocation_key: allocation_key, serial_id: serial_id, features: features,
+            log?: log, error?: error,
+          )
+        end
+
+        before do
+          allow(configuration).to receive(:get_assignment)
+            .with(flag_key, expected_type, context).and_return(assignment, other_assignment)
+        end
+
+        it "returns the value of that variant" do
+          result
+          other = evaluator.get_assignment(flag_key, default_value: false, expected_type: expected_type, context: context)
+
+          expect(other.value).to eq("feature" => "disabled")
+        end
+      end
     end
 
     context "when libdatadog reports an invalid per-flag configuration as caller default" do

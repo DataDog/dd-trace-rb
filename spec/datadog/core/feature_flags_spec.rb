@@ -285,6 +285,13 @@ RSpec.describe Datadog::Core::FeatureFlags do
           expect(result.error_code).to be_nil
           expect(result.error_message).to be_nil
         end
+
+        it "returns a deeply frozen object value" do
+          expect(result.value).to be_frozen
+          expect(result.value.keys).to all(be_frozen)
+          expect(result.value.values).to all(be_frozen)
+          expect { result.value["feature"] = "disabled" }.to raise_error(FrozenError)
+        end
       end
 
       context "when flag is missing" do
