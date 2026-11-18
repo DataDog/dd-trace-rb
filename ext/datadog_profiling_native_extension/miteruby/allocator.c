@@ -91,7 +91,7 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
 size_t miteruby_allocator_alloc_size(const void *allocation) {
   if (allocation == NULL) return 0;
 
-  const allocation_header *header = (const allocation_header *)allocation - 1;
+  const allocation_header *header = ((const allocation_header *)allocation) - 1;
   if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0)
     rb_bug("Invalid miteruby allocation header at %p", (void *) header);
 
