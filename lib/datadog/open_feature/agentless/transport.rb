@@ -17,9 +17,10 @@ module Datadog
       class Transport
         FLAG_SELECTION_IGNORED_HEADER = "DD-Flag-Selection-Ignored"
 
-        def initialize(endpoint:, api_key:, timeout_seconds:)
+        def initialize(endpoint:, api_key:, service:, timeout_seconds:)
           @endpoint = endpoint
           @api_key = endpoint.managed? ? api_key : nil
+          @service = service
           @timeout_seconds = timeout_seconds
         end
 
@@ -71,6 +72,8 @@ module Datadog
           }
           api_key = @api_key
           headers[Core::Transport::Ext::HTTP::HEADER_DD_API_KEY] = api_key if api_key
+          service = @service
+          headers["DD-Service"] = service if service
           headers["If-None-Match"] = etag if etag
           headers
         end

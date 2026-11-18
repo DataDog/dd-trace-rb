@@ -5,12 +5,14 @@ require "timeout"
 require "datadog/open_feature/configuration/agentless_endpoint"
 require "datadog/open_feature/agentless/configuration_source"
 require "datadog/open_feature/flag_selection_reporter"
+require "datadog/tracing/span_operation"
 
 RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
   subject(:source) do
     described_class.new(
       endpoint: endpoint,
       api_key: "secret",
+      service: "checkout",
       poll_interval_seconds: 30,
       request_timeout_seconds: 5,
       apply: apply,
@@ -92,6 +94,237 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
 
       it "does not require an API key" do
         expect(built_source).to be_a(described_class)
+      end
+    end
+
+    context "when polling the endpoint", webmock: true do
+      subject(:source) do
+        described_class.build(
+          settings,
+          endpoint: endpoint,
+          apply: apply,
+          flag_selection_reporter: flag_selection_reporter,
+          logger: logger,
+        )
+      end
+
+      let(:debug_messages) { [] }
+      let(:request_without_service) do
+        a_request(:get, "https://example.test/config").with { |request| !request.headers.key?("Dd-Service") }
+      end
+
+      before do
+        settings.api_key = "secret"
+        allow(logger).to receive(:debug) { |message, &block| debug_messages << (block ? block.call : message) }
+        stub_request(:get, "https://example.test/config").to_return(status: 200, body: body)
+      end
+
+      context "with DD_SERVICE set" do
+        around do |example|
+          ClimateControl.modify("DD_SERVICE" => "checkout") { example.run }
+        end
+
+        it "sends the service in DD-Service on every poll" do
+          stub_request(:get, "https://example.test/config").to_return(
+            {status: 200, body: body, headers: {"ETag" => "v1"}},
+            {status: 304},
+          )
+
+          2.times { source.poll }
+
+          expect(
+            a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => "checkout"}),
+          ).to have_been_made.twice
+          expect(
+            a_request(:get, "https://example.test/config")
+              .with(headers: {"DD-Service" => "checkout", "If-None-Match" => "v1"}),
+          ).to have_been_made.once
+        end
+      end
+
+      context "without a configured service" do
+        around do |example|
+          ClimateControl.modify("DD_SERVICE" => nil, "OTEL_SERVICE_NAME" => nil) { example.run }
+        end
+
+        it "sends the inferred default service" do
+          source.poll
+
+          expect(
+            a_request(:get, "https://example.test/config")
+              .with(headers: {"DD-Service" => Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME}),
+          ).to have_been_made.once
+        end
+      end
+
+      [nil, "", "   "].each do |service|
+        context "with no service (#{service.inspect})" do
+          before { settings.service = service }
+
+          it "does not send DD-Service or log why" do
+            source.poll
+
+            expect(request_without_service).to have_been_made.once
+            expect(debug_messages.grep(/DD-Service header not sent/)).to be_empty
+          end
+        end
+      end
+
+      # Core::TagNormalizer has its own specs. These rows check only that the source sends the normalized name, and
+      # that it sends no header when that name is empty. Net::HTTP sends a non-ASCII name as raw UTF-8 bytes.
+      [
+        ["checkout", "checkout"],
+        ["My Service", "my_service"],
+        ["Default Web Site/Shop", "default_web_site/shop"],
+        ["caf\u00E9-api", "caf\u00E9-api"],
+        ["\u652F\u4ED8", "\u652F\u4ED8"],
+        ["___", nil],
+      ].each do |service, header|
+        label = (service.length > 30) ? "#{service[0, 3].inspect}... (#{service.bytesize} bytes)" : service.inspect
+
+        context "when the service is #{label}" do
+          before { settings.service = service }
+
+          if header
+            it "sends DD-Service: #{(header.length > 30) ? "#{header.length} characters" : header} on every poll" do
+              2.times { source.poll }
+
+              expect(
+                a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => header}),
+              ).to have_been_made.twice
+            end
+          else
+            it "does not send DD-Service and keeps polling" do
+              2.times { source.poll }
+
+              expect(request_without_service).to have_been_made.twice
+            end
+          end
+        end
+      end
+
+      context "when the service has an empty normalized name" do
+        before { settings.service = "___" }
+
+        it "logs why once, without a warning" do
+          message = "Feature Flags: service \"___\" has an empty normalized name; DD-Service header not sent"
+
+          2.times { source.poll }
+
+          expect(debug_messages.count(message)).to eq(1)
+          expect(logger).not_to have_received(:warn)
+          expect(logger).not_to have_received(:error)
+        end
+      end
+
+      # Each row is a service in another encoding or with invalid UTF-8, and the DD-Service value it sends, or nil for no
+      # header. The source converts the service as the tracer does for spans, then Core::TagNormalizer runs.
+      [
+        ["invalid UTF-8", "My caf\xFF", "my_caf"],
+        ["invalid UTF-8 at the 100-byte cut", "#{"a" * 97}\xFFbc", "a" * 97],
+        ["a binary encoding and non-ASCII bytes", "My caf\xC3\xA9".b, nil],
+        ["a binary encoding and only ASCII bytes", "My Service".b, "my_service"],
+        ["a UTF-16 encoding", "My Service".encode(Encoding::UTF_16LE), "my_service"],
+      ].each do |description, service, header|
+        context "when the service has #{description}" do
+          before { settings.service = service }
+
+          if header
+            it "sends DD-Service: #{(header.length > 30) ? "#{header.length} characters" : header} on every poll" do
+              2.times { source.poll }
+
+              expect(
+                a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => header}),
+              ).to have_been_made.twice
+            end
+          else
+            it "does not send DD-Service and keeps polling" do
+              2.times { source.poll }
+
+              expect(request_without_service).to have_been_made.twice
+            end
+          end
+        end
+      end
+
+      # Without a locale, Ruby reads a non-ASCII environment variable as ASCII-8BIT.
+      context "when DD_SERVICE is a non-ASCII name that Ruby reads as ASCII-8BIT" do
+        let(:service) { "caf\u00E9-api".b }
+
+        around do |example|
+          ClimateControl.modify("DD_SERVICE" => "caf\u00E9-api") { example.run }
+        end
+
+        # Settings.new reads DD_SERVICE, and an outer `before` builds the settings, so stub ENV first.
+        let(:settings) do
+          allow(ENV).to receive(:[]).and_call_original
+          allow(ENV).to receive(:[]).with("DD_SERVICE").and_return(service)
+          Datadog::Core::Configuration::Settings.new
+        end
+
+        it "does not send DD-Service, logs why once and keeps polling" do
+          message = "Feature Flags: the tracer cannot convert service #{service.inspect} to UTF-8, so spans do not " \
+            "use it; DD-Service header not sent"
+
+          2.times { source.poll }
+
+          expect(request_without_service).to have_been_made.twice
+          expect(debug_messages.count(message)).to eq(1)
+          expect(logger).not_to have_received(:warn)
+          expect(logger).not_to have_received(:error)
+        end
+
+        it "matches the tracer, which sets no service on a span" do
+          expect(settings.service).to eq(service)
+          expect(Datadog::Tracing::SpanOperation.new("op", service: settings.service).service).to eq("")
+        end
+      end
+
+      context "when the service is set with Datadog.configure" do
+        subject(:source) do
+          described_class.build(
+            Datadog.configuration,
+            endpoint: endpoint,
+            apply: apply,
+            flag_selection_reporter: flag_selection_reporter,
+            logger: logger,
+          )
+        end
+
+        before do
+          Datadog.configure do |c|
+            c.api_key = "secret"
+            c.service = service
+          end
+        end
+
+        context "to a name that the normalizer changes" do
+          let(:service) { "My Service" }
+
+          it "sends the normalized name and does not change the configured service" do
+            source.poll
+
+            expect(
+              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => "my_service"}),
+            ).to have_been_made.once
+            expect(Datadog.configuration.service).to eq("My Service")
+          end
+        end
+
+        ["caf\u00E9-api", "\u652F\u4ED8"].each do |name|
+          context "to the non-ASCII name #{name.inspect}" do
+            let(:service) { name }
+
+            it "sends the name as it is and does not change the configured service" do
+              source.poll
+
+              expect(
+                a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => name}),
+              ).to have_been_made.once
+              expect(Datadog.configuration.service).to eq(name)
+            end
+          end
+        end
       end
     end
   end

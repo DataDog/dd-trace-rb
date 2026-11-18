@@ -8,11 +8,14 @@ module Datadog
 
         @api_key: String?
 
+        @service: String?
+
         @timeout_seconds: Integer
 
         def initialize: (
           endpoint: Configuration::AgentlessEndpoint,
           api_key: String?,
+          service: String?,
           timeout_seconds: Integer
         ) -> void
 

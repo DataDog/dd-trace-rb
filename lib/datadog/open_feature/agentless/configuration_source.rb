@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../core/tag_normalizer"
+require_relative "../../core/utils"
 require_relative "../../core/workers/polling"
 require_relative "../evaluation_engine"
 require_relative "parser"
@@ -16,6 +18,8 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
+        # The Agent cuts a service to 100 bytes before it normalizes the name.
+        USAGE_SERVICE_MAX_BYTES = 100
 
         include Core::Workers::Polling
 
@@ -31,6 +35,7 @@ module Datadog
           new(
             endpoint: endpoint,
             api_key: api_key.empty? ? nil : api_key,
+            service: usage_service(settings.service, logger),
             poll_interval_seconds: settings.feature_flags.agentless.poll_interval_seconds,
             request_timeout_seconds: settings.feature_flags.agentless.request_timeout_seconds,
             apply: apply,
@@ -39,9 +44,46 @@ module Datadog
           )
         end
 
+        # Returns the DD-Service value, or nil. It converts the service as the tracer does for spans, cuts it to 100 bytes
+        # as the Agent does, then normalizes it with Core::TagNormalizer. Thus `My Service` becomes `my_service`. If the
+        # result is empty (for example from `___`), the header is not sent. Net::HTTP sends a non-ASCII name, such as
+        # `café-api`, as raw UTF-8 bytes. The CDN alone decides which values it attributes usage to, so this method does
+        # not check the value. Only the header value changes. The tracer's service stays as configured. Normalization
+        # also replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
+        def self.usage_service(service, logger)
+          name = span_service(service.to_s)
+          unless name
+            logger.debug do
+              "Feature Flags: the tracer cannot convert service #{service.inspect} to UTF-8, so spans do not use it; " \
+                "DD-Service header not sent"
+            end
+            return
+          end
+          return if name.strip.empty?
+
+          normalized = Core::TagNormalizer.normalize((name.byteslice(0, USAGE_SERVICE_MAX_BYTES) || name).scrub(""))
+          return normalized unless normalized.empty?
+
+          logger.debug do
+            "Feature Flags: service #{service.inspect} has an empty normalized name; DD-Service header not sent"
+          end
+          nil
+        end
+
+        # Returns the service as the Agent reads it from a span, or nil if the tracer cannot convert it to UTF-8. The
+        # tracer converts a span service with Core::Utils.utf8_encode. If that fails, the span has no service. For
+        # example, without a locale Ruby reads a non-ASCII DD_SERVICE as ASCII-8BIT, and that conversion fails. The
+        # Agent replaces each invalid UTF-8 byte with U+FFFD, so this method does too. Thus the 100-byte cut falls at the
+        # same place.
+        def self.span_service(service)
+          Core::Utils.utf8_encode(service, placeholder: nil)&.scrub { |bytes| "\uFFFD" * bytes.bytesize }
+        end
+        private_class_method :usage_service, :span_service
+
         def initialize(
           endpoint:,
           api_key:,
+          service:,
           poll_interval_seconds:,
           request_timeout_seconds:,
           apply:,
@@ -54,6 +96,7 @@ module Datadog
           @transport = transport || Transport.new(
             endpoint: endpoint,
             api_key: api_key,
+            service: service,
             timeout_seconds: request_timeout_seconds,
           )
           @apply = apply
