@@ -1,4 +1,5 @@
 #include "allocator.h"
+#include "../helpers.h"
 
 #include <ruby.h>
 #include <errno.h>
@@ -6,6 +7,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
+
+// In practice, we don't expect our profiler to do more than this in a single allocation -- we'd be adding
+// a lot of memory overhead to an app if we did! This can be raised in the future but I'd advise really thinking
+// through why in production we'd need such usage.
+#define ALLOC_MAXIMUM_BYTES MiB_AS_BYTES(100)
 
 #ifdef __linux__
   // For naming the allocation with prctl
@@ -35,7 +41,7 @@ size_t miteruby_allocator_requested_bytes(void) {
 // We allocate a bit of extra space at the beginning of the allocation to place the `allocation_header` so we can identify our own
 // allocations.
 void *miteruby_allocator_alloc(size_t size, const char *name) {
-  if (size == 0 || name == NULL || size > SIZE_MAX - sizeof(allocation_header)) {
+  if (size == 0 || name == NULL || size > ALLOC_MAXIMUM_BYTES) {
     errno = EINVAL;
     return NULL;
   }
