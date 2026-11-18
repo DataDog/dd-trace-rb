@@ -32,6 +32,10 @@ __extension__ _Static_assert(sizeof(allocation_header) == 16, "Miteruby allocati
 
 static atomic_size_t requested_bytes = 0;
 
+static size_t allocation_mapping_size(size_t size) {
+  return size + sizeof(allocation_header);
+}
+
 size_t miteruby_allocator_requested_bytes(void) {
   return atomic_load_explicit(&requested_bytes, memory_order_relaxed);
 }
@@ -46,7 +50,7 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
     return NULL;
   }
 
-  size_t mapping_size = size + sizeof(allocation_header);
+  size_t mapping_size = allocation_mapping_size(size);
 
   allocation_header *header = mmap(NULL, mapping_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (header == MAP_FAILED) return NULL;
@@ -54,7 +58,7 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
   memcpy(header->magic, "MITERUBY", sizeof(header->magic));
   header->size = size;
 
-  atomic_fetch_add_explicit(&requested_bytes, size, memory_order_relaxed);
+  atomic_fetch_add_explicit(&requested_bytes, mapping_size, memory_order_relaxed);
 
   #ifdef __linux__
     // Try to name the allocation (shows up under /proc/pid/maps).
@@ -87,12 +91,13 @@ void miteruby_allocator_free_impl(void **allocation_storage) {
 
   size_t size = miteruby_allocator_alloc_size(allocation);
   allocation_header *header = (allocation_header *)allocation - 1;
+  size_t mapping_size = allocation_mapping_size(size);
   *allocation_storage = NULL;
-  if (munmap(header, size + sizeof(allocation_header)) != 0) {
+  if (munmap(header, mapping_size) != 0) {
     // ENOMEM can occur when splitting a VMA; keep the mapping counted and let the application continue.
     if (errno == ENOMEM) return;
     rb_bug("Failed to unmap miteruby allocation at %p (size=%zu, errno=%d)", (void *) header, size, errno);
   }
 
-  atomic_fetch_sub_explicit(&requested_bytes, size, memory_order_relaxed);
+  atomic_fetch_sub_explicit(&requested_bytes, mapping_size, memory_order_relaxed);
 }
