@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6722",
+  "message": "Return object flag values deeply frozen and reuse them across evaluations until the next configuration, cutting repeat evaluations of a 4 MB value from tens of milliseconds to microseconds; call `dup` before modifying one."
+}
