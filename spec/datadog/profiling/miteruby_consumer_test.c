@@ -1233,11 +1233,11 @@ int main(int argc, char **argv) {
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) == 0);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) == 0);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_function_set.buckets) == 0);
-  miteruby_allocator_free(&consumer_state.interned_events_queue);
-  miteruby_allocator_free(&consumer_state.mark_function_array.entries);
-  miteruby_allocator_free(&consumer_state.location_array.entries);
+  miteruby_allocator_free(consumer_state.interned_events_queue);
+  miteruby_allocator_free(consumer_state.mark_function_array.entries);
+  miteruby_allocator_free(consumer_state.location_array.entries);
   miteruby_raw_events_queue_destroy(consumer_state.raw_events_queue);
-  miteruby_allocator_free(&consumer_state.raw_events_queue);
+  miteruby_allocator_free(consumer_state.raw_events_queue);
   assert(miteruby_allocator_currently_allocated_bytes_stat() == 0);
   assert(pthread_mutex_destroy(&consumer_state.mutex) == 0);
   puts("Miteruby consumer tests passed");
