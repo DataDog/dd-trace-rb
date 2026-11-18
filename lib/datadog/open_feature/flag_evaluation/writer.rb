@@ -85,7 +85,7 @@ module Datadog
         def enqueue(
           flag_key:, eval_time_ms:, variant: nil, allocation_key: nil, error_message: nil,
           runtime_default: nil, targeting_key: nil, attrs: nil, observe_full_evaluation_data: false,
-          **_event
+          features: Aggregator::NO_FEATURES, **_event
         )
           start_background_thread if forked?
 
@@ -107,6 +107,7 @@ module Datadog
             eval_time_ms: snapshot_integer(eval_time_ms),
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
+            features: features,
           }
           @queue.push(bounded_event, true)
           @stop_mutex.synchronize { @stop_cond.signal }
@@ -283,6 +284,7 @@ module Datadog
                 error_message: event[:error_message],
                 runtime_default: event[:runtime_default],
                 observe_full_evaluation_data: event[:observe_full_evaluation_data],
+                features: event[:features],
               )
               drained += 1
             rescue ThreadError
@@ -359,9 +361,9 @@ module Datadog
           events = []
 
           snapshot[:full].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, _observe_full_evaluation_data = key
+            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, _observe_full_evaluation_data, features = key
             event = build_event(
-              flag_key: flag_key, variant: variant, allocation_key: allocation_key,
+              flag_key: flag_key, variant: variant, allocation_key: allocation_key, features: features,
               targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
             )
             events << event
@@ -369,9 +371,9 @@ module Datadog
 
           # Degraded rows omit targeting_key and context, so the policy is not a key dimension.
           snapshot[:degraded].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_dimension = key
+            flag_key, variant, allocation_key, _runtime_default, _error_dimension, features = key
             event = build_event(
-              flag_key: flag_key, variant: variant, allocation_key: allocation_key,
+              flag_key: flag_key, variant: variant, allocation_key: allocation_key, features: features,
               targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
             )
             events << event
@@ -381,7 +383,7 @@ module Datadog
         end
 
         def build_event(
-          flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:
+          flag_key:, variant:, allocation_key:, features:, targeting_key:, entry:, flush_time_ms:, tier:
         )
           observe_full_evaluation_data = entry[:observe_full_evaluation_data]
           # @type var event: ::Hash[::String, any]
@@ -404,6 +406,7 @@ module Datadog
           # variant + allocation are present in both tiers (omitempty per schema).
           event["variant"] = {"key" => variant} if variant && !variant.empty?
           event["allocation"] = {"key" => allocation_key} if allocation_key && !allocation_key.empty?
+          event["features"] = features unless features.empty?
 
           # Full-tier additionally carries targeting_key and the truncated evaluation context;
           # the degraded tier omits both.

@@ -5,9 +5,7 @@ module Datadog
     module Metrics
       # A class responsible for exporting WAF and RASP call metrics
       module Exporter
-        module_function
-
-        def export_waf_metrics(metrics, span)
+        def self.export_waf_metrics(metrics, span)
           return if metrics.evals.zero?
 
           span.set_tag("_dd.appsec.waf.timeouts", metrics.timeouts)
@@ -15,7 +13,7 @@ module Datadog
           span.set_tag("_dd.appsec.waf.duration_ext", convert_ns_to_us(metrics.duration_ext_ns))
         end
 
-        def export_rasp_metrics(metrics, span)
+        def self.export_rasp_metrics(metrics, span)
           return if metrics.evals.zero?
 
           span.set_tag("_dd.appsec.rasp.rule.eval", metrics.evals)
@@ -31,7 +29,7 @@ module Datadog
           end
         end
 
-        def export_downstream_response_metrics(metrics, span)
+        def self.export_downstream_response_metrics(metrics, span)
           metrics.each_pair do |reason, count|
             next if count.zero?
 
@@ -39,7 +37,7 @@ module Datadog
           end
         end
 
-        private_class_method def convert_ns_to_us(value)
+        private_class_method def self.convert_ns_to_us(value)
           value / 1000.0
         end
       end

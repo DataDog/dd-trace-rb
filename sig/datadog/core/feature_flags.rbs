@@ -5,23 +5,39 @@ module Datadog
       end
 
       class Configuration
-        def initialize: (::String json_str) -> void
+        def initialize: (String json_str) -> void
 
         def observe_full_evaluation_data: () -> bool
 
         def get_assignment: (
-          ::String flag_key,
-          ::Symbol expected_type,
-          ::Hash[::String, untyped] context
+          String flag_key,
+          Symbol expected_type,
+          Hash[String, untyped] context
+        ) -> ResolutionDetails
+
+        def get_assignment_with_options: (
+          String flag_key,
+          Symbol expected_type,
+          Hash[String, untyped] context,
+          bool experimentation_opt_out_immediate
+        ) -> ResolutionDetails
+
+        def get_assignment_with_opt_out_mode: (
+          String flag_key,
+          Symbol expected_type,
+          Hash[String, untyped] context,
+          Symbol experimentation_opt_out_mode
         ) -> ResolutionDetails
       end
 
       class ResolutionDetails
-        type metadata_t = ::Hash[::String, ::String]
+        type metadata_t = Hash[String, String]
+
+        type feature_t = [String, String | Float | bool, Array[String]]
 
         @value: Datadog::Helpers::json
 
-        def flag_type: () -> ::Symbol?
+        def flag_type: () -> Symbol?
 
         def raw_value: () -> untyped
 
@@ -29,23 +45,25 @@ module Datadog
 
         def value=: (untyped) -> untyped
 
-        def variant: () -> ::String?
+        def variant: () -> String?
 
-        def allocation_key: () -> ::String?
+        def allocation_key: () -> String?
 
-        def serial_id: () -> ::Integer?
+        def serial_id: () -> Integer?
 
-        def reason: () -> ::String
+        def reason: () -> String
 
-        def error_code: () -> ::String?
+        def error_code: () -> String?
 
-        def error_message: () -> ::String?
+        def error_message: () -> String?
 
         def error?: () -> bool
 
         def log?: () -> bool
 
         def flag_metadata: () -> metadata_t
+
+        def features: () -> Array[feature_t]
 
         private
 

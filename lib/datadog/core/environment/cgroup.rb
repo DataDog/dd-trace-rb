@@ -18,11 +18,9 @@ module Datadog
           :inode,
         )
 
-        module_function
-
         # Parses the /proc/self/cgroup file,
         # @return [Array<Entry>] one entry for each valid cgroup line
-        def entries
+        def self.entries
           filepath = "/proc/self/cgroup"
           return [] unless File.exist?(filepath)
 
@@ -45,7 +43,7 @@ module Datadog
         #
         # @see https://man7.org/linux/man-pages/man7/cgroups.7.html#:~:text=%2Fproc%2Fpid%2Fcgroup
         # @return [Entry]
-        def parse(entry_line)
+        def self.parse(entry_line)
           hierarchy, controllers, path = entry_line.split(":", 3)
 
           Entry.new(
@@ -60,7 +58,7 @@ module Datadog
         # Example:
         #   For the entry `0:cpu:/docker/abc123`,
         #   we read `stat -c '%i' /sys/fs/cgroup/cpu/docker/abc123`
-        def inode_for(controllers, path)
+        def self.inode_for(controllers, path)
           return if controllers.nil? || path.nil?
 
           # In cgroup v1, when multiple controllers are co-mounted, the controllers

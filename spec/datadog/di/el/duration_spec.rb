@@ -16,9 +16,14 @@ RSpec.describe "DI EL @duration" do
     )
   end
 
+  # Deadline far enough in the future that a test evaluation stays within it.
+  def far_future_deadline
+    Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+  end
+
   def evaluate(ast)
     compiled, regexps = compiler.compile(ast)
-    Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: regexps).evaluate(context)
+    Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: regexps).evaluate(context, evaluation_deadline: far_future_deadline)
   end
 
   context "at entry time, when duration is nil" do

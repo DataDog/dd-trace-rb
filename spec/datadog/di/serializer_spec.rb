@@ -743,6 +743,29 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  describe "#evaluation_deadline" do
+    let(:di_settings) do
+      double("di settings").tap do |settings|
+        stub_di_settings(settings, max_time_to_evaluate_ms: 250)
+      end
+    end
+
+    stub_cpu_clock([0.5])
+
+    before do
+      serializer
+    end
+
+    it "adds the budget resolved at construction to the thread CPU clock reading" do
+      expect(serializer.evaluation_deadline).to eq(0.75)
+    end
+
+    it "reads no settings per call" do
+      expect(di_settings).not_to receive(:max_time_to_evaluate_ms)
+      expect(serializer.evaluation_deadline).to be_a(Float)
+    end
+  end
+
   describe "#serialize_string_or_symbol_for_message" do
     [
       [100, "short", "short"],

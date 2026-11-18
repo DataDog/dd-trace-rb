@@ -61,7 +61,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   with_env "DD_REMOTE_CONFIGURATION_ENABLED" => nil
 
   describe "::new" do
-    let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
+    let(:tracer) { instance_double(Datadog::Tracing::Tracer, reset_profiling_enabled: nil) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
@@ -109,6 +109,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(components.runtime_metrics).to be runtime_metrics
       expect(components.health_metrics).to be health_metrics
       expect(components.agent_info).to eq agent_info
+    end
+
+    it "resets the profiling enabled cache in tracing" do
+      expect(tracer).to receive(:reset_profiling_enabled)
+
+      components
     end
 
     describe "@environment_logger_extra" do
@@ -650,6 +656,124 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe ".reconfigure_profiler" do
+    subject(:reconfigure_profiler) { described_class.reconfigure_profiler }
+
+    let(:old_profiler) { instance_double("Datadog::Profiling::Profiler", shutdown!: nil, start: nil) }
+    let(:new_profiler) { instance_double("Datadog::Profiling::Profiler", shutdown!: nil, start: nil) }
+
+    before do
+      components.instance_variable_set(:@profiler, old_profiler)
+      allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+        .and_return([new_profiler, {profiling_enabled: true}])
+      allow(Datadog).to receive(:send).and_call_original
+      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+    end
+
+    it "looks the components up under the components lock" do
+      expect(Datadog).to receive(:send).with(:safely_synchronize).ordered.and_call_original
+      expect(Datadog).to receive(:send).with(:components, allow_initialization: false).ordered.and_return(components)
+
+      reconfigure_profiler
+    end
+
+    context "when no components are built yet" do
+      before { allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(nil) }
+
+      it "does nothing" do
+        expect(Datadog::Profiling::Component).to_not receive(:build_profiler_component)
+
+        reconfigure_profiler
+      end
+    end
+
+    context "when no profiling setting changed since the profiler was built" do
+      it "does nothing" do
+        expect { reconfigure_profiler }.to_not(change { components.profiler })
+      end
+    end
+
+    context "when a profiling setting changed since the profiler was built" do
+      before { settings.profiling.advanced.max_frames = 100 }
+
+      # Profiling::Ext::ExecMonkeyPatch shuts down the published profiler before Kernel#exec, so it
+      # must not miss one that is still running.
+      it "keeps the old profiler published until it is shut down" do
+        expect(old_profiler).to receive(:shutdown!) { expect(components.profiler).to be(old_profiler) }
+
+        reconfigure_profiler
+      end
+
+      it "makes the tracer check again whether profiling is enabled, once the new profiler is published" do
+        expect(components.tracer).to receive(:reset_profiling_enabled) { expect(components.profiler).to be(new_profiler) }
+
+        reconfigure_profiler
+      end
+
+      context "when profiling is enabled" do
+        before { settings.profiling.enabled = true }
+
+        it "rebuilds the profiler from the current settings" do
+          expect(Datadog::Profiling::Component).to receive(:build_profiler_component) do |**kwargs|
+            expect(kwargs).to include(
+              settings: settings,
+              agent_settings: components.agent_settings,
+              optional_tracer: components.tracer,
+              logger: components.logger,
+            )
+            [new_profiler, nil]
+          end
+
+          expect { reconfigure_profiler }.to change { components.profiler }.from(old_profiler).to(new_profiler)
+        end
+
+        # The native extension permits only one active CpuAndWallTimeWorker, so
+        # starting before the old one is stopped would raise.
+        it "shuts the old profiler down before starting the new one" do
+          expect(old_profiler).to receive(:shutdown!).ordered
+          expect(new_profiler).to receive(:start).ordered
+
+          reconfigure_profiler
+        end
+      end
+
+      context "when building the profiler fails" do
+        let(:reason) { "Failed to initialize profiling: RuntimeError: test error" }
+
+        before do
+          allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+            .and_return([nil, {profiling_enabled: false}, reason])
+        end
+
+        it "records why" do
+          expect { reconfigure_profiler }.to change { components.profiler_unavailable_reason }.from(nil).to(reason)
+        end
+
+        it "clears it once building succeeds" do
+          reconfigure_profiler
+          allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+            .and_return([new_profiler, {profiling_enabled: true}])
+          settings.profiling.advanced.max_frames = 500
+
+          expect { described_class.reconfigure_profiler }.to change { components.profiler_unavailable_reason }.from(reason).to(nil)
+        end
+      end
+
+      context "when profiling is disabled" do
+        before do
+          allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+            .and_return([nil, {profiling_enabled: false}, nil])
+        end
+
+        it "shuts the old profiler down and clears it" do
+          expect(old_profiler).to receive(:shutdown!)
+
+          expect { reconfigure_profiler }.to change { components.profiler }.from(old_profiler).to(nil)
+        end
+      end
+    end
+  end
+
   describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 
@@ -700,13 +824,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
               .and_return(true)
           end
 
-          it do
-            expect(components.profiler)
-              .to be nil
+          it "doesn't build or start a profiler" do
+            allow(described_class).to receive(:build_logger).and_return(logger)
+            allow(logger).to receive(:warn)
 
-            expect(components.logger)
-              .to receive(:warn)
-              .with(/profiling disabled/)
+            expect(components.profiler).to be nil
 
             startup!
           end
@@ -818,6 +940,161 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "#swap_data_streams" do
+    subject(:swap_data_streams) { components.swap_data_streams }
+
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
+
+    before do
+      components # built with the default disabled setting, before build_data_streams is stubbed
+      allow(described_class).to receive(:build_data_streams).and_return(processor)
+      allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
+    end
+
+    context "when the setting is enabled" do
+      before { settings.data_streams.enabled = true }
+
+      it "builds the processor once and retires nothing" do
+        components.swap_data_streams
+
+        expect(swap_data_streams).to be_nil
+        expect(described_class).to have_received(:build_data_streams).once
+        expect(components.data_streams).to be(processor)
+      end
+
+      context "when DDSketch is not supported" do
+        before { allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false) }
+
+        it "does not build the processor" do
+          expect(swap_data_streams).to be_nil
+          expect(described_class).not_to have_received(:build_data_streams)
+          expect(components.data_streams).to be_nil
+        end
+      end
+    end
+
+    context "when the setting is disabled and a processor is running" do
+      before do
+        settings.data_streams.enabled = true
+        components.swap_data_streams
+        settings.data_streams.enabled = false
+      end
+
+      it "detaches and returns the processor without stopping it" do
+        expect(swap_data_streams).to be(processor)
+        expect(components.data_streams).to be_nil
+        expect(processor).not_to have_received(:stop)
+      end
+
+      it "lets #stop_retired_data_streams stop then flush it" do
+        components.stop_retired_data_streams(swap_data_streams)
+
+        expect(processor).to have_received(:stop).with(true).ordered
+        expect(processor).to have_received(:flush).ordered
+      end
+
+      it "lets #shutdown! stop it when it was never stopped" do
+        swap_data_streams
+        allow(telemetry).to receive(:emit_closing!)
+        allow(telemetry).to receive(:shutdown!)
+        allow(components.runtime_metrics.metrics.statsd).to receive(:close)
+        allow(components.health_metrics.statsd).to receive(:close)
+
+        components.shutdown!
+
+        expect(processor).to have_received(:stop).with(true)
+      end
+
+      it "no longer stops it on #shutdown! once stopped" do
+        components.stop_retired_data_streams(swap_data_streams)
+        allow(telemetry).to receive(:emit_closing!)
+        allow(telemetry).to receive(:shutdown!)
+        allow(components.runtime_metrics.metrics.statsd).to receive(:close)
+        allow(components.health_metrics.statsd).to receive(:close)
+
+        components.shutdown!
+
+        expect(processor).to have_received(:stop).once
+      end
+    end
+
+    context "when the setting is disabled and there is no processor" do
+      it { expect(swap_data_streams).to be_nil }
+    end
+
+    context "when the settings have no data_streams (only datadog/core loaded)" do
+      before do
+        allow(settings).to receive(:respond_to?).and_call_original
+        allow(settings).to receive(:respond_to?).with(:data_streams).and_return(false)
+      end
+
+      it "does nothing" do
+        expect(swap_data_streams).to be_nil
+        expect(described_class).not_to have_received(:build_data_streams)
+      end
+    end
+
+    context "when reconciling fails" do
+      before do
+        settings.data_streams.enabled = true
+        allow(described_class).to receive(:build_data_streams).and_raise("boom")
+      end
+
+      it { expect(swap_data_streams).to be_nil }
+    end
+  end
+
+  describe "#stop_retired_data_streams" do
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true) }
+
+    it "does not raise when flushing fails" do
+      allow(processor).to receive(:flush).and_raise("boom")
+
+      expect { components.stop_retired_data_streams(processor) }.not_to raise_error
+    end
+  end
+
+  describe ".reconfigure_data_streams" do
+    subject(:reconfigure_data_streams) { described_class.reconfigure_data_streams }
+
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
+
+    before do
+      components # built before Datadog.components is stubbed, as its construction reads the global logger
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(components)
+    end
+
+    it "selects the components and swaps the processor under the Components lock" do
+      expect(components).to receive(:swap_data_streams) do
+        expect(Datadog::Core::Configuration.const_get(:COMPONENTS_WRITE_LOCK)).to be_owned
+        nil
+      end
+
+      reconfigure_data_streams
+    end
+
+    it "stops the retired processor outside the Components lock" do
+      allow(components).to receive(:swap_data_streams).and_return(processor)
+      expect(processor).to receive(:stop).with(true) do
+        expect(Datadog::Core::Configuration.const_get(:COMPONENTS_WRITE_LOCK)).not_to be_owned
+      end
+
+      reconfigure_data_streams
+    end
+
+    it "does nothing when there are no components" do
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(nil)
+
+      expect(reconfigure_data_streams).to be_nil
+    end
+
+    it "does not raise when swapping fails" do
+      allow(components).to receive(:swap_data_streams).and_raise("boom")
+
+      expect { reconfigure_data_streams }.not_to raise_error
+    end
+  end
+
   describe "#after_fork" do
     subject(:after_fork) { components.after_fork }
 
@@ -874,6 +1151,21 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     it "does not raise when data_streams is nil" do
       allow(components).to receive(:data_streams).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
+
+    it "dispatches after_fork to dynamic_instrumentation when present" do
+      dynamic_instrumentation = instance_double(Datadog::DI::Component, after_fork: nil)
+      allow(components).to receive(:dynamic_instrumentation).and_return(dynamic_instrumentation)
+      expect(dynamic_instrumentation).to receive(:after_fork)
+
+      after_fork
+    end
+
+    it "does not raise when dynamic_instrumentation is nil" do
+      allow(components).to receive(:dynamic_instrumentation).and_return(nil)
+      expect(symbol_database).to receive(:after_fork!)
 
       expect { after_fork }.not_to raise_error
     end

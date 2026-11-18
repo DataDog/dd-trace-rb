@@ -42,23 +42,23 @@ module Datadog
 
         TAG_VERSION: String
 
-        PROCESS_TYPE: ::String
+        PROCESS_TYPE: String
 
-        TAG_ENTRYPOINT_BASEDIR: ::String
+        TAG_ENTRYPOINT_BASEDIR: String
 
-        TAG_ENTRYPOINT_NAME: ::String
+        TAG_ENTRYPOINT_NAME: String
 
-        TAG_ENTRYPOINT_WORKDIR: ::String
+        TAG_ENTRYPOINT_WORKDIR: String
 
-        TAG_ENTRYPOINT_TYPE: ::String
+        TAG_ENTRYPOINT_TYPE: String
 
-        TAG_RAILS_APPLICATION: ::String
+        TAG_RAILS_APPLICATION: String
 
-        TAG_PROCESS_TAGS: ::String
+        TAG_PROCESS_TAGS: String
 
-        TAG_SVC_AUTO: ::String
+        TAG_SVC_AUTO: String
 
-        TAG_SVC_USER: ::String
+        TAG_SVC_USER: String
       end
     end
   end

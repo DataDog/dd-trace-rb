@@ -47,6 +47,12 @@ module Datadog
         stop_scheduler
       end
 
+      # @rbs timeout_seconds: Integer
+      # @rbs return: Exception?
+      def wait_for_start_or_failure(timeout_seconds:)
+        worker.wait_for_start_or_failure(timeout_seconds: timeout_seconds)
+      end
+
       private
 
       #: () -> void

@@ -15,7 +15,7 @@ module Datadog
         FARGATE_14_CONTAINER_REGEX: Regexp
 
         HOST_CGROUP_NAMESPACE_INODE: Integer
-        class Descriptor < ::Struct[[String, String, String]]
+        class Descriptor < Struct[[String, String, String]]
           def self.new: (?String? platform, ?String? container_id, ?String? task_uid) -> instance
 
           attr_accessor platform: String
@@ -23,11 +23,11 @@ module Datadog
           attr_accessor task_uid: String
         end
 
-        @descriptor: Descriptor?
+        self.@descriptor: Descriptor?
 
-        @running_on_host: bool
+        self.@running_on_host: bool
 
-        @entry: Entry
+        self.@entry: Entry
 
         class Entry
           attr_accessor platform: String?
@@ -38,23 +38,23 @@ module Datadog
           def initialize: (?String? platform, ?String? task_uid, ?String? container_id, ?Integer? inode) -> void
         end
 
-        def self?.to_headers: () -> Hash[String, String]
+        def self.to_headers: () -> Hash[String, String]
 
-        def self?.entity_id: () -> String?
+        def self.entity_id: () -> String?
 
-        def self?.external_env: () -> String?
+        def self.external_env: () -> String?
 
-        def self?.platform: () -> String?
+        def self.platform: () -> String?
 
-        def self?.container_id: () -> String?
+        def self.container_id: () -> String?
 
-        def self?.task_uid: () -> String?
+        def self.task_uid: () -> String?
 
-        def self?.inode: () -> Integer?
+        def self.inode: () -> Integer?
 
-        def self?.running_on_host?: () -> bool
+        def self.running_on_host?: () -> bool
 
-        def self?.entry: () -> Entry
+        def self.entry: () -> Entry
       end
     end
   end

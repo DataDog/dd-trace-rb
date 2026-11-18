@@ -12,7 +12,7 @@ module Datadog
         def class: () -> Class
       end
 
-      def self.build_from: ((Error | [Object] | [Object, Object] | [Object, Object, Object] | ::Exception | _ContainsMessage | ::String) value) -> Error
+      def self.build_from: ((Error | [Object] | [Object, Object] | [Object, Object, Object] | Exception | _ContainsMessage | String) value) -> Error
 
       private
       def self.full_backtrace: (Exception ex) -> String

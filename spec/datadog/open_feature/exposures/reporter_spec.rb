@@ -5,7 +5,16 @@ require "open_feature/sdk"
 require "datadog/open_feature/exposures/reporter"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
+  subject(:reporter) do
+    described_class.new(worker, logger: logger, datadog_logging_enabled: datadog_logging_enabled)
+  end
+
   let(:debug_messages) { [] }
+  let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
+  let(:datadog_logging_enabled) { true }
+  let(:context) { OpenFeature::SDK::EvaluationContext.new(targeting_key: "john-doe") }
+  let(:features) { {} }
 
   before do
     allow(logger).to receive(:debug) do |message, &block|
@@ -13,50 +22,27 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
     end
   end
 
-  before do
-    allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_return(deduplicator)
-  end
-
-  subject(:reporter) { described_class.new(worker, telemetry: telemetry, logger: logger) }
-
-  let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
-
-  let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
-  let(:context) do
-    instance_double(
-      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"},
-    )
-  end
-  let(:result) do
-    Datadog::OpenFeature::ResolutionDetails.new(
-      value: 4,
-      allocation_key: "4-for-john-doe",
-      variant: "4",
-      flag_metadata: {
-        "allocationKey" => "4-for-john-doe",
-        "variationType" => "number",
-        "doLog" => true,
-      },
-      log?: true,
-      error?: false,
+  def record(variant: "4", serial_id: nil, targeting_key: "john-doe")
+    reporter.record(
+      flag_key: "feature_flag", allocation_key: "4-for-john-doe", variant: variant, serial_id: serial_id,
+      context: OpenFeature::SDK::EvaluationContext.new(targeting_key: targeting_key), features: features,
     )
   end
 
-  describe "#report" do
-    context "when exposure has not been reported" do
-      before { allow(deduplicator).to receive(:duplicate?).and_return(false) }
+  describe "#record" do
+    context "when the exposure is new" do
+      it "enqueues the event and reports no cache hit" do
+        expect(worker).to receive(:enqueue).with(
+          hash_including(flag: {key: "feature_flag"}, variant: {key: "4"}, subject: hash_including(id: "john-doe")),
+        ).and_return(true)
 
-      it "enqueues event" do
-        expect(worker).to receive(:enqueue).and_return(true)
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(true)
+        expect(record).to be(false)
       end
 
       it "logs the queued exposure" do
         allow(worker).to receive(:enqueue).and_return(true)
 
-        reporter.report(result, flag_key: "feature_flag", context: context)
+        record
 
         expect(debug_messages).to include(
           'Feature Flags: queued exposure for "feature_flag" (allocation="4-for-john-doe", variant="4", ' \
@@ -66,118 +52,88 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it "does not claim a rejected exposure was queued" do
         allow(worker).to receive(:enqueue).and_return(false)
-        expect(logger).not_to receive(:debug)
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+
+        expect(record).to be(false)
+        expect(debug_messages).to be_empty
       end
     end
 
-    context "when exposure was already reported" do
-      before { allow(deduplicator).to receive(:duplicate?).and_return(true) }
+    context "when exposure features are given" do
+      let(:features) { {"holdout.key" => "h-1"} }
 
-      it "does not enqueue event again" do
-        expect(worker).not_to receive(:enqueue)
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+      it "puts them on the event" do
+        expect(worker).to receive(:enqueue).with(hash_including(features: {"holdout.key" => "h-1"})).and_return(true)
+
+        record
+      end
+    end
+
+    context "when the same exposure repeats" do
+      before { allow(worker).to receive(:enqueue).and_return(true) }
+
+      it "reports a cache hit and does not enqueue again" do
+        expect(record).to be(false)
+        expect(record).to be(true)
+        expect(worker).to have_received(:enqueue).once
       end
 
-      it "logs why the exposure was not recorded" do
-        reporter.report(result, flag_key: "feature_flag", context: context)
+      it "logs why the exposure was not sent" do
+        record
+        record
 
         expect(debug_messages).to include(
-          'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject',
+          'Feature Flags: exposure for "feature_flag" not sent: duplicate of the last exposure for this subject',
         )
       end
     end
 
-    context "when worker enqueue fails" do
-      before do
-        allow(deduplicator).to receive(:duplicate?).and_return(false)
-        allow(worker).to receive(:enqueue).and_raise(error)
-      end
+    context "when the variant changes" do
+      before { allow(worker).to receive(:enqueue).and_return(true) }
 
-      let(:error) { StandardError.new("Oops") }
-
-      it "returns false and logs debug message" do
-        expect(telemetry).to receive(:report).with(error, description: /Failed to report resolution details/)
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
-
-        expect(debug_messages).to include(/Failed to report resolution details: StandardError: Oops/)
+      it "is a new exposure" do
+        expect(record(variant: "4")).to be(false)
+        expect(record(variant: "5")).to be(false)
+        expect(worker).to have_received(:enqueue).twice
       end
     end
 
-    context "when event should not be reported" do
-      let(:result) do
-        Datadog::OpenFeature::ResolutionDetails.new(
-          value: 4,
-          allocation_key: "4-for-john-doe",
-          flag_metadata: {},
-          log?: false,
-          error?: true,
-        )
-      end
+    context "when the serial id changes" do
+      before { allow(worker).to receive(:enqueue).and_return(true) }
 
-      it "skips enqueueing exposure" do
-        expect(deduplicator).not_to receive(:duplicate?)
+      it "is a new exposure, including a serial id appearing" do
+        expect(record(serial_id: nil)).to be(false)
+        expect(record(serial_id: 0)).to be(false)
+        expect(record(serial_id: 1)).to be(false)
+        expect(record(serial_id: 1)).to be(true)
+        expect(worker).to have_received(:enqueue).exactly(3).times
+      end
+    end
+
+    context "when another subject is exposed" do
+      before { allow(worker).to receive(:enqueue).and_return(true) }
+
+      it "is a new exposure" do
+        expect(record(targeting_key: "john-doe")).to be(false)
+        expect(record(targeting_key: "jane-doe")).to be(false)
+      end
+    end
+
+    context "when Datadog exposure logging is disabled" do
+      let(:datadog_logging_enabled) { false }
+
+      it "sends nothing but still records the exposure" do
         expect(worker).not_to receive(:enqueue)
 
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+        expect(record).to be(false)
+        expect(record).to be(true)
       end
 
-      it "logs why the exposure was not recorded" do
-        reporter.report(result, flag_key: "feature_flag", context: context)
+      it "logs why the exposure was not sent" do
+        record
 
         expect(debug_messages).to include(
-          'Feature Flags: exposure for "feature_flag" not recorded: ' \
-            "the evaluation result is not marked for exposure logging",
+          'Feature Flags: exposure for "feature_flag" not sent: Datadog exposure logging is disabled',
         )
-      end
-    end
-
-    context "when a serial id appears on a later evaluation of the same allocation" do
-      before { allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_call_original }
-
-      let(:result_with_serial_id) do
-        Datadog::OpenFeature::ResolutionDetails.new(
-          value: 4,
-          allocation_key: "4-for-john-doe",
-          variant: "4",
-          serial_id: 0,
-          flag_metadata: {
-            "allocationKey" => "4-for-john-doe",
-            "variationType" => "number",
-            "doLog" => true,
-          },
-          log?: true,
-          error?: false,
-        )
-      end
-
-      it "enqueues a second event" do
-        expect(worker).to receive(:enqueue).twice.and_return(true)
-
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(true)
-        expect(reporter.report(result_with_serial_id, flag_key: "feature_flag", context: context)).to be(true)
-      end
-
-      it "does not enqueue the same serial id twice" do
-        expect(worker).to receive(:enqueue).once.and_return(true)
-
-        expect(reporter.report(result_with_serial_id, flag_key: "feature_flag", context: context)).to be(true)
-        expect(reporter.report(result_with_serial_id, flag_key: "feature_flag", context: context)).to be(false)
-      end
-    end
-
-    context "when evaluation context is nil" do
-      it "skips enqueueing exposure" do
-        expect(deduplicator).not_to receive(:duplicate?)
-        expect(worker).not_to receive(:enqueue)
-
-        expect(reporter.report(result, flag_key: "feature_flag", context: nil)).to be(false)
-      end
-
-      it "logs why the exposure was not recorded" do
-        reporter.report(result, flag_key: "feature_flag", context: nil)
-
-        expect(debug_messages).to include('Feature Flags: exposure for "feature_flag" not recorded: no evaluation context')
       end
     end
   end

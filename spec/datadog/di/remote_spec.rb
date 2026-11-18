@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
+require "datadog/di/correlation_sampler"
 require "spec_helper"
 require "logger"
 
@@ -348,7 +349,8 @@ RSpec.describe Datadog::DI::Remote do
           capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
             settings: settings, serializer: serializer, logger: logger,
             guardrails_telemetry: guardrails_telemetry, telemetry: nil,
-          ))
+          ),
+          correlation_sampler: Datadog::DI::CorrelationSampler.new)
       end
 
       let(:probe_notification_builder) do
@@ -365,9 +367,7 @@ RSpec.describe Datadog::DI::Remote do
 
       let(:probe_manager) do
         Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
-          probe_repository, guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
-            settings: settings, logger: logger, telemetry: nil,
-          ))
+          probe_repository)
       end
 
       let(:agent_settings) do

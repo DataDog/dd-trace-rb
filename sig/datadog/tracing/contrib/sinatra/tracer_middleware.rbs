@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Sinatra
         class TracerMiddleware
-          include ::Rack::MiddlewareWithOptions[::Hash[::Symbol, untyped]]
+          include ::Rack::MiddlewareWithOptions[Hash[Symbol, untyped]]
 
           private
 

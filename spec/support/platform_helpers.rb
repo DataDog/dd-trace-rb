@@ -21,8 +21,7 @@ module PlatformHelpers
   end
 
   def engine_version
-    version = defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
-    Gem::Version.new(version)
+    Gem::Version.new(RUBY_ENGINE_VERSION)
   end
 
   def ruby_version_matches?(matcher_with_ruby_version)

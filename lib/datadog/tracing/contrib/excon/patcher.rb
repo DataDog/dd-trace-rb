@@ -10,18 +10,16 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "middleware"
             add_middleware
           end
 
-          def add_middleware
+          def self.add_middleware
             ::Excon.defaults[:middlewares] = Middleware.around_default_stack
           end
         end

@@ -3,13 +3,13 @@ module Datadog
     module Telemetry
       module Event
         # common to app-started and app-client-configuration-change
-        type telemetry_value = ::Integer | ::Float | ::String | bool | nil
+        type telemetry_value = Integer | Float | String | bool | nil
         type telemetry_configuration = {
-          name: ::String,
+          name: String,
           value: telemetry_value,
-          origin: ::String,
-          seq_id: ::Integer,
-          ?config_id: ::String?
+          origin: String,
+          seq_id: Integer,
+          ?config_id: String?
         }
 
         extend Core::Utils::Forking

@@ -135,6 +135,35 @@ module Datadog
             logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e.message}")
             nil
           end
+
+          # Starts or stops Data Streams Monitoring on the current Components instance to match the
+          # `data_streams.enabled` setting. Used by remote configuration; never raises.
+          def reconfigure_data_streams
+            current = nil
+            retired = nil
+            Datadog.send(:safely_synchronize) do
+              # allow_initialization: false to avoid building the component tree from the remote-config worker thread.
+              current = Datadog.send(:components, allow_initialization: false)
+              retired = current&.swap_data_streams
+            end
+            current&.stop_retired_data_streams(retired) if retired
+            nil
+          rescue => e
+            Datadog.logger.debug { "Failed to reconfigure Data Streams Monitoring: #{e.class}: #{e.message}" }
+            nil
+          end
+
+          # Rebuilds the profiler of the current Components instance if it is outdated, under the Components lock.
+          # We added this for profiling remote configuration: We don't want to use
+          # `Datadog.configure` directly as that rebuilds every component, including
+          # the remote config itself.
+          def reconfigure_profiler
+            Datadog.send(:safely_synchronize) do
+              # allow_initialization: false to avoid building the component tree from the remote-config worker thread.
+              current = Datadog.send(:components, allow_initialization: false)
+              current.rebuild_profiler if current&.profiler_outdated?
+            end
+          end
         end
 
         attr_reader \
@@ -154,7 +183,8 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
-          :symbol_database
+          :symbol_database,
+          :profiler_unavailable_reason
 
         def initialize(settings)
           @settings = settings
@@ -197,13 +227,7 @@ module Datadog
           Datadog::Tracing::Component.bind_transport_telemetry(@tracer, telemetry)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
-          @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
-            settings: settings,
-            agent_settings: agent_settings,
-            optional_tracer: @tracer,
-            logger: @logger,
-          )
-          @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
+          build_profiler
 
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
@@ -234,6 +258,8 @@ module Datadog
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
+          @retiring_data_streams = []
+          @retiring_data_streams_lock = Mutex.new
           # Reflects "the customer configured DI to be on" — true iff the
           # component was built AND the env-var-driven enabled flag is set.
           # This is the post-initialize / pre-startup value visible to tests
@@ -262,6 +288,7 @@ module Datadog
           symbol_database&.after_fork!
           data_streams&.restart_flush_thread
           @open_feature_activation.after_fork
+          dynamic_instrumentation&.after_fork
         end
 
         # Hot-swaps with a new sampler.
@@ -278,15 +305,7 @@ module Datadog
 
           @open_feature_activation.startup!
 
-          if settings.profiling.enabled
-            if profiler
-              profiler.start
-            else
-              # Display a warning for users who expected profiling to be enabled
-              unsupported_reason = Profiling.unsupported_reason
-              logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
-            end
-          end
+          profiler&.start
 
           if dynamic_instrumentation && old_state
             dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
@@ -371,6 +390,7 @@ module Datadog
 
           # Shutdown Data Streams Monitoring processor
           data_streams&.stop(true)
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams.dup }.each { |processor| processor.stop(true) }
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)
@@ -426,9 +446,75 @@ module Datadog
           @open_feature_activation.component
         end
 
+        # Builds or detaches the Data Streams processor to match `settings.data_streams.enabled`.
+        # Caller must hold the Components lock. Returns the detached processor for stop_retired_data_streams; never raises.
+        def swap_data_streams
+          # Settings lack data_streams when only datadog/core is loaded.
+          return unless settings.respond_to?(:data_streams)
+
+          if settings.data_streams.enabled
+            # Skipped when unsupported so each configure/RC dispatch doesn't repeat the build failure warning.
+            if Core::DDSketch.supported?
+              @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
+            end
+            return
+          end
+
+          retired = @data_streams
+          return unless retired
+
+          @data_streams = nil
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams << retired }
+          retired
+        rescue => e
+          logger.debug { "Failed to reconcile Data Streams Monitoring: #{e.class}: #{e.message}" }
+          nil
+        end
+
+        # Stops a processor detached by swap_data_streams, outside the Components lock.
+        # It stays listed until stopped, so shutdown! stops it if this thread is killed first.
+        def stop_retired_data_streams(processor)
+          processor.stop(true)
+          @retiring_data_streams_lock.synchronize { @retiring_data_streams.delete(processor) }
+          processor.flush
+        rescue => e
+          logger.debug { "Failed to stop Data Streams Monitoring: #{e.class}: #{e.message}" }
+        end
+
+        def rebuild_profiler
+          @profiler&.shutdown!
+          build_profiler
+          profiler&.start
+        end
+
+        # Whether the profiling settings changed since the profiler, which copies them, was built.
+        def profiler_outdated?
+          profiling_settings_values != @profiler_settings_values
+        end
+
         private
 
         attr_reader :open_feature_activation
+
+        # Values of every profiling setting, including nested groups.
+        def profiling_settings_values(settings_object = settings.profiling)
+          settings_object.options_hash.transform_values do |value|
+            value.is_a?(Base) ? profiling_settings_values(value) : value
+          end
+        end
+
+        def build_profiler
+          @profiler_settings_values = profiling_settings_values
+          @profiler, profiler_logger_extra, @profiler_unavailable_reason = Datadog::Profiling::Component.build_profiler_component(
+            settings: settings,
+            agent_settings: agent_settings,
+            optional_tracer: tracer,
+            logger: logger,
+          )
+          @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
+          # The tracer can outlive the profiler, e.g. a c.tracing.instance kept across Datadog.configure.
+          tracer.reset_profiling_enabled
+        end
       end
     end
   end

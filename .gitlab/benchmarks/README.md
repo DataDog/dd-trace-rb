@@ -11,6 +11,9 @@ GitLab CI configuration for the benchmarks that run on the
         - Runs on `master`, manual elsewhere.
         - Steps live in the `ruby/gitlab` branch of
           [benchmarking-platform](https://github.com/DataDog/benchmarking-platform).
+    - `dsm-throughput`: triggers the `dsm-throughput.yml` child pipeline (DSM overhead on
+      `benchmarks/kafka_dsm`). Runs on `master`, manual elsewhere, never blocks.
+        - Steps live in the `ruby/data-streams-monitoring` branch of benchmarking-platform.
     - `ddprof-benchmark`: manual job, uses `ben-runner` from the `ruby/ddprof-benchmark` branch of
       benchmarking-platform.
     - `microbenchmarks`: runs on `master` always, on PR branches only when benchmark-relevant
@@ -21,7 +24,9 @@ GitLab CI configuration for the benchmarks that run on the
           `bp-runner ../.gitlab/benchmarks/bp-runner.microbenchmarks.yml`.
         - `microbenchmarks-check-big-regressions` fails on regressions above the threshold
           defined on `bp-runner.fail-on-regression.yml`.
-- `.gitlab/benchmarks/`: files used by the microbenchmark jobs.
+- `.gitlab/benchmarks/`: files used by the microbenchmark and DSM jobs.
+    - `dsm-throughput.yml`: child pipeline running the benchmarking-platform DSM job against this
+      pipeline's checkout.
     - `bp-runner.microbenchmarks.yml`: runs and converts benchmark results.
     - `bp-runner.fail-on-regression.yml`: regression gate config.
 - `benchmarks/`: benchmark scripts and `execution.yml` (CPU group definitions consumed by the

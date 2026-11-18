@@ -40,7 +40,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
   let(:testing_threads) { [t1, t2, t3] }
   let(:testing_threads_and_current) { [*testing_threads, Thread.current] }
-  let(:max_frames) { 123 }
+  let(:max_frames) { 600 }
 
   let(:pprof_result) { recorder.serialize! }
   let(:samples) { samples_from_pprof(pprof_result) }
@@ -2204,6 +2204,34 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect(result.locations.first).to have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
       end
     end
+
+    context "when a C method in the prepared stack gets refined before sampling" do
+      let(:klass) do
+        Class.new { define_method(:catch, Kernel.instance_method(:catch)) }
+      end
+
+      it "still names the C frame" do
+        sample
+
+        refined_class = klass
+        klass.new.catch do
+          prepare_sample_inside_signal_handler
+          # Turns the method entry captured for the `catch` frame into a VM_METHOD_TYPE_REFINED one
+          Module.new do
+            refine(refined_class) do
+              def catch(*)
+              end
+            end
+          end
+        end
+        recorder.serialize!
+
+        sample
+
+        result = sample_for_thread(samples, Thread.current)
+        expect(result.locations).to include(have_attributes(label: "catch"))
+      end
+    end
   end
 
   describe "show_classes" do
@@ -2432,10 +2460,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "when a new collector is created with a smaller max_frames" do
-    let(:max_frames) { 5 }
+    let(:max_frames) { 400 }
+
+    def sample_at_depth(depth)
+      (caller.size < depth) ? sample_at_depth(depth) : sample
+    end
 
     it "caps the number of frames to the new max_frames" do
-      sample
+      sample_at_depth(max_frames + 100)
 
       main_sample = sample_for_thread(samples, Thread.current)
       expect(main_sample.locations.size).to eq(max_frames)

@@ -1183,7 +1183,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "Process::Waiter crash regression tests" do
-      # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
+      # On Ruby 2.5 and 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
       # see https://bugs.ruby-lang.org/issues/17807 .
       #
       # In those Ruby versions, there's a very special subclass of `Thread` called `Process::Waiter` that causes VM
@@ -1896,6 +1896,66 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "when worker doesn't start on time" do
       it "raises an exception" do
         expect { cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 0) }.to raise_error(/Timeout waiting/)
+      end
+    end
+
+    context "when the worker fails to start" do
+      before do
+        described_class::Testing._native_install_testing_signal_handler
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      after do
+        described_class::Testing._native_remove_testing_signal_handler
+        cpu_and_wall_time_worker.stop
+      end
+
+      it "raises an exception with the failure" do
+        cpu_and_wall_time_worker.start
+
+        expect { cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 60) }
+          .to raise_error(/failed to start: Datadog::Profiling::ExistingSignalHandler/)
+      end
+    end
+  end
+
+  describe "#wait_for_start_or_failure" do
+    after { cpu_and_wall_time_worker.stop }
+
+    context "when the worker starts" do
+      it "returns nil" do
+        cpu_and_wall_time_worker.start
+
+        expect(cpu_and_wall_time_worker.wait_for_start_or_failure(timeout_seconds: 30)).to be_nil
+      end
+    end
+
+    context "when the worker fails to start" do
+      before do
+        described_class::Testing._native_install_testing_signal_handler
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      after do
+        described_class::Testing._native_remove_testing_signal_handler
+      end
+
+      it "stops waiting and returns the failure" do
+        waiter = Thread.new { cpu_and_wall_time_worker.wait_for_start_or_failure(timeout_seconds: 60) }
+        try_wait_until(backoff: 0.01) { waiter.status == "sleep" }
+
+        cpu_and_wall_time_worker.start
+
+        expect(waiter.join(10)&.value).to be_a(Datadog::Profiling::ExistingSignalHandler)
+      ensure
+        waiter&.kill
+        waiter&.join
+      end
+    end
+
+    context "when the worker doesn't start on time" do
+      it "returns nil" do
+        expect(cpu_and_wall_time_worker.wait_for_start_or_failure(timeout_seconds: 0)).to be_nil
       end
     end
   end

@@ -1023,7 +1023,7 @@ module Datadog
           end_line: end_line,
           targetable_lines: targetable_lines,
           language_specifics: {
-            visibility: klass ? method_visibility(klass, method_name) : "public", # steep:ignore
+            visibility: klass ? method_visibility(klass, method_name) : "public",
             method_type: "instance",
             arity: method.arity,
           },

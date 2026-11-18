@@ -50,7 +50,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patcher do
     end
 
     context ":after_routes_loaded hook" do
-      context "when error occurs while getting application routes" do
+      context "when error occurs while getting application routes", execute_in_fork: true do
         before do
           described_class.patch
           allow(::Rails).to receive(:application).and_raise(StandardError)

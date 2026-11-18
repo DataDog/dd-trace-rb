@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module GRPC
         module InterceptWithDatadog
-          def intercept!: (untyped `type`, ?::Hash[untyped, untyped] args) -> untyped
+          def intercept!: (untyped `type`, ?Hash[untyped, untyped] args) -> untyped
 
           private
 

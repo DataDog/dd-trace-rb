@@ -23,11 +23,9 @@ module Datadog
           Core::Encoding::MsgpackEncoder,
         )
 
-        module_function
-
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def default(
+        def self.default(
           agent_settings:,
           logger: Datadog.logger,
           headers: nil

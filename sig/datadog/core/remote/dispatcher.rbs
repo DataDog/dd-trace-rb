@@ -6,7 +6,7 @@ module Datadog
 
         @mutex: Thread::Mutex
 
-        def initialize: (::Array[Receiver]) -> void
+        def initialize: (Array[Receiver]) -> void
 
         def receivers: () -> Array[Receiver]
 
@@ -23,19 +23,19 @@ module Datadog
         def any_matching?: (Remote::Configuration::Repository::ChangeSet changes, Receiver receiver) -> bool
 
         class Receiver
-          attr_reader block: ^(Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void
+          attr_reader block: ^(Remote::Configuration::Repository repository, Array[Core::Remote::Configuration::Repository::change] changes) -> void
 
           attr_reader matcher: Matcher
 
           @initial_reconcile: bool
 
-          def initialize: (Matcher matcher, ?initial_reconcile: bool)  { (Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void } -> void
+          def initialize: (Matcher matcher, ?initial_reconcile: bool)  { (Remote::Configuration::Repository repository, Array[Core::Remote::Configuration::Repository::change] changes) -> void } -> void
 
           def match?: (Remote::Configuration::Path path) -> bool
 
           def initial_reconcile?: () -> bool
 
-          def call: (Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void
+          def call: (Remote::Configuration::Repository repository, Array[Core::Remote::Configuration::Repository::change] changes) -> void
         end
 
         class Matcher

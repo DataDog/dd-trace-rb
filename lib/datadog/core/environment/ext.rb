@@ -8,12 +8,7 @@ module Datadog
       # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         # e.g for CRuby '3.0.1', for JRuby '9.2.19.0', for TruffleRuby '21.1.0'
-        ENGINE_VERSION = if defined?(RUBY_ENGINE_VERSION)
-          RUBY_ENGINE_VERSION
-        else
-          # CRuby < 2.3 doesn't support RUBY_ENGINE_VERSION
-          RUBY_VERSION
-        end
+        ENGINE_VERSION = RUBY_ENGINE_VERSION
 
         ENV_API_KEY = "DD_API_KEY"
         ENV_ENVIRONMENT = "DD_ENV"

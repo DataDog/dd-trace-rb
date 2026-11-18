@@ -2,6 +2,14 @@ module Datadog
   module Tracing
     module Metadata
       module Errors
+        interface _TaggingHost
+          def set_tag: (untyped key, ?untyped? value) -> untyped
+        end
+
+        include _TaggingHost
+
+        def set_error: (untyped error) -> untyped
+
         def set_error_tags: (untyped e) -> untyped
       end
     end

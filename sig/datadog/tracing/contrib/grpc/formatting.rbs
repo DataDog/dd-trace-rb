@@ -14,7 +14,7 @@ module Datadog
 
             private
 
-            def format_full_method: (untyped grpc_method_object) -> ::String
+            def format_full_method: (untyped grpc_method_object) -> String
 
             def extract_grpc_service: (untyped grpc_method_object) -> String
             def extract_grpc_method: (untyped grpc_method_object) -> String

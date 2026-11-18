@@ -226,6 +226,65 @@ RSpec.describe "Kafka Data Streams instrumentation" do
     end
   end
 
+  describe "consumer loop when DSM is toggled at runtime" do
+    let(:test_consumer_class) do
+      Class.new do
+        attr_accessor :test_messages
+
+        def each_message(**_kwargs)
+          @test_messages.each { |message| yield(message) }
+        end
+
+        def each_batch(**_kwargs)
+          @test_messages.each { |batch| yield(batch) }
+        end
+
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
+      end
+    end
+
+    let(:consumer) { test_consumer_class.new }
+    let(:first) { OpenStruct.new(topic: "first_topic", headers: {}) }
+    let(:second) { OpenStruct.new(topic: "second_topic", headers: {}) }
+
+    before { consumer.test_messages = [first, second] }
+
+    it "sets a checkpoint once DSM is enabled after each_message started" do
+      allow(Datadog::DataStreams).to receive(:enabled?).and_return(false, true)
+      allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+      yielded = []
+      consumer.each_message { |msg| yielded << msg }
+
+      expect(yielded).to eq([first, second])
+      expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint).once
+      expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint)
+        .with(type: "kafka", source: "second_topic", auto_instrumentation: true)
+    end
+
+    it "sets a checkpoint once DSM is enabled after each_batch started" do
+      allow(Datadog::DataStreams).to receive(:enabled?).and_return(false, true)
+      allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+      consumer.each_batch { |_batch| }
+
+      expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint)
+        .once.with(type: "kafka", source: "second_topic", auto_instrumentation: true)
+    end
+
+    it "sets no checkpoint while DSM stays disabled" do
+      allow(Datadog::DataStreams).to receive(:enabled?).and_return(false)
+      allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+      yielded = []
+      consumer.each_message { |msg| yielded << msg }
+      consumer.each_batch { |batch| yielded << batch }
+
+      expect(yielded).to eq([first, second, first, second])
+      expect(Datadog::DataStreams).not_to have_received(:set_consume_checkpoint)
+    end
+  end
+
   # Regression: the wrappers must not add `**kwargs`. On Ruby 2.5 and Ruby 2.6 an
   # empty `**kwargs` forwarded through `super` becomes a positional hash and raises ArgumentError.
   describe "argument forwarding to wrapped ruby-kafka methods" do

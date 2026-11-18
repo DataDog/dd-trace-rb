@@ -879,6 +879,13 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(carrier).to eq(headers)
           end
         end
+
+        context "without an active trace" do
+          it "does not inject headers" do
+            inject
+            expect(carrier).to be_empty
+          end
+        end
       end
 
       describe "#extract" do
@@ -973,6 +980,16 @@ RSpec.describe Datadog::OpenTelemetry do
 
             expect(span.trace_id).to eq(0x11111111111111111111111111111111)
             expect(span.parent_id).to eq(0x2222222222222222)
+          end
+
+          context "and a tracestate header" do
+            let(:carrier) { super().merge("tracestate" => "othervendor=value") }
+
+            it "exposes it as an OpenTelemetry Tracestate" do
+              tracestate = OpenTelemetry::Trace.current_span(extract).context.tracestate
+              expect(tracestate).to be_a(OpenTelemetry::Trace::Tracestate)
+              expect(tracestate.value("othervendor")).to eq("value")
+            end
           end
         end
 

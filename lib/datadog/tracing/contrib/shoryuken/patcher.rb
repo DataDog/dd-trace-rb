@@ -10,13 +10,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             ::Shoryuken.server_middleware do |chain|
               chain.add Shoryuken::Tracer
             end

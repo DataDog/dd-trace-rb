@@ -23,7 +23,10 @@ module Datadog
             )
           end
 
-          @datadog_propagator.inject(context.trace.to_digest, carrier)
+          trace = context.trace
+          return unless trace
+
+          @datadog_propagator.inject(trace.to_digest, carrier)
         end
 
         def extract(
@@ -60,7 +63,7 @@ module Datadog
 
           if digest.trace_state || digest.trace_flags
             trace_flags = ::OpenTelemetry::Trace::TraceFlags.from_byte(digest.trace_flags)
-            tracestate = Tracing::Distributed::TraceState.serialize_digest(digest)
+            tracestate = ::OpenTelemetry::Trace::Tracestate.from_string(Tracing::Distributed::TraceState.serialize_digest(digest).to_s)
           else
             trace_flags = if Tracing::Sampling::PrioritySampler.sampled?(digest.trace_sampling_priority)
               ::OpenTelemetry::Trace::TraceFlags::SAMPLED

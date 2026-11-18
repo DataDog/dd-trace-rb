@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
 require_relative "../core/telemetry/logger"
+require_relative "../core/utils/only_once"
 
 module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
     module Component
+      # Remote configuration can rebuild the profiler many times, and reports the reason itself.
+      UNSUPPORTED_WARNING_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Profiling in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
@@ -29,7 +33,15 @@ module Datadog
         # no-op if profiling is already loaded).
         require_relative "../profiling"
 
-        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled && Profiling.supported?
+        return [nil, {profiling_enabled: false}, nil] unless settings.profiling.enabled
+
+        unsupported_reason = Profiling.unsupported_reason
+        if unsupported_reason
+          unsupported_message = "Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}"
+          # Tell users who expected profiling to be enabled
+          UNSUPPORTED_WARNING_ONLY_ONCE.run { logger.warn(unsupported_message) }
+          return [nil, {profiling_enabled: false}, unsupported_message]
+        end
 
         # Activate forking extensions
         Profiling::Tasks::Setup.new.run
@@ -46,6 +58,7 @@ module Datadog
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
         cpu_sampling_interval_ms =
           valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
+        max_frames = valid_max_frames(settings.profiling.advanced.max_frames, logger)
 
         recorder = Datadog::Profiling::StackRecorder.new(
           alloc_samples_enabled: allocation_profiling_enabled,
@@ -54,7 +67,7 @@ module Datadog
           heap_sample_every: heap_sample_every,
           heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
         )
-        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer)
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, max_frames)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings, logger),
           no_signals_workaround_enabled: no_signals_workaround_enabled,
@@ -88,19 +101,17 @@ module Datadog
 
         [profiler, {profiling_enabled: true}]
       rescue Exception => e # rubocop:disable Lint/RescueException
-        logger.warn do
-          "Failed to initialize profiling: #{e.class}: #{e.message} " \
-          "Location: #{Array(e.backtrace).first}"
-        end
+        failure_message = "Failed to initialize profiling: #{e.class}: #{e.message}"
+        logger.warn { "#{failure_message} Location: #{Array(e.backtrace).first}" }
         Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
 
-        [nil, {profiling_enabled: false}]
+        [nil, {profiling_enabled: false}, failure_message]
       end
 
-      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer)
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, max_frames)
         Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
-          max_frames: settings.profiling.advanced.max_frames,
+          max_frames: max_frames,
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
@@ -425,6 +436,17 @@ module Datadog
         else
           cpu_sampling_interval_ms
         end
+      end
+
+      private_class_method def self.valid_max_frames(max_frames, logger)
+        clamped = max_frames.clamp(400, 600)
+        if clamped != max_frames
+          logger.warn(
+            "Profiling max_frames is set to #{max_frames}, but only values between 400 and 600 are supported. " \
+            "Using #{clamped} instead.",
+          )
+        end
+        clamped
       end
 
       # MariaDB's client has diverged from Oracle's and has no reported need for the "no signals" workaround, as

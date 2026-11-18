@@ -16,8 +16,13 @@ module Datadog
         # process-wide rate limiter.
         RATE_LIMIT_GLOBAL = "rateLimitGlobal"
 
-        # Skip reason emitted when a capture expression evaluation exceeds
-        # the capture time budget.
+        # Skip reason emitted when a capturing probe firing is rejected by
+        # the per-trace emission counters of the coordinated sampling gate.
+        RATE_LIMIT_TRACE_BUDGET = "rateLimitTraceBudget"
+
+        # Skip reason emitted when an evaluation exceeds its time budget:
+        # a probe condition, a capture expression (including one skipped at
+        # the expired capture time budget), or a message template.
         EVALUATION_TIMEOUT = "evaluationTimeout"
 
         # Skip reason named in the +di: debug log when a condition-evaluation
@@ -41,7 +46,8 @@ module Datadog
         QUEUE_HIGH_WATERMARK = "queueHighWatermark"
 
         # Drop reason emitted when a snapshot exceeds the serialized
-        # payload limit.
+        # payload limit and pruning cannot fit it, and capture-incomplete
+        # reason emitted when pruning fits it.
         PAYLOAD_TOO_LARGE = "payloadTooLarge"
 
         # Drop reason naming the batch byte-cap guardrail decision.
@@ -78,8 +84,8 @@ module Datadog
         OTHER = "other"
 
         # The skip reasons the events.skipped metric tags with the firing
-        # probe's id; every other skip reason names a process-wide
-        # decision and carries no probe id.
+        # probe's id; every other skip reason names a decision shared across
+        # probes, process-wide or per-trace, and carries no probe id.
         PROBE_SCOPED_REASONS = [RATE_LIMIT_PROBE, EVALUATION_TIMEOUT].freeze
       end
     end

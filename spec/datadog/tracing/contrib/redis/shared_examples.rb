@@ -112,22 +112,12 @@ RSpec.shared_examples_for "redis instrumentation" do |options = {}|
     before { pipeline }
 
     let(:pipeline) do
-      if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new("5.0.0")
-        redis.pipelined do |p|
-          p.set("v1", "0")
-          p.set("v2", "0")
-          p.incr("v1")
-          p.incr("v2")
-          p.incr("v2")
-        end
-      else
-        redis.pipelined do
-          redis.set("v1", "0")
-          redis.set("v2", "0")
-          redis.incr("v1")
-          redis.incr("v2")
-          redis.incr("v2")
-        end
+      redis.pipelined do |p|
+        p.set("v1", "0")
+        p.set("v2", "0")
+        p.incr("v1")
+        p.incr("v2")
+        p.incr("v2")
       end
     end
 

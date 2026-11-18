@@ -10,7 +10,7 @@ module Datadog
             def key?: (untyped header_name) -> untyped
           end
 
-          def self.to_rack_header: (untyped name) -> ::String
+          def self.to_rack_header: (untyped name) -> String
         end
       end
     end

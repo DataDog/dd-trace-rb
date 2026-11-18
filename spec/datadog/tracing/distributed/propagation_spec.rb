@@ -175,11 +175,41 @@ RSpec.shared_examples "Distributed tracing propagator" do
 
       it_behaves_like "trace injection"
     end
+
+    context "with an unknown style configured" do
+      let(:propagation_style_inject) { ["unknown", "datadog"] }
+      let(:trace) { Datadog::Tracing::TraceDigest.new(trace_id: 1234567890, span_id: 9876543210) }
+
+      before { allow(Datadog.logger).to receive(:error) }
+
+      it "injects the known styles without logging an error" do
+        is_expected.to eq(true)
+        expect(data).to include("x-datadog-trace-id" => "1234567890")
+        expect(Datadog.logger).to_not have_received(:error)
+      end
+    end
   end
 
   describe ".extract" do
     subject(:extract) { propagator.extract(data) }
     let(:trace_digest) { extract }
+
+    context "with an unknown style configured" do
+      let(:propagation_style_extract) { ["unknown", "datadog"] }
+      let(:data) do
+        {
+          prepare_key["x-datadog-trace-id"] => "123",
+          prepare_key["x-datadog-parent-id"] => "456",
+        }
+      end
+
+      before { allow(Datadog.logger).to receive(:error) }
+
+      it "extracts the known styles without logging an error" do
+        expect(trace_digest).to have_attributes(trace_id: 123, span_id: 456)
+        expect(Datadog.logger).to_not have_received(:error)
+      end
+    end
 
     context "given `nil`" do
       let(:data) { nil }

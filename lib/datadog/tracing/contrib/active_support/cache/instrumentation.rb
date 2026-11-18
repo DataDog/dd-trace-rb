@@ -36,12 +36,10 @@ module Datadog
           #
           # Defines the deprecate  monkey-patch instrumentation for `ActiveSupport::Cache::Store#fetch`
           module Instrumentation
-            module_function
-
             # @param action [String] type of cache operation. Will be set as the span resource.
             # @param key [Object] redis cache key. Used for actions with a single key locator.
             # @param multi_key [Array<Object>] list of redis cache keys. Used for actions with a multiple key locators.
-            def trace(action, store, key: nil, multi_key: nil)
+            def self.trace(action, store, key: nil, multi_key: nil)
               return yield unless enabled?
 
               # create a new ``Span`` and add it to the tracing context
@@ -70,18 +68,18 @@ module Datadog
             # DEV-3.0: We should not have these checks in the 3.x series because ActiveSupport events provide more
             # DEV-3.0: legible nested spans. While using ActiveSupport events, the nested spans actually provide meaningful
             # DEV-3.0: information.
-            def nested_read?
+            def self.nested_read?
               current_span = Tracing.active_span
               current_span && current_span.name == Ext::SPAN_CACHE && current_span.resource == Ext::RESOURCE_CACHE_GET
             end
 
             # (see #nested_read?)
-            def nested_multiread?
+            def self.nested_multiread?
               current_span = Tracing.active_span
               current_span && current_span.name == Ext::SPAN_CACHE && current_span.resource == Ext::RESOURCE_CACHE_MGET
             end
 
-            def set_cache_key(span, single_key, multi_key)
+            def self.set_cache_key(span, single_key, multi_key)
               if multi_key
                 resolved_key = multi_key.map { |key| ::ActiveSupport::Cache.expand_cache_key(key) }
                 cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
@@ -93,7 +91,7 @@ module Datadog
               end
             end
 
-            def enabled?
+            def self.enabled?
               Tracing.enabled? && Datadog.configuration.tracing[:active_support][:enabled]
             end
 

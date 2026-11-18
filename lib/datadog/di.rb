@@ -134,6 +134,35 @@ module Datadog
         end
       end
 
+      # Returns the tracer of the built component tree, or nil when tracing
+      # is not loaded or the tree is not built. The component lookup skips
+      # initialization because initialization would run from the customer's
+      # call stack.
+      #
+      # @return [Datadog::Tracing::Tracer, nil]
+      private def built_tracer
+        if defined?(Datadog::Tracing)
+          components = Datadog.send(:components, allow_initialization: false)
+          components&.tracer
+        end
+      end
+
+      # Returns the active APM trace, or nil when tracing is not loaded or
+      # no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace
+        built_tracer&.active_trace
+      end
+
+      # Returns the active APM span, or nil when tracing is not loaded or no
+      # span is active.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def active_span
+        built_tracer&.active_span
+      end
+
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:
@@ -171,6 +200,33 @@ module Datadog
       # +current_component+ in all cases.
       def component
         Datadog.send(:components).dynamic_instrumentation
+      end
+
+      # Reports an evaluation timeout: increments the evaluation_timeouts
+      # telemetry counter, emits the canonical guardrail skip metric for the
+      # timeout, and logs at debug with the probe id, the evaluation kind and
+      # the exception. Returns whether +exc+ was an evaluation timeout, so
+      # callers can run timeout-specific follow-up.
+      #
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component
+      #   the counter increments through.
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the
+      #   canonical evaluation-timeout skip metric.
+      # @param logger [DI::Logger] logger the timeout log writes through.
+      # @param probe [Probe] the probe whose evaluation timed out.
+      # @param kind [String] the evaluation kind, e.g. "condition",
+      #   "capture expression" or "template".
+      # @param exc [Exception] the exception raised by the evaluation.
+      # @return [Boolean] whether the exception was an evaluation timeout.
+      def report_evaluation_timeout(telemetry:, guardrails_telemetry:, logger:, probe:, kind:, exc:)
+        return false unless exc.is_a?(DI::Error::EvaluationTimeout)
+        telemetry&.inc(TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+        guardrails_telemetry.skipped(
+          reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+          probe: probe,
+        )
+        logger.debug { "di: probe #{probe.id}: #{kind} evaluation timed out: #{exc.class}: #{exc.message}" }
+        true
       end
 
       # Track how many outstanding instrumentations are in DI.

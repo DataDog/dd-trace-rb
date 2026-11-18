@@ -729,7 +729,7 @@ void sample_locations_free(sample_locations *locations) {
 }
 
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
-  if (max_frames < 5) raise_error(rb_eArgError, "Invalid max_frames: value must be >= 5");
+  if (max_frames < MIN_FRAMES_LIMIT) raise_error(rb_eArgError, "Invalid max_frames: value must be >= " MIN_FRAMES_LIMIT_AS_STRING);
   if (max_frames > MAX_FRAMES_LIMIT) raise_error(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
   return max_frames;
 }

@@ -7,15 +7,15 @@ module Datadog
 
           def compute_queue_time: (::Rack::env env) -> (nil | untyped)
 
-          def set_request_tags!: (Datadog::Tracing::TraceOperation trace, Datadog::Tracing::SpanOperation request_span, ::Rack::env env, ::Integer status, untyped headers, untyped response, ::Rack::env original_env) -> untyped
+          def set_request_tags!: (Datadog::Tracing::TraceOperation trace, Datadog::Tracing::SpanOperation request_span, ::Rack::env env, Integer status, untyped headers, untyped response, ::Rack::env original_env) -> untyped
 
           private
 
           def configuration: () -> untyped
 
-          def set_route_and_endpoint_tags: (trace: Datadog::Tracing::TraceOperation, request_span: Datadog::Tracing::SpanOperation, status: ::Integer, env: ::Rack::env) -> void
+          def set_route_and_endpoint_tags: (trace: Datadog::Tracing::TraceOperation, request_span: Datadog::Tracing::SpanOperation, status: Integer, env: ::Rack::env) -> void
 
-          def set_endpoint_tag: (request_span: Datadog::Tracing::SpanOperation, value: ::String) -> void
+          def set_endpoint_tag: (request_span: Datadog::Tracing::SpanOperation, value: String) -> void
 
           def trace_http_server: (untyped span_name, start_time: untyped) -> untyped
 

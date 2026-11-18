@@ -20,7 +20,7 @@ module Datadog
 
         def extract_allocation_key: (
           ::OpenFeature::SDK::EvaluationDetails evaluation_details
-        ) -> ::String?
+        ) -> String?
 
         def attributes: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::OpenFeature::SDK::EvaluationContext::fields_t
       end

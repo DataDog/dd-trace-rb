@@ -16,9 +16,7 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def patch
+          def self.patch
             require "uri"
             require "json"
             require_relative "quantize"

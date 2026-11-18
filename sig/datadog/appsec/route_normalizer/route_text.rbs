@@ -9,10 +9,6 @@ module Datadog
         MAX_ENCODED_BYTE_SIZE: Integer
 
         def self.escape: (String text) -> String
-
-        private
-
-        def escape: (String text) -> String
       end
     end
   end

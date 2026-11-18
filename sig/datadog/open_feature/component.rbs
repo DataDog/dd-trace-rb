@@ -26,6 +26,10 @@ module Datadog
 
       @worker: Exposures::Worker
 
+      @exposure_logging_hook: Hooks::ExposureLoggingHook?
+
+      @exposure_logging_hook_mutex: Thread::Mutex
+
       @flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
       @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
@@ -36,11 +40,11 @@ module Datadog
 
       @debug_logging_hook: Hooks::DebugLoggingHook?
 
-      @configuration_mutex: ::Thread::Mutex
+      @configuration_mutex: Thread::Mutex
 
-      @reconfiguration_mutex: ::Thread::Mutex
+      @reconfiguration_mutex: Thread::Mutex
 
-      @configuration_condition: ::Thread::ConditionVariable
+      @configuration_condition: Thread::ConditionVariable
 
       @configuration_received: bool
 
@@ -75,7 +79,9 @@ module Datadog
 
       def shutdown!: () -> void
 
-      def reconfigure!: (::String? configuration) -> void
+      def reconfigure!: (String? configuration) -> void
+
+      def exposure_logging_hook: () -> Hooks::ExposureLoggingHook?
 
       def debug_logging_hook: () -> Hooks::DebugLoggingHook?
 
@@ -88,6 +94,8 @@ module Datadog
       private
 
       def configuration_shutdown?: () -> bool
+
+      def create_exposure_logging_hook: () -> Hooks::ExposureLoggingHook?
 
       def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
 

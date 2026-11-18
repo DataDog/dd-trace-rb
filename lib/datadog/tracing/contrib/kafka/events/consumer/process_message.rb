@@ -17,9 +17,7 @@ module Datadog
 
               EVENT_NAME = "process_message.consumer.kafka"
 
-              module_function
-
-              def on_start(span, _event, _id, payload)
+              def self.on_start(span, _event, _id, payload)
                 super
 
                 span.resource = payload[:topic]
@@ -31,11 +29,11 @@ module Datadog
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
               end
 
-              def span_name
+              def self.span_name
                 Ext::SPAN_PROCESS_MESSAGE
               end
 
-              def span_options
+              def self.span_options
                 super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_PROCESS_MESSAGE}})
               end
             end

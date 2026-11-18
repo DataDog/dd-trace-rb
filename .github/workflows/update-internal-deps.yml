@@ -3,7 +3,7 @@ name: Update Internal Dependencies
 # A published release of a Datadog-owned gem (libdatadog, libddwaf,
 # datadog-ruby_core_source) sends `internal-dep-updated`, which starts this
 # workflow. It bumps the pins via `rake dependency:<gem>:pin[VERSION]` and opens
-# a draft PR. lock-dependency.yml then regenerates the gemfile.lockfiles on
+# a PR ready for review. lock-dependency.yml then regenerates the gemfile.lockfiles on
 # that PR, and this repo's CI on the PR validates the new dependency.
 
 on: # yamllint disable-line rule:truthy
@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
+        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true
@@ -72,7 +72,7 @@ jobs:
           title: '[🤖] Update ${{ env.GEM }} ${{ env.VERSION }}'
           base: master
           labels: dev/internal
-          draft: true
+          draft: false
           commit-message: "[🤖] Update ${{ env.GEM }} ${{ env.VERSION }}: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
           sign-commits: true

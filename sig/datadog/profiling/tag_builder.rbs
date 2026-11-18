@@ -1,6 +1,10 @@
 module Datadog
   module Profiling
     module TagBuilder
+      ALLOWED_TAGS: Set[String]
+
+      FORM_FIELD_TAG_PROFILER_VERSION: "profiler_version"
+
       def self.call: (
         settings: untyped,
         ?profiler_version: ::String,

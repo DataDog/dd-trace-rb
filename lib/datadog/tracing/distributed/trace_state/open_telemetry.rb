@@ -23,8 +23,8 @@ module Datadog
             def from_tracestate_member(value)
               return new unless value
 
-              # @type var random_value: ::String?
-              # @type var threshold: ::String?
+              # @type var random_value: String?
+              # @type var threshold: String?
               random_value = nil
               threshold = nil
               unknown = []

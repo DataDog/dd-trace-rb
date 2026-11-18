@@ -137,6 +137,45 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
     end
 
+    context "when AppSec is configured again" do
+      before do
+        Datadog::AppSec::Contrib::ActiveRecord::Patcher.instance_variable_set(:@patched, false)
+
+        Datadog.configure do |c|
+          c.appsec.enabled = true
+          c.appsec.instrument :active_record
+        end
+      end
+
+      it "calls waf once per query" do
+        expect(Datadog::AppSec.active_context).to receive(:run_rasp).once.and_call_original
+
+        User.where(name: "Bob").to_a
+      end
+    end
+
+    context "when adapter is loaded after AppSec is configured", execute_in_fork: true do
+      before do
+        ActiveRecord::ConnectionAdapters.send(:remove_const, :PostgreSQLAdapter)
+        $LOADED_FEATURES.delete_if { |path| path.end_with?("active_record/connection_adapters/postgresql_adapter.rb") }
+        Datadog::AppSec::Contrib::ActiveRecord::Patcher.instance_variable_set(:@patched, false)
+
+        Datadog.configure do |c|
+          c.appsec.enabled = true
+          c.appsec.instrument :active_record
+        end
+
+        User.establish_connection(db_config)
+        User.count
+      end
+
+      it "calls waf when querying using .where" do
+        expect(Datadog::AppSec.active_context).to receive(:run_rasp).and_call_original
+
+        User.where(name: "Bob").to_a
+      end
+    end
+
     context "when waf result is a match" do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(

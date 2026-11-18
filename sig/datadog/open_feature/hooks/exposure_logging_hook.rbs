@@ -1,0 +1,29 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class ExposureLoggingHook
+        include ::OpenFeature::SDK::Hooks::Hook
+
+        @reporter: Exposures::Reporter
+
+        @telemetry: Core::Telemetry::Component
+
+        @logger: Core::Logger
+
+        def self.available?: () -> bool
+
+        def initialize: (
+          Exposures::Reporter reporter,
+          telemetry: Core::Telemetry::Component,
+          logger: Core::Logger
+        ) -> void
+
+        def finally: (
+          hook_context: ::OpenFeature::SDK::Hooks::HookContext,
+          evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
+          **any _opts
+        ) -> void
+      end
+    end
+  end
+end

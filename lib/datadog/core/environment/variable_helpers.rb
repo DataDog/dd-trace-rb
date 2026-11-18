@@ -7,8 +7,6 @@ module Datadog
       # Defines helper methods for environment
       # @public_api
       module VariableHelpers
-        extend self
-
         # Reads an environment variable as a Boolean.
         #
         # @param [String] var environment variable
@@ -18,7 +16,7 @@ module Datadog
         #   the first key in `var` is not used.
         # @return [Boolean] if the environment value is the string `true` or `1`
         # @return [default] if the environment value is not found
-        def env_to_bool(var, default = nil, deprecation_warning: true)
+        def self.env_to_bool(var, default = nil, deprecation_warning: true)
           var = decode_array(var, deprecation_warning)
           if var && DATADOG_ENV.key?(var)
             value = DATADOG_ENV[var].to_s.strip
@@ -29,9 +27,7 @@ module Datadog
           end
         end
 
-        private
-
-        def decode_array(var, deprecation_warning)
+        private_class_method def self.decode_array(var, deprecation_warning)
           if var.is_a?(Array)
             var.find.with_index do |env_var, i|
               found = DATADOG_ENV.key?(env_var)

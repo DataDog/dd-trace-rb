@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Rack
         module HeaderTagging
-          DATADOG_REQUEST_ATTRIBUTION_HEADERS: ::Array[::String]
+          DATADOG_REQUEST_ATTRIBUTION_HEADERS: Array[String]
 
           def self.tag_request_headers: (SpanOperation span, ::Rack::env | Header::RequestHeaderCollection env, Configuration::Settings configuration) -> void
 

@@ -8,12 +8,12 @@ module Datadog
         @starting: bool
         @started: bool
         @stopped: bool
-        @thr: ::Thread?
-        @interval: ::Float
-        @mutex: ::Thread::Mutex
+        @thr: Thread?
+        @interval: Float
+        @mutex: Thread::Mutex
         @block: (^() -> void)
 
-        def initialize: (interval: ::Float, logger: ::Logger) { () -> void } -> void
+        def initialize: (interval: Float, logger: ::Logger) { () -> void } -> void
 
         def start: () -> void
 
@@ -25,7 +25,7 @@ module Datadog
 
         private
 
-        def poll: (::Float interval) -> void
+        def poll: (Float interval) -> void
 
         def call: () -> void
       end

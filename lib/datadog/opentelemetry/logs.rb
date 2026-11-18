@@ -42,7 +42,7 @@ module Datadog
       def disable_log_injection
         @logger.warn("OTel logs enabled: disabling Datadog log injection to prevent duplicate trace correlation fields")
         Datadog.configure do |c|
-          c.tracing.log_injection = false # steep:ignore
+          c.tracing.log_injection = false
         end
       end
 

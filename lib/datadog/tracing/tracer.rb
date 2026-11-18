@@ -76,6 +76,7 @@ module Datadog
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+        @profiling_enabled = nil
 
         @otel_thread_context = otel_thread_context
 
@@ -349,6 +350,11 @@ module Datadog
 
       def after_fork
         @otel_thread_context&.after_fork
+      end
+
+      # For when the profiler is replaced, as it can be enabled or disabled after the tracer is built.
+      def reset_profiling_enabled
+        @profiling_enabled = nil
       end
 
       # Shorthand that calls the `shutdown!` method of a registered worker.
@@ -651,7 +657,9 @@ module Datadog
       end
 
       def profiling_enabled
-        @profiling_enabled ||=
+        return @profiling_enabled unless @profiling_enabled.nil?
+
+        @profiling_enabled =
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
       end
 

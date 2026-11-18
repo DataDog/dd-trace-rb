@@ -30,7 +30,7 @@ module Datadog
         def self.debug: () -> untyped
         def self.tags: () -> (nil | untyped)
         def self.runtime_metrics_enabled: () -> untyped
-        def self.vm: () -> ::String
+        def self.vm: () -> String
         def self.health_metrics_enabled: () -> untyped
         def self.otlp_traces_export_enabled: () -> bool
         def self.otlp_metrics_export_enabled: () -> bool

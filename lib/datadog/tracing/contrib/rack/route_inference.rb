@@ -19,14 +19,12 @@ module Datadog
 
           DATADOG_INFERRED_ROUTE_ENV_KEY = "datadog.inferred_route"
 
-          module_function
-
-          def read_or_infer(request_env)
+          def self.read_or_infer(request_env)
             request_env[DATADOG_INFERRED_ROUTE_ENV_KEY] ||=
               infer(request_env["SCRIPT_NAME"].to_s + request_env["PATH_INFO"].to_s)
           end
 
-          def infer(path)
+          def self.infer(path)
             count = 0
             result = []
 
@@ -51,11 +49,11 @@ module Datadog
           end
 
           if RubyVersion.is?(">= 2.6")
-            def split(path, pattern = nil, &block)
+            def self.split(path, pattern = nil, &block)
               path.split(pattern, &block)
             end
           else
-            def split(path, pattern = nil, &block)
+            def self.split(path, pattern = nil, &block)
               path.split(pattern).each(&block)
               path
             end

@@ -12,9 +12,7 @@ module Datadog
         CLIENT_ERROR = "client_error"
         REDACTION_ERROR = "redaction_error"
 
-        module_function
-
-        def report_evaluation(outcome, blocked:)
+        def self.report_evaluation(outcome, blocked:)
           telemetry = AIGuard.telemetry
           return unless telemetry
 
@@ -30,7 +28,7 @@ module Datadog
           end
         end
 
-        def report_error
+        def self.report_error
           telemetry = AIGuard.telemetry
           return unless telemetry
 

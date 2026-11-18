@@ -2,6 +2,7 @@ require "spec_helper"
 require "support/object_helpers"
 
 require "time"
+require "timeout"
 
 require "datadog/core"
 require "datadog/core/utils/time"
@@ -1965,6 +1966,157 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             expect(trace_op.resource).to eq("Articles#show")
           end
         end
+      end
+    end
+
+    context "when a non-StandardError exception interrupts the start of a span" do
+      let(:interrupt) { Class.new(Exception) } # rubocop:disable Lint/InheritException
+
+      # Interrupt after `before_start` has activated the span, but before its start time is set
+      def interrupt_once_after_activating(span_name)
+        armed = false
+        interrupted = false
+        trace_op.send(:events).span_before_start.subscribe do |span_op, _|
+          armed = interrupted = true if span_op.name == span_name && !interrupted
+        end
+
+        allow(Datadog::Core::Utils::Time).to receive(:now).and_wrap_original do |original|
+          if armed
+            armed = false
+            raise interrupt
+          end
+
+          original.call
+        end
+      end
+
+      it "does not activate the span as its own parent and finishes it" do
+        interrupt_once_after_activating("interrupted")
+
+        parent_span = nil
+        interrupted_span = nil
+
+        expect do
+          Timeout.timeout(5, Class.new(Exception), "trace operation did not terminate") do # rubocop:disable Lint/InheritException
+            trace_op.measure("parent") do |parent_op|
+              parent_span = parent_op
+              trace_op.measure("interrupted") do |span_op|
+                interrupted_span = span_op
+                trace_op.measure("child") {}
+              end
+            end
+          end
+        end.to raise_error(interrupt)
+
+        expect(interrupted_span.send(:parent)).to be(parent_span)
+        expect(interrupted_span).to be_finished
+        expect(trace_op.active_span).to be_nil
+        expect(trace_op.active_span_count).to eq(0)
+      end
+
+      it "does not activate the span again under a span its block left active" do
+        interrupt_once_after_activating("interrupted")
+
+        interrupted_span = nil
+        unfinished_span = nil
+
+        expect do
+          trace_op.measure("interrupted") do |span_op|
+            interrupted_span = span_op
+            unfinished_span = trace_op.build_span("unfinished").start
+          end
+        end.to raise_error(interrupt)
+
+        Timeout.timeout(5, Class.new(Exception), "trace operation did not terminate") do # rubocop:disable Lint/InheritException
+          unfinished_span.finish
+        end
+
+        expect(interrupted_span.send(:parent)).to be_nil
+        expect(trace_op.active_span).to be_nil
+        expect(trace_op.active_span_count).to eq(0)
+      end
+
+      it "completes the activation bookkeeping when the exception is raised asynchronously in the middle of it" do
+        started_span_names = []
+        trace_op.send(:events).span_before_start.subscribe { |span_op, _| started_span_names << span_op.name }
+
+        reached = Queue.new
+        allow(trace_op).to receive(:set_local_root_span!).and_wrap_original do |original, span_op|
+          if span_op.name == "interrupted"
+            reached << true
+            # Not a blocking call, so a deferred exception stays pending
+            Thread.pass until Thread.pending_interrupt?
+          end
+
+          original.call(span_op)
+        end
+
+        worker = Thread.new do
+          trace_op.measure("interrupted") {}
+        rescue interrupt => e
+          e
+        end
+        reached.pop
+        worker.raise(interrupt)
+
+        joined = worker.join(5)
+        worker.kill.join unless joined
+        expect(joined).to be(worker), "trace operation did not terminate"
+        expect(worker.value).to be_a(interrupt)
+
+        expect(started_span_names).to eq(["interrupted"])
+        expect(trace_op.send(:root_span).name).to eq("interrupted")
+        expect(trace_op.active_span_count).to eq(0)
+        expect(trace_op).to be_finished
+      end
+
+      it "raises the exception asynchronously while a span_before_start subscriber blocks" do
+        reached = Queue.new
+        trace_op.send(:events).span_before_start.subscribe do |span_op, _|
+          if span_op.name == "interrupted"
+            reached << true
+            Queue.new.pop
+          end
+        end
+
+        worker = Thread.new do
+          trace_op.measure("interrupted") {}
+        rescue interrupt => e
+          e
+        end
+        reached.pop
+        worker.raise(interrupt)
+
+        joined = worker.join(5)
+        worker.kill.join unless joined
+        expect(joined).to be(worker), "the blocking subscriber was not interrupted"
+        expect(worker.value).to be_a(interrupt)
+      end
+
+      it "activates the span when a caller-supplied before_start subscriber blocks and is interrupted" do
+        reached = Queue.new
+        events = Datadog::Tracing::SpanOperation::Events.new
+        events.before_start.subscribe do |_span_op|
+          reached << true
+          Queue.new.pop
+        end
+
+        worker = Thread.new do
+          trace_op.measure("interrupted", events: events) {}
+        rescue interrupt => e
+          e
+        end
+        reached.pop
+        worker.raise(interrupt)
+
+        joined = worker.join(5)
+        worker.kill.join unless joined
+        expect(joined).to be(worker), "trace operation did not terminate"
+        expect(worker.value).to be_a(interrupt)
+
+        expect(trace_op.send(:root_span).name).to eq("interrupted")
+        expect(trace_op.active_span_count).to eq(0)
+        expect(trace_op).to be_finished
       end
     end
   end

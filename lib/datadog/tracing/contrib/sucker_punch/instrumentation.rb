@@ -12,11 +12,9 @@ module Datadog
       module SuckerPunch
         # Defines instrumentation patches for the `sucker_punch` gem
         module Instrumentation
-          module_function
-
           # rubocop:disable Metrics/MethodLength
           # rubocop:disable Metrics/AbcSize
-          def patch!
+          def self.patch!
             # rubocop:disable Metrics/BlockLength
             ::SuckerPunch::Job::ClassMethods.class_eval do
               alias_method :__run_perform_without_datadog, :__run_perform

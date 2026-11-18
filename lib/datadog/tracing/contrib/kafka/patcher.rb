@@ -12,13 +12,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             # Subscribe to Kafka events
             Events.subscribe!
 
@@ -27,12 +25,12 @@ module Datadog
             patch_consumer if defined?(::Kafka::Consumer)
           end
 
-          def patch_producer
+          def self.patch_producer
             require_relative "instrumentation/producer"
             ::Kafka::Producer.prepend(Instrumentation::Producer)
           end
 
-          def patch_consumer
+          def self.patch_consumer
             require_relative "instrumentation/consumer"
             ::Kafka::Consumer.prepend(Instrumentation::Consumer)
           end
