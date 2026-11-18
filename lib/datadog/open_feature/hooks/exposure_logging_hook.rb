@@ -2,7 +2,6 @@
 
 require_relative "../ext"
 require_relative "../split_features"
-require_relative "../exposure_resolution_details"
 
 module Datadog
   module OpenFeature
@@ -35,7 +34,7 @@ module Datadog
           return unless metadata.is_a?(Hash) && !metadata.frozen?
 
           details = evaluation_details.resolution_details
-          if details.is_a?(ExposureResolutionDetails)
+          if defined?(ExposureResolutionDetails) && details.is_a?(ExposureResolutionDetails)
             details.take_exposures.each do |key, result, context|
               cache_hit = report_result(result, flag_key: key, context: context)
               if key == hook_context.flag_key && !cache_hit.nil?

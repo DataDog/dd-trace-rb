@@ -24,6 +24,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
         :allocation_key,
         :serial_id,
         :features,
+        :dependency_evaluations,
       )
 
       def log?
@@ -53,6 +54,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       allocation_key: allocation_key,
       serial_id: serial_id,
       features: features,
+      dependency_evaluations: [],
       log?: log,
       error?: error,
     )
@@ -132,7 +134,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
           resolution_details_class,
           value: false, reason: dependency_reason, variant: dependency_variant,
           error_code: nil, error_message: nil, flag_metadata: {}, allocation_key: nil,
-          serial_id: nil, log?: false, error?: false,
+          serial_id: nil, features: [], log?: false, error?: false,
         )
       end
       let(:dependency_reason) { "DEFAULT" }

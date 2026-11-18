@@ -1090,7 +1090,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it "returns OTel and EVP hooks so both observe SDK-final details" do
-        expect(provider.hooks).to match([flag_eval_metrics_hook, flag_eval_evp_hook, kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
+        expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook])
       end
 
       context "when debug logging is enabled" do
@@ -1099,7 +1099,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         before { allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_logging_hook) }
 
         it "also returns the debug logging hook" do
-          expect(provider.hooks).to match([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook, kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
+          expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook])
         end
       end
 
@@ -1117,7 +1117,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         before { allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(nil) }
 
         it "returns array with only the OTel flag eval hook" do
-          expect(provider.hooks).to match([flag_eval_metrics_hook, kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
+          expect(provider.hooks).to eq([flag_eval_metrics_hook])
         end
       end
     end
@@ -1127,8 +1127,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(components).to receive(:open_feature).and_return(nil)
       end
 
-      it "returns the exposure hook" do
-        expect(provider.hooks).to match([kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
+      it "returns empty array" do
+        expect(provider.hooks).to eq([])
       end
     end
   end
@@ -1605,8 +1605,8 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
   end
 
   context "with a nested JSON prerequisite" do
-    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
-    let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter, report: nil) }
+    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger) }
+    let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter, record: false) }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil) }
     let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: false) }
     let(:evaluation_context) { OpenFeature::SDK::EvaluationContext.new(targeting_key: "subject") }
@@ -1627,6 +1627,9 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
       skip "requires the prerequisite-aware native library" unless Datadog::Core::FeatureFlags.evaluator_capabilities.include?("dependent-flag-variant-key-v1")
       allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
       allow(component).to receive(:span_enrichment_hook).and_return(nil)
+      allow(component).to receive(:exposure_logging_hook).and_return(
+        Datadog::OpenFeature::Hooks::ExposureLoggingHook.new(reporter, telemetry: telemetry, logger: logger),
+      )
       engine.reconfigure!(configuration_json)
     end
 
@@ -1650,12 +1653,13 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
         )
       end
       expect(metrics_hook).to have_received(:capture).with("parent", kind_of(OpenFeature::SDK::EvaluationDetails))
-      expect(reporter).to have_received(:report).with(
-        have_attributes(variant: "on", allocation_key: "parent-allocation", serial_id: 42, log?: true, error?: false),
-        flag_key: "parent", context: evaluation_context,
+      expect(reporter).to have_received(:record).with(
+        flag_key: "parent", allocation_key: "parent-allocation", variant: "on", serial_id: 42,
+        context: evaluation_context, features: {},
       )
-      expect(reporter).to have_received(:report).with(
-        have_attributes(value: true, variant: "on", error?: false), flag_key: "root", context: evaluation_context,
+      expect(reporter).to have_received(:record).with(
+        flag_key: "root", allocation_key: "root-allocation", variant: "on", serial_id: nil,
+        context: evaluation_context, features: {},
       )
       expect(telemetry).not_to have_received(:report)
     end

@@ -74,6 +74,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "flag_selection:" do
 
     before do
       Datadog::OpenFeature::FlagSelectionReporter.reset_once_guards
+      allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(false)
       allow(logger).to receive(:error) { |message| errors << message }
       allow(Datadog::OpenFeature).to receive(:activate_provider).with(provider) do
         [activation.activate(provider), activation.failure]
