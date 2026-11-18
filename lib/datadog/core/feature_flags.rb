@@ -25,6 +25,8 @@ module Datadog
 
         # Get the resolved value, with JSON parsing for object types
         #
+        # Object values are deeply frozen, so callers can share them across evaluations.
+        #
         # @return [Object] The resolved value (parsed from JSON if object type)
         # @raise [Datadog::Core::FeatureFlags::Error] If JSON parsing fails
         def value
@@ -35,7 +37,7 @@ module Datadog
 
           # NOTE: Lazy parsing of the JSON is a temporary solution and will be
           #       moved into C extension
-          @value = json?(value) ? JSON.parse(value) : value
+          @value = json?(value) ? JSON.parse(value, freeze: true) : value
         rescue JSON::ParserError => e
           raise Error, "Failed to parse JSON value: #{e.class}: #{e.message}"
         end

@@ -54,10 +54,31 @@ RSpec.describe Datadog::OpenFeature::Provider, "FFE scale suites" do
               expect(result.value).to eq(expected.fetch("value")), "#{label}: unexpected value"
               expect(result.reason).to eq(expected.fetch("reason")), "#{label}: #{result.reason} #{result.error_message}"
               expect(result.variant).to eq(expected["variant"]), "#{label}: unexpected variant" if expected.key?("variant")
+              next unless test_case.fetch("variationType") == "JSON"
+
+              repeat = provider.fetch_object_value(
+                flag_key: test_case.fetch("flag"),
+                default_value: test_case.fetch("defaultValue"),
+                evaluation_context: ::OpenFeature::SDK::EvaluationContext.new(
+                  targeting_key: test_case["targetingKey"], **(test_case.fetch("attributes") || {}),
+                ),
+              )
+              expect(repeat.value).to be(result.value), "#{label}: repeat evaluation parsed the value again"
+              expect(deeply_frozen?(result.value)).to be(true), "#{label}: value is not deeply frozen"
             end
           end
         end
       end
+    end
+  end
+
+  def deeply_frozen?(value)
+    return false unless value.frozen?
+
+    case value
+    when Hash then value.all? { |key, item| deeply_frozen?(key) && deeply_frozen?(item) }
+    when Array then value.all? { |item| deeply_frozen?(item) }
+    else true
     end
   end
 

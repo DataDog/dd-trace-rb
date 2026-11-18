@@ -7,6 +7,10 @@ module Datadog
 
       @observe_full_evaluation_data: bool
 
+      @object_values: ::Hash[String, ::Hash[String, untyped]]
+
+      @object_values_mutex: ::Thread::Mutex
+
       attr_reader observe_full_evaluation_data: bool
 
       def initialize: (String configuration) -> void
@@ -23,9 +27,18 @@ module Datadog
 
       def valid_native_timestamp?: (Object timestamp) -> bool
 
-      def build_resolution_details: (
+      def resolved_value: (
+        String flag_key,
+        Symbol expected_type,
         Core::FeatureFlags::ResolutionDetails result,
         untyped default_value
+      ) -> untyped
+
+      def cache_object_value: (String flag_key, String variant, untyped value) -> untyped
+
+      def build_resolution_details: (
+        Core::FeatureFlags::ResolutionDetails result,
+        untyped value
       ) -> ResolutionDetails
 
       def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
