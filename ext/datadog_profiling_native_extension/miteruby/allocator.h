@@ -31,7 +31,7 @@ size_t miteruby_allocator_alloc_size(const void *allocation);
 // Returns the total bytes that were allocated from the OS and not yet released with free, for statistics.
 //
 // Note 1: This is "allocated bytes" and not in-use bytes because memory pages in the range returned by our allocator
-//         are only page faulted lazily by the OS when accessed.
+//         are only page paged-in lazily by the OS when accessed.
 //         Thus for instance on our arrays, as long as we read/write sequentially from the beginning, if we don't
 //         fill them, we may never need resident memory backing the whole range.
 // Note 2: This is rounded up to page size, and includes the header added by the allocator.
