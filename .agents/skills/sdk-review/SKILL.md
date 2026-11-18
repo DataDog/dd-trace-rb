@@ -48,7 +48,7 @@ Give every reviewer the same frozen evidence. Security must also inspect commit 
 | Codebase conventions | [codebase-conventions.md](references/codebase-conventions.md) |
 | Cross-SDK consistency | [cross-sdk-consistency.md](references/cross-sdk-consistency.md) |
 
-Each lens file lists rules with IDs (e.g. `PERF-1.3`, meaning section 1, rule 3). Cite the rule ID in each finding that matches a rule, and respect each file's `Not when:` lines and "Don't flag" section where present.
+Each lens file lists rules with IDs (e.g. `PERF-1.2`, meaning section 1, rule 2). Cite the rule ID in each finding that matches a rule, and respect each file's `Not when:` lines and "Don't flag" section where present.
 
 Always run every lens as its own fresh, read-only subagent, all seven in parallel, however small the diff. Tell each subagent to stay read-only: read-only Git commands on recorded objects only, and WebFetch only for the cross-SDK reviewer. The coordinator never reviews the change itself. Each reviewer reads its lens file before it looks at the diff. If subagents are unavailable, run the lenses one at a time yourself, read each lens file in turn, and don't carry conclusions from one lens to the next. Do not edit while reviewers run.
 

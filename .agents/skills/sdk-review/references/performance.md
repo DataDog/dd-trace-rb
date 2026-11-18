@@ -27,7 +27,7 @@ Allocations and CPU cost on hot paths (span creation and finish, tagging, propag
 ## 3. Packaging and CI
 
 ### PERF-3.1: Lower package size limits when a change shrinks the package
-- Flag: a change that reduces the SSI or OCI package size but leaves `LIB_INJECTION_IMAGE_MAX_SIZE_BYTES` or `OCI_PACKAGE_MAX_SIZE_BYTES` in `.gitlab-ci.yml` unchanged.
+- Flag: a change that reduces the SSI or OCI package size where `LIB_INJECTION_IMAGE_MAX_SIZE_BYTES` or `OCI_PACKAGE_MAX_SIZE_BYTES` in `.gitlab-ci.yml` is not lowered to within about 5 MB of the new measured size. Lowering only one limit, or lowering it only part of the way, still counts.
 - Not when: the PR states the headroom is kept for a known upcoming increase.
 
 ### PERF-3.2: Pass an explicit `--jobs` to Steep in CI

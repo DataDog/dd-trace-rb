@@ -20,10 +20,10 @@ Where code belongs, who owns state, and API and type shape.
 - Flag: an object created by one component but mutated by another, or a registry mixing wire-format bits, subscriptions, and dispatch routing (for example, `Remote::Client::Capabilities`).
 
 ### DES-1.4: Split distinct concerns into their own objects
-- Flag: a class gaining flat private methods for a second concern (for example, `TraceContext` building tracestate vendor entries beside traceparent parsing).
+- Flag: a class gaining flat private methods for a second concern (for example, `TraceContext` building tracestate vendor entries beside traceparent parsing). Propose moving every method of the second concern into one new object, not only some of them.
 
 ### DES-1.5: Keep scripts and rake tasks single-purpose
-- Flag: a new check added to an existing task or script with a different purpose (for example, orphaned-lockfile detection inside the dependency audit task).
+- Flag: a new check added to an existing task or script whose original purpose is different, even when the two are related (for example, orphaned-lockfile detection added to the orphaned-gemfile script or to the dependency audit task). Propose a separate task; do not endorse extending the existing one.
 
 ## 2. API and type shape
 
@@ -43,12 +43,9 @@ Where code belongs, who owns state, and API and type shape.
 - Not when: separate keyword arguments are a deliberate boundary that keeps an external SDK's types out of internal code.
 
 ### DES-2.5: Put conditions about an object's state in a named predicate on that object
-- Flag: compound checks of another object's attributes, or `respond_to?` chains detecting an optional component, inline at the call site.
+- Flag: compound checks of another object's attributes inline at the call site. (`respond_to?` chains silenced with `steep:ignore` are `CONV-2.1`.)
 - ❌ `if probe.capture_snapshot? && probe.type == :method && !probe.capture_expressions.empty?`
 - ✅ `if probe.capture_entry_expressions?`
-
-### DES-2.6: Don't build a throwaway object only to serialize it
-- Flag: every caller writes `Foo.from_x(x).build` (or `.to_s`) and never uses the intermediate object.
 
 ## 3. Settings and public surface
 
@@ -57,14 +54,10 @@ Where code belongs, who owns state, and API and type shape.
 - ❌ `c.open_feature.feature_flags_enabled # DD_FEATURE_FLAGS_ENABLED`
 - ✅ `c.feature_flags.enabled`, with scoped options nested as `c.feature_flags.agentless.base_url`
 
-### DES-3.2: Match the implementation module namespace to the settings root
-- Flag: a new subsystem whose module (for example, `Datadog::OpenFeature`) uses a different vocabulary from its settings root (`c.feature_flags`).
-- Not when: the module name is shipped public API; rename it in a separate PR with compat aliases and require-path shims.
-
-### DES-3.3: Treat span names, resources, and tags as a customer contract
+### DES-3.2: Treat span names, resources, and tags as a customer contract
 - Flag: a change to how a span's `resource`, name, or service is computed with no description of the customer impact (monitors, dashboards, and facets keyed on the old value).
 
-### DES-3.4: Pin external data sets by commit and fetch them lazily instead of vendoring them
+### DES-3.3: Pin external data sets by commit and fetch them lazily instead of vendoring them
 - Flag: a large set of fixtures or data copied from another repo. Pin a SHA in a version file and fetch into `tmp/` from a rake task, as for the system-tests ref and `.gitlab/one-pipeline.locked.yml`.
 
 ## Don't flag
