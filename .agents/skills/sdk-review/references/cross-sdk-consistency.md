@@ -21,3 +21,9 @@ Other repositories:
 - [PHP (`dd-trace-php`)](https://github.com/DataDog/dd-trace-php)
 - [C++ (`dd-trace-cpp`)](https://github.com/DataDog/dd-trace-cpp)
 - [Rust (`libdatadog`)](https://github.com/DataDog/libdatadog)
+
+Env var names must match other SDKs; that rule is `CONV-1.2` in the conventions lens.
+
+## Don't flag
+- Warn-and-fall-back parsing of invalid env var values when other SDKs handle them the same way.
+- Ruby settings namespaces that differ from other SDKs; only env var names are the shared contract.
