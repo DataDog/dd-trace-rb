@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 // In practice, we don't expect our profiler to do more than this in a single allocation -- we'd be adding
 // a lot of memory overhead to an app if we did! This can be raised in the future but I'd advise really thinking
@@ -30,14 +31,26 @@ typedef struct {
 
 __extension__ _Static_assert(sizeof(allocation_header) == 16, "Miteruby allocation header must be exactly 16 bytes");
 
-static atomic_size_t requested_bytes = 0;
+static size_t system_page_size = 4096;
+static atomic_size_t currently_allocated_bytes_stat = 0;
+
+__attribute__((constructor)) static void initialize_system_page_size(void) {
+  long page_size = sysconf(_SC_PAGESIZE);
+  if (page_size > (long)system_page_size) {
+    system_page_size = (size_t)page_size;
+  }
+}
 
 static size_t allocation_mapping_size(size_t size) {
   return size + sizeof(allocation_header);
 }
 
-size_t miteruby_allocator_requested_bytes(void) {
-  return atomic_load_explicit(&requested_bytes, memory_order_relaxed);
+static size_t rounded_to_page_size(size_t mapping_size) {
+  return ((mapping_size + system_page_size - 1) / system_page_size) * system_page_size;
+}
+
+size_t miteruby_allocator_currently_allocated_bytes_stat(void) {
+  return atomic_load_explicit(&currently_allocated_bytes_stat, memory_order_relaxed);
 }
 
 // Allocates space for `size` bytes.
@@ -58,7 +71,7 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
   memcpy(header->magic, "MITERUBY", sizeof(header->magic));
   header->size = size;
 
-  atomic_fetch_add_explicit(&requested_bytes, mapping_size, memory_order_relaxed);
+  atomic_fetch_add_explicit(&currently_allocated_bytes_stat, rounded_to_page_size(mapping_size), memory_order_relaxed);
 
   #ifdef __linux__
     // Try to name the allocation (shows up under /proc/pid/maps).
@@ -99,5 +112,5 @@ void miteruby_allocator_free_impl(void **allocation_storage) {
     rb_bug("Failed to unmap miteruby allocation at %p (size=%zu, errno=%d)", (void *) header, size, errno);
   }
 
-  atomic_fetch_sub_explicit(&requested_bytes, mapping_size, memory_order_relaxed);
+  atomic_fetch_sub_explicit(&currently_allocated_bytes_stat, rounded_to_page_size(mapping_size), memory_order_relaxed);
 }
