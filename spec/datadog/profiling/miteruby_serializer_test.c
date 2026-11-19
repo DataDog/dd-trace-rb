@@ -14,6 +14,8 @@
 #include <assert.h>
 
 void setup_signal_handler_init(VALUE profiling_module);
+RUBY_EXTERN const rb_iseq_t *rb_proc_get_iseq(VALUE proc, int *is_proc);
+RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 static bool fail_allocations;
 static const char *failed_allocation_name;
@@ -99,6 +101,26 @@ static miteruby_serializer_exit_reason_t prepare_batch(
 ) {
   miteruby_serializer_exit_reason_t reason = serializer_step1_serialize_with_gvl_with_consumer_lock(serializer, queue, size, functions, locations, threads);
   return reason == MITERUBY_SERIALIZER_OK ? serializer_step2_serialize_with_gvl_no_consumer_lock(serializer) : reason;
+}
+
+static void test_safe_line_lookup(void) {
+  VALUE fixture = rb_eval_string(
+    "sample = proc {\n 42\n}; "
+    "[sample, RubyVM::InstructionSequence.of(sample).to_a.last.grep(Array).sum(&:length)]"
+  );
+  VALUE proc = rb_ary_entry(fixture, 0);
+  size_t bytecode_size = NUM2SIZET(rb_ary_entry(fixture, 1));
+  const rb_iseq_t *iseq = rb_proc_get_iseq(proc, NULL);
+  assert(iseq != NULL);
+  assert(bytecode_size > 0);
+  for (size_t pos = 0; pos < bytecode_size; pos++) {
+    assert(safe_rb_iseq_line_no(iseq, pos) == rb_iseq_line_no(iseq, pos));
+  }
+  assert(safe_rb_iseq_line_no(iseq, bytecode_size) == 0);
+  assert(safe_rb_iseq_line_no(iseq, UINT16_MAX - 1) == 0);
+  assert(safe_rb_iseq_line_no(iseq, SIZE_MAX) == 0);
+  assert(safe_rb_iseq_line_no(NULL, 0) == 0);
+  RB_GC_GUARD(fixture);
 }
 
 static void test_sample_values(void) {
@@ -682,6 +704,7 @@ int main(int argc, char **argv) {
   rb_define_singleton_method(encoded_profile, "from_custom", profile_from_custom, 3);
   private_vm_api_access_init();
   setup_signal_handler_init(profiling);
+  test_safe_line_lookup();
   test_sample_values();
   test_reuse_after_error();
   test_retained_preparation_state();
