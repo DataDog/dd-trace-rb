@@ -125,8 +125,8 @@ module Datadog
 
         # @public_api
         module PartialFlush
-          ENV_ENABLED = 'DD_TRACE_PARTIAL_FLUSH_ENABLED'
-          ENV_MIN_SPANS_THRESHOLD = 'DD_TRACE_PARTIAL_FLUSH_MIN_SPANS'
+          ENV_ENABLED = "DD_TRACE_PARTIAL_FLUSH_ENABLED"
+          ENV_MIN_SPANS_THRESHOLD = "DD_TRACE_PARTIAL_FLUSH_MIN_SPANS"
         end
 
         # @public_api

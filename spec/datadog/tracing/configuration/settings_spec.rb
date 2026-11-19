@@ -499,7 +499,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       describe "#enabled" do
         subject(:enabled) { settings.tracing.partial_flush.enabled }
 
-        it { is_expected.to be true }
+        it_behaves_like "a binary setting with", env_variable: "DD_TRACE_PARTIAL_FLUSH_ENABLED", default: true
       end
 
       describe "#enabled=" do
@@ -515,6 +515,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         subject(:min_spans_threshold) { settings.tracing.partial_flush.min_spans_threshold }
 
         it { is_expected.to eq(500) }
+
+        context "when the threshold is set in the environment" do
+          let(:envs) { {"DD_TRACE_PARTIAL_FLUSH_MIN_SPANS" => "17"} }
+
+          it { is_expected.to eq(17) }
+        end
       end
 
       describe "#min_spans_threshold=" do
