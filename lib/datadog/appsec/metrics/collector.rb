@@ -51,7 +51,7 @@ module Datadog
           @mutex.synchronize do
             @waf.evals += 1
             @waf.matches += 1 if result.match?
-            @waf.rule_triggers += 1 if result.match? && (result.events.any? || result.actions.any?)
+            @waf.rule_triggers += 1 if result.rule_triggered?
             @waf.errors += 1 if result.error?
             @waf.timeouts += 1 if result.timeout?
             @waf.duration_ns += result.duration_ns

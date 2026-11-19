@@ -3,6 +3,55 @@
 require "datadog/appsec/spec_helper"
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Result do
+  describe "#rule_triggered?" do
+    subject(:rule_triggered) { result.rule_triggered? }
+
+    let(:result) do
+      result_class.new(
+        events: events, actions: actions, attributes: attributes, keep: false, timeout: false,
+        duration_ns: 0, duration_ext_ns: 0, input_truncated: false,
+      )
+    end
+    let(:result_class) { described_class::Match }
+    let(:events) { [] }
+    let(:actions) { {} }
+    let(:attributes) { {} }
+
+    it { is_expected.to be(false) }
+
+    context "when a match contains events" do
+      let(:events) { [{"rule" => {"id" => "test-rule"}}] }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when a match contains actions" do
+      let(:actions) { {"block_request" => {}} }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when a match only contains attributes" do
+      let(:attributes) { {"_dd.appsec.fp.http.endpoint" => "fingerprint"} }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "when the result is not a match" do
+      let(:result_class) { described_class::Ok }
+      let(:events) { [{"rule" => {"id" => "test-rule"}}] }
+      let(:actions) { {"block_request" => {}} }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "when the result is an error" do
+      let(:result) { described_class::Error.new(duration_ext_ns: 0, input_truncated: false) }
+
+      it { is_expected.to be(false) }
+    end
+  end
+
   describe ".new" do
     context "when initializing non-error result" do
       subject(:result) do
