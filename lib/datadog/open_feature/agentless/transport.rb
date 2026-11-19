@@ -9,7 +9,6 @@ require "zlib"
 require_relative "../../core/environment/identity"
 require_relative "../../core/transport/ext"
 require_relative "response"
-require_relative "../evaluator_capabilities"
 
 module Datadog
   module OpenFeature
@@ -26,7 +25,7 @@ module Datadog
         end
 
         def get(etag)
-          request = Net::HTTP::Get.new(request_uri, headers(etag))
+          request = Net::HTTP::Get.new(@endpoint.uri.request_uri, headers(etag))
           apply_custom_authentication(request)
           response = request(request)
           status = response.code.to_i
@@ -45,15 +44,6 @@ module Datadog
         end
 
         private
-
-        def request_uri
-          uri = @endpoint.uri.dup
-          if @endpoint.managed? && EvaluatorCapabilities.dependent_flags?
-            capability = "cap_dependent-flags-variant-key=v1"
-            uri.query = (uri.query.nil? || uri.query.empty?) ? capability : "#{uri.query}&#{capability}"
-          end
-          uri.request_uri
-        end
 
         def apply_custom_authentication(request)
           return if @endpoint.managed?

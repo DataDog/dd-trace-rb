@@ -69,14 +69,19 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
 
   [false, true].each do |supported|
     context "when dependent flags support is #{supported}" do
+      let(:endpoint) do
+        Datadog::OpenFeature::Configuration::AgentlessEndpoint.build(site: "datadoghq.com", environment: "test")
+      end
+
       before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(supported) }
 
       [nil, "previous"].each do |etag_value|
         it "negotiates the capability parameter with ETag #{etag_value.inspect}" do
           expected = if supported
-            "https://example.test/config?dd_env=test&cap_dependent-flags-variant-key=v1"
+            "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server" \
+              "?dd_env=test&cap_dependent-flags-variant-key=v1"
           else
-            "https://example.test/config?dd_env=test"
+            "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server?dd_env=test"
           end
           stub_request(:get, expected).to_return(status: 200, body: "configuration")
           transport.get(etag_value)
@@ -91,17 +96,18 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
 
   context "with a managed endpoint without a query" do
     let(:endpoint) do
-      Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(URI("https://example.test/config"), managed: true)
+      Datadog::OpenFeature::Configuration::AgentlessEndpoint.build(site: "datadoghq.com", environment: nil)
     end
 
     before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true) }
 
-    it "adds the canonical query parameter without changing the endpoint" do
-      stub_request(:get, "https://example.test/config?cap_dependent-flags-variant-key=v1")
+    it "sends the endpoint's canonical query parameter without appending it again" do
+      stub_request(:get, "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server" \
+        "?cap_dependent-flags-variant-key=v1")
         .to_return(status: 200, body: "configuration")
 
       expect(response.status).to eq(200)
-      expect(endpoint.uri.query).to be_nil
+      expect(endpoint.uri.query).to eq("cap_dependent-flags-variant-key=v1")
     end
   end
 
