@@ -104,6 +104,44 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
+    it "keeps the first redirect target and collects distinct attributes from later results" do
+      trace = Datadog::Tracing::TraceOperation.new
+      trace.measure("request") do |span|
+        context = Datadog::AppSec::Context.new(trace, span, waf_runner)
+
+        [
+          {
+            "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
+            "_dd.appsec.trace.req_headers" => "request headers",
+          },
+          {
+            "appsec.api.redirection.move_target" => "/mirror/200",
+            "_dd.appsec.trace.res_headers" => "response headers",
+          },
+        ].each do |attributes|
+          result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+            events: [],
+            actions: {},
+            attributes: attributes,
+            keep: true,
+            timeout: false,
+            duration_ns: 0,
+            duration_ext_ns: 0,
+            input_truncated: false,
+          )
+          context.events.push(Datadog::AppSec::SecurityEvent.new(result, trace: trace, span: span))
+        end
+
+        described_class.record(context)
+      end
+
+      expect(trace.flush!.spans.first.meta).to include(
+        "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
+        "_dd.appsec.trace.req_headers" => "request headers",
+        "_dd.appsec.trace.res_headers" => "response headers",
+      )
+    end
+
     context "when no security events are recorded" do
       let(:rack_request) do
         instance_double(

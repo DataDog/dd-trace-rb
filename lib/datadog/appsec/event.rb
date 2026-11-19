@@ -92,7 +92,10 @@ module Datadog
             triggers.concat(security_event.waf_result.events)
 
             security_event.waf_result.attributes.each do |key, value|
-              next memo[key] = value unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
+              unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
+                memo[key] = value unless memo.key?(key)
+                next
+              end
 
               value = CompressedJson.dump(value)
               next if value.nil?
