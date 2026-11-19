@@ -54,6 +54,7 @@ size_t sizeof_rb_iseq_t(void);
 size_t sizeof_rb_callable_method_entry_t(void);
 VALUE ddtrace_iseq_base_label(const rb_iseq_t *iseq);
 VALUE ddtrace_iseq_path(const rb_iseq_t *iseq);
+unsigned int safe_rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);

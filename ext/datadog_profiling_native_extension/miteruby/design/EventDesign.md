@@ -99,7 +99,7 @@ typedef struct {
   positions; the publisher in `sample_event.c` checks the 16-bit range before narrowing.
   `UINT16_MAX` means no usable position stored: unknown, unreliable, or above 65,534. Check before narrowing;
   never truncate or wrap. Skip line lookup for this sentinel, retaining method/file identity with an unknown line.
-  C frames use zero. Resolve usable Ruby positions later with `rb_iseq_line_no(iseq, value)`.
+  C frames use zero. Resolve usable Ruby positions later with `safe_rb_iseq_line_no(iseq, value)`.
 
 ### miteruby_event_stack_sample_t
 

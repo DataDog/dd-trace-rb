@@ -411,6 +411,12 @@ void self_test_thread_struct(void) {
 // Modifications: None
 #define ISEQ_BODY(iseq) ((iseq)->body)
 
+// Ruby's rb_iseq_line_no does no input checking so we do it here just-in-case
+unsigned int safe_rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos) {
+  if (RB_UNLIKELY(iseq == NULL || pos >= ISEQ_BODY(iseq)->iseq_size)) return 0;
+  return rb_iseq_line_no(iseq, pos);
+}
+
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
@@ -461,7 +467,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
     }
 
     if (lineno) {
-      *lineno = rb_iseq_line_no(iseq, pos);
+      *lineno = safe_rb_iseq_line_no(iseq, pos);
     }
 #ifdef USE_ISEQ_NODE_ID
     if (node_id) {
