@@ -28,7 +28,7 @@ module Datadog
                   evaluation_data = WAFAddresses.from_request(payload.data)
                   result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || result.keep? || result.attributes.any?
+                  if SecurityEvent.record?(result)
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
@@ -53,7 +53,7 @@ module Datadog
                   evaluation_data = WAFAddresses.from_response(payload.data)
                   result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || result.keep? || result.attributes.any?
+                  if SecurityEvent.record?(result)
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )

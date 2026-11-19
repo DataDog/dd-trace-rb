@@ -54,7 +54,7 @@ module Datadog
 
                   result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || result.keep? || result.attributes.any?
+                  if SecurityEvent.record?(result)
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
@@ -82,7 +82,7 @@ module Datadog
 
                   result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || result.keep? || result.attributes.any?
+                  if SecurityEvent.record?(result)
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
@@ -120,7 +120,7 @@ module Datadog
                     next stack.call(container)
                   end
 
-                  if result.match? || result.keep? || result.attributes.any?
+                  if SecurityEvent.record?(result)
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )

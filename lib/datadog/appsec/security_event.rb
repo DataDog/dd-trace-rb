@@ -11,6 +11,10 @@ module Datadog
 
       attr_reader :waf_result, :trace, :span
 
+      def self.record?(result)
+        result.match? || result.keep? || result.attributes.any?
+      end
+
       def initialize(waf_result, trace:, span:)
         @waf_result = waf_result
         @trace = trace

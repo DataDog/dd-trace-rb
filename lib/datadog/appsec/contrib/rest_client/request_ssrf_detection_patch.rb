@@ -42,7 +42,7 @@ module Datadog
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(result, context: context) if result.match? || result.keep? || result.attributes.any?
+            handle(result, context: context) if SecurityEvent.record?(result)
 
             # NOTE: RestClient raises exceptions for non-2xx responses. For POST/PUT/PATCH
             #       requests with 3xx redirects, RestClient raises instead of auto-following.
@@ -81,7 +81,7 @@ module Datadog
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(result, context: context) if result.match? || result.keep? || result.attributes.any?
+            handle(result, context: context) if SecurityEvent.record?(result)
           end
 
           private
