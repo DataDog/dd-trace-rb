@@ -44,9 +44,7 @@ module Datadog
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
 
             if SecurityEvent.record?(result)
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-              )
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
@@ -95,9 +93,7 @@ module Datadog
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
 
             if SecurityEvent.record?(result)
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-              )
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
@@ -201,9 +197,7 @@ module Datadog
           end
 
           def handle(result, context:)
-            context.events.push(
-              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-            )
+            context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
 
             TraceKeeper.keep!(context.trace) if result.keep?
 
