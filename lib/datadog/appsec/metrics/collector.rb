@@ -8,6 +8,7 @@ module Datadog
         Store = Struct.new(
           :evals,
           :matches,
+          :rule_triggers,
           :errors,
           :timeouts,
           :duration_ns,
@@ -31,12 +32,12 @@ module Datadog
           @mutex = Mutex.new
 
           @waf = Store.new(
-            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0,
+            evals: 0, matches: 0, rule_triggers: 0, errors: 0, timeouts: 0, duration_ns: 0,
             duration_ext_ns: 0, inputs_truncated: 0, downstream_requests: 0,
           )
 
           @rasp = Store.new(
-            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0,
+            evals: 0, matches: 0, rule_triggers: 0, errors: 0, timeouts: 0, duration_ns: 0,
             duration_ext_ns: 0, inputs_truncated: 0, downstream_requests: 0,
           )
 
@@ -49,7 +50,8 @@ module Datadog
         def record_waf(result)
           @mutex.synchronize do
             @waf.evals += 1
-            @waf.matches += 1 if result.match? && (result.events.any? || result.actions.any?)
+            @waf.matches += 1 if result.match?
+            @waf.rule_triggers += 1 if result.match? && (result.events.any? || result.actions.any?)
             @waf.errors += 1 if result.error?
             @waf.timeouts += 1 if result.timeout?
             @waf.duration_ns += result.duration_ns
@@ -61,7 +63,7 @@ module Datadog
         def record_rasp(result, type:, phase: nil)
           @mutex.synchronize do
             @rasp.evals += 1
-            @waf.matches += 1 if result.match? && (result.events.any? || result.actions.any?)
+            @waf.matches += 1 if result.match?
             @waf.errors += 1 if result.error?
             @rasp.timeouts += 1 if result.timeout?
             @rasp.duration_ns += result.duration_ns
