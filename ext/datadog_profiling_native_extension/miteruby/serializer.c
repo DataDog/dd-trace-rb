@@ -14,8 +14,6 @@
 #include <string.h>
 #include <stdio.h>
 
-RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
-
 enum { COMPRESSION_LEVEL = 1 };
 
 // This is more than enough to contain any individual fragment, and allows us to accumulate a bit before feeding
@@ -713,8 +711,8 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   for (size_t i = 0; i < location_array->count; i++) {
     miteruby_location_t location = location_array->entries[i];
     const rb_iseq_t *iseq = mark_function_array->entries[location.function_id.value].iseq;
-    // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
-    int64_t line = iseq != NULL && location.bytecode_pos.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.bytecode_pos.value) : 0;
+    // Upcall into Ruby: safe_rb_iseq_line_no -> Calculate line number
+    int64_t line = location.bytecode_pos.value != UINT16_MAX ? safe_rb_iseq_line_no(iseq, location.bytecode_pos.value) : 0;
     RETURN_IF_ERROR(emit_location_fragment(stream, location_id_for(i), function_id_for(location.function_id.value), line));
     RETURN_IF_ERROR(flush_if_needed(state));
   }
