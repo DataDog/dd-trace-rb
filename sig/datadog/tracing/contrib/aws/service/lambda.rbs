@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        module Service
+          class Lambda < Base
+            def add_tags: (untyped span, untyped params) -> untyped
+
+            private
+
+            def function_arn: (untyped function_name) -> String?
+          end
+        end
+      end
+    end
+  end
+end

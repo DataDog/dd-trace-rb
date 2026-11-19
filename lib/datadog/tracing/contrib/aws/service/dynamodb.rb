@@ -13,6 +13,8 @@ module Datadog
             def add_tags(span, params)
               table_name = params[:table_name]
               span.set_tag(Aws::Ext::TAG_TABLE_NAME, table_name)
+              # `table_name` also accepts a table ARN
+              span.set_tag(Aws::Ext::TAG_TABLE_ARN, table_name) if table_name.is_a?(String) && table_name.start_with?("arn:")
             end
           end
         end

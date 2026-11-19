@@ -20,6 +20,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_STREAM_NAME, "my-stream")
     end
+
+    it "sets the stream arn tag" do
+      kinesis.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_STREAM_ARN, stream_arn)
+    end
   end
 
   context "with stream_name provided" do
@@ -28,6 +33,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
     it "sets the stream_name based on the provided stream_name" do
       kinesis.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_STREAM_NAME, "my-stream")
+    end
+
+    it "does not set the stream arn tag" do
+      kinesis.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_STREAM_ARN, anything)
     end
   end
 

@@ -40,6 +40,35 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
     end
+
+    it "sets the state machine arn tag" do
+      step_functions.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_ARN,
+        state_machine_arn,
+      )
+    end
+  end
+
+  context "with only a name provided" do
+    let(:params) { {name: "MyStateMachine"} }
+
+    it "sets the state_machine_name tag" do
+      step_functions.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
+        "MyStateMachine",
+      )
+    end
+
+    it "does not set the aws_account or state machine arn tags" do
+      step_functions.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
+      expect(span).not_to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_ARN,
+        anything,
+      )
+    end
   end
 
   context "with both execution_arn and state_machine_arn provided" do

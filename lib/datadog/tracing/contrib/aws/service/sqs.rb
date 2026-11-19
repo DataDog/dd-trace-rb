@@ -16,6 +16,7 @@ module Datadog
               if queue_url
                 _, _, _, aws_account, queue_name = queue_url.split("/")
                 span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
+                span.set_tag(Aws::Ext::TAG_QUEUE_URL, queue_url)
               end
               span.set_tag(Aws::Ext::TAG_QUEUE_NAME, queue_name)
             end

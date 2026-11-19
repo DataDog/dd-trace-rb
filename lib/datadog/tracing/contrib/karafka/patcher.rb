@@ -2,6 +2,8 @@
 
 require_relative "../patcher"
 require_relative "ext"
+require_relative "../kafka/ext"
+require_relative "kafka_config"
 require_relative "distributed/propagation"
 
 module Datadog
@@ -56,6 +58,10 @@ module Datadog
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
+                bootstrap_servers = KafkaConfig.bootstrap_servers(::Karafka::App.config.kafka)
+                span.set_tag(Contrib::Kafka::Ext::TAG_KAFKA_BOOTSTRAP_SERVERS, bootstrap_servers) if bootstrap_servers
 
                 span.resource = message.topic
 
