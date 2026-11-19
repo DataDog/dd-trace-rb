@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6727",
+  "message": "AWS SDK spans now tag the called SQS queue URL and the SNS topic, Kinesis stream, Step Functions state machine, DynamoDB table and Lambda function ARNs when the request has them. WaterDrop, Karafka and Racecar spans now tag `messaging.kafka.bootstrap.servers`, and WaterDrop and Karafka spans set `span.kind`."
+}
