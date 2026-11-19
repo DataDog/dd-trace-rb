@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Karafka
         module KafkaConfig
-          def self.bootstrap_servers: (Hash[Symbol | String, untyped]? kafka_config) -> untyped
+          def self.bootstrap_servers: (Hash[Symbol | String, untyped]? kafka_config) -> String?
         end
       end
     end
