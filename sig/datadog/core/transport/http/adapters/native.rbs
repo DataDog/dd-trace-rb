@@ -1,0 +1,87 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        module Adapters
+          class Native
+            VERBS: Array[Symbol]
+
+            UDS_PLACEHOLDER_BASE_URL: String
+
+            @client: untyped
+
+            attr_reader base_url: String
+
+            attr_reader uds_path: String?
+
+            attr_reader timeout: Integer | Float
+
+            def initialize: (base_url: String?, timeout: Integer | Float, ?uds_path: String?, ?client: untyped?) -> void
+
+            def self.build: (untyped agent_settings) -> Native
+
+            def call: (untyped env) -> Response
+
+            def close: () -> untyped
+
+            def url: () -> String
+
+            private
+
+            def multipart?: (untyped env) -> bool
+
+            def path_from_env: (untyped env) -> String
+
+            def multipart_from_form: (Hash[untyped, untyped] form) -> Array[Hash[Symbol, untyped]]
+
+            class Error < StandardError
+              @code: Symbol
+
+              attr_reader code: Symbol
+
+              def initialize: (Symbol code, String message) -> void
+            end
+
+            class UnknownHTTPMethod < StandardError
+              def initialize: (untyped verb) -> void
+            end
+
+            class Response
+              include Datadog::Core::Transport::Response
+
+              attr_reader code: Integer
+
+              attr_reader headers: Hash[String, String]
+
+              attr_reader payload: String
+
+              def initialize: (Integer code, Array[[String, String]] headers, String payload) -> void
+
+              def ok?: () -> bool
+
+              def unsupported?: () -> bool
+
+              def not_found?: () -> bool
+
+              def client_error?: () -> bool
+
+              def server_error?: () -> bool
+
+              def internal_error?: () -> bool
+            end
+
+            class Client
+              ERROR_CODES: Array[Symbol]
+
+              def self._native_new: (Hash[Symbol, untyped] config) -> Client
+
+              def _native_send: (Hash[Symbol, untyped] request) -> Array[untyped]
+
+              def _native_close: () -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end
