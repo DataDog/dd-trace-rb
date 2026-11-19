@@ -47,7 +47,19 @@ module Datadog
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(result, context: context) if SecurityEvent.record?(result)
+
+            if SecurityEvent.record?(result)
+              context.events.push(
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
+              )
+            end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            if result.match?
+              AppSec::Event.tag(context, result)
+              AppSec::ActionsHandler.handle(result.actions)
+            end
 
             super
           end
@@ -75,7 +87,18 @@ module Datadog
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(result, context: context) if SecurityEvent.record?(result)
+            if SecurityEvent.record?(result)
+              context.events.push(
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
+              )
+            end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            if result.match?
+              AppSec::Event.tag(context, result)
+              AppSec::ActionsHandler.handle(result.actions)
+            end
 
             super
           end
@@ -161,19 +184,6 @@ module Datadog
 
             headers.each_with_object({}) do |(key, value), memo|
               memo[key.downcase] = value.is_a?(Array) ? value.join(", ") : value
-            end
-          end
-
-          def handle(result, context:)
-            context.events.push(
-              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-            )
-
-            TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
             end
           end
         end

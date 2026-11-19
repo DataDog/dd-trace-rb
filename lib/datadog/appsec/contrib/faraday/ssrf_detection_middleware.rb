@@ -44,7 +44,19 @@ module Datadog
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(result, context: context) if SecurityEvent.record?(result)
+
+            if SecurityEvent.record?(result)
+              context.events.push(
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
+              )
+            end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            if result.match?
+              AppSec::Event.tag(context, result)
+              AppSec::ActionsHandler.handle(result.actions)
+            end
 
             @app.call(env).on_complete { |response_env| on_complete(response_env, context: context) }
           end
@@ -71,7 +83,18 @@ module Datadog
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(result, context: context) if SecurityEvent.record?(result)
+            if SecurityEvent.record?(result)
+              context.events.push(
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
+              )
+            end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            if result.match?
+              AppSec::Event.tag(context, result)
+              AppSec::ActionsHandler.handle(result.actions)
+            end
           end
 
           def mark_body_sampling!(env, context:)
@@ -147,19 +170,6 @@ module Datadog
             return {} if headers.nil? || headers.empty?
 
             headers.transform_keys(&:downcase)
-          end
-
-          def handle(result, context:)
-            context.events.push(
-              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-            )
-
-            TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
-            end
           end
         end
       end
