@@ -37,6 +37,10 @@ module Datadog
             raise NotImplementedError
           end
 
+          def rule_triggered?
+            match? && (events.any? || actions.any?)
+          end
+
           def error?
             raise NotImplementedError
           end
@@ -95,6 +99,10 @@ module Datadog
 
           def error?
             true
+          end
+
+          def rule_triggered?
+            false
           end
         end
       end

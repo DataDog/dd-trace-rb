@@ -46,6 +46,8 @@ module Datadog
 
           def match?: () -> bool
 
+          def rule_triggered?: () -> bool
+
           def error?: () -> bool
 
           def input_truncated?: () -> bool
@@ -100,6 +102,8 @@ module Datadog
           def error?: () -> bool
 
           def input_truncated?: () -> bool
+
+          def rule_triggered?: () -> bool
         end
       end
     end
