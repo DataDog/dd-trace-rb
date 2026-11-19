@@ -22,6 +22,18 @@
     #define PR_SET_VMA 0x53564d41
     #define PR_SET_VMA_ANON_NAME 0
   #endif
+
+  // Try to name the allocation (shows up under /proc/pid/maps).
+  // Not all Linux kernels support this feature (it's optional), so we ignore any failures.
+  static void try_naming_allocation(void *allocation, size_t mapping_size, const char *name) {
+    char mapping_name[80] = "miteruby.";
+    size_t prefix_size = sizeof("miteruby.") - 1;
+    size_t name_size = strnlen(name, sizeof(mapping_name) - prefix_size - 1);
+    memcpy(mapping_name + prefix_size, name, name_size);
+    mapping_name[prefix_size + name_size] = '\0';
+
+    (void) prctl(PR_SET_VMA, (unsigned long) PR_SET_VMA_ANON_NAME, allocation, mapping_size, mapping_name);
+  }
 #endif
 
 typedef struct {
@@ -74,15 +86,7 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
   atomic_fetch_add_explicit(&currently_allocated_bytes_stat, rounded_to_page_size(mapping_size), memory_order_relaxed);
 
   #ifdef __linux__
-    // Try to name the allocation (shows up under /proc/pid/maps).
-    // Not all Linux kernels support this feature (it's optional), so we ignore any failures.
-    char mapping_name[80] = "miteruby.";
-    size_t prefix_size = sizeof("miteruby.") - 1;
-    size_t name_size = strnlen(name, sizeof(mapping_name) - prefix_size - 1);
-    memcpy(mapping_name + prefix_size, name, name_size);
-    mapping_name[prefix_size + name_size] = '\0';
-
-    (void) prctl(PR_SET_VMA, (unsigned long) PR_SET_VMA_ANON_NAME, header, mapping_size, mapping_name);
+    try_naming_allocation(header, mapping_size, name);
   #endif
 
   return header + 1; // Return pointer to memory just after the header
