@@ -49,7 +49,7 @@ module Datadog
         def record_waf(result)
           @mutex.synchronize do
             @waf.evals += 1
-            @waf.matches += 1 if result.match?
+            @waf.matches += 1 if result.match? && (result.events.any? || result.actions.any?)
             @waf.errors += 1 if result.error?
             @waf.timeouts += 1 if result.timeout?
             @waf.duration_ns += result.duration_ns
@@ -61,7 +61,7 @@ module Datadog
         def record_rasp(result, type:, phase: nil)
           @mutex.synchronize do
             @rasp.evals += 1
-            @waf.matches += 1 if result.match?
+            @waf.matches += 1 if result.match? && (result.events.any? || result.actions.any?)
             @waf.errors += 1 if result.error?
             @rasp.timeouts += 1 if result.timeout?
             @rasp.duration_ns += result.duration_ns
