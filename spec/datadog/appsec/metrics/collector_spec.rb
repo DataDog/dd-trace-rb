@@ -6,6 +6,19 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
   subject(:collector) { described_class.new }
 
   describe "#record_waf" do
+    it "does not count attribute-only matches as triggered rules" do
+      result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+        events: [], actions: {}, attributes: {"_dd.appsec.fp.http.endpoint" => "fingerprint"},
+        keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
+      )
+
+      collector.record_waf(result)
+
+      expect(collector.waf.evals).to eq(1)
+      expect(collector.waf.matches).to eq(0)
+      expect(collector.waf.duration_ns).to eq(100)
+    end
+
     context "when no results were recorded" do
       it "contains all metrics in initial state" do
         expect(collector.waf.evals).to eq(0)
@@ -54,7 +67,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 1000, duration_ext_ns: 1200,
+          events: [{"rule" => {"id" => "test-rule"}}], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 1000, duration_ext_ns: 1200,
           input_truncated: false,
         )
       end
@@ -85,7 +99,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 400, duration_ext_ns: 1200,
+          events: [{"rule" => {"id" => "test-rule"}}], actions: {}, attributes: {}, keep: false, timeout: true,
+          duration_ns: 400, duration_ext_ns: 1200,
           input_truncated: false,
         )
       end
@@ -107,6 +122,19 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
   end
 
   describe "#record_rasp" do
+    it "does not count attribute-only matches as triggered rules" do
+      result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+        events: [], actions: {}, attributes: {"appsec.api.redirection.move_target" => "/redirect"},
+        keep: true, timeout: false, duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
+      )
+
+      collector.record_rasp(result, type: "ssrf", phase: "response")
+
+      expect(collector.rasp.evals).to eq(1)
+      expect(collector.waf.matches).to eq(0)
+      expect(collector.rasp.duration_ns).to eq(100)
+    end
+
     context "when no results were recorded" do
       it "contains all metrics in initial state" do
         expect(collector.rasp.evals).to eq(0)
@@ -157,7 +185,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 1000, duration_ext_ns: 1200,
+          events: [{"rule" => {"id" => "test-rule"}}], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 1000, duration_ext_ns: 1200,
           input_truncated: false,
         )
       end
@@ -190,7 +219,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: true,
+          events: [{"rule" => {"id" => "test-rule"}}], actions: {}, attributes: {}, keep: false, timeout: true,
           duration_ns: 400, duration_ext_ns: 1200, input_truncated: false,
         )
       end
