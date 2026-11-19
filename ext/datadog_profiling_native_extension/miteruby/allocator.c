@@ -23,16 +23,27 @@
     #define PR_SET_VMA_ANON_NAME 0
   #endif
 
+  typedef enum { NAMING_UNKNOWN, NAMING_ENABLED, NAMING_DISABLED } naming_state;
+  static _Atomic naming_state allocation_naming = NAMING_UNKNOWN;
+
   // Try to name the allocation (shows up under /proc/pid/maps).
-  // Not all Linux kernels support this feature (it's optional), so we ignore any failures.
+  // Not all Linux kernels support this optional feature, so the initial result decides whether to keep naming.
   static void try_naming_allocation(void *allocation, size_t mapping_size, const char *name) {
+    naming_state naming = atomic_load_explicit(&allocation_naming, memory_order_relaxed);
+    if (naming == NAMING_DISABLED) return;
+
     char mapping_name[80] = "miteruby.";
     size_t prefix_size = sizeof("miteruby.") - 1;
     size_t name_size = strnlen(name, sizeof(mapping_name) - prefix_size - 1);
     memcpy(mapping_name + prefix_size, name, name_size);
     mapping_name[prefix_size + name_size] = '\0';
 
-    (void) prctl(PR_SET_VMA, (unsigned long) PR_SET_VMA_ANON_NAME, allocation, mapping_size, mapping_name);
+    int result = prctl(PR_SET_VMA, (unsigned long) PR_SET_VMA_ANON_NAME, allocation, mapping_size, mapping_name);
+
+    if (naming == NAMING_UNKNOWN) {
+      // Whatever happened becomes sticky. This is a benign race, that's fine.
+      atomic_store_explicit(&allocation_naming, result == 0 ? NAMING_ENABLED : NAMING_DISABLED, memory_order_relaxed);
+    }
   }
 #endif
 
