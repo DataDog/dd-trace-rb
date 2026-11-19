@@ -1,0 +1,15 @@
+module Datadog
+  module DI
+    class EvaluationFailure
+      @expr: String
+
+      @message: String
+
+      def initialize: (expr: String, message: String) -> void
+
+      attr_reader expr: String
+
+      attr_reader message: String
+    end
+  end
+end

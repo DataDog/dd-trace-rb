@@ -61,7 +61,7 @@ module Datadog
           attr_reader :context
 
           def service
-            context.client.class.to_s.split('::')[1].downcase
+            context.client.class.to_s.split("::")[1].downcase
           end
         end
       end

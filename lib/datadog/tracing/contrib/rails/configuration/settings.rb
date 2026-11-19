@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
+require_relative "../../configuration/settings"
 
-require_relative '../../../../core'
+require_relative "../../../../core"
 
 module Datadog
   module Tracing
@@ -60,12 +60,16 @@ module Datadog
               o.type :bool
               o.default false
             end
+            option :web_service_name do |o|
+              o.type :string
+              o.default Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
+            end
 
             option :middleware, default: true, type: :bool
             option :middleware_names, default: false, type: :bool
             option :template_base_path do |o|
               o.type :string
-              o.default 'views/'
+              o.default "views/"
               o.after_set do |value|
                 # Update ActionView template base path too
                 Datadog.configuration.tracing[:action_view][:template_base_path] = value

@@ -20,7 +20,7 @@ module Datadog
             @registry.each do |name, callback|
               callback.call(config)
             rescue => e
-              Datadog.logger.warn("Error configuring integration #{name}: #{e}")
+              Datadog.logger.warn("Error configuring integration #{name}: #{e.class}: #{e.message}")
             end
           end
 

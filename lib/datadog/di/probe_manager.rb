@@ -2,6 +2,9 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
+
 module Datadog
   module DI
     # Orchestrates probe lifecycle: installation, removal, and execution callbacks.
@@ -16,6 +19,16 @@ module Datadog
     #
     # @api private
     class ProbeManager
+      # Initializes the probe manager.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param instrumenter [Instrumenter] instrumenter that executes installed probes
+      # @param probe_notification_builder [ProbeNotificationBuilder] builder for status and snapshot payloads
+      # @param probe_notifier_worker [ProbeNotifierWorker] worker that sends the built payloads
+      # @param logger [DI::Logger] logger for probe manager diagnostics
+      # @param probe_repository [ProbeRepository] repository of installed probes
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component probe manager errors are reported through
+      # @return [void]
       def initialize(settings, instrumenter, probe_notification_builder,
         probe_notifier_worker, logger, probe_repository, telemetry: nil)
         @settings = settings
@@ -26,13 +39,13 @@ module Datadog
         @telemetry = telemetry
         @probe_repository = probe_repository
 
-        @definition_trace_point = TracePoint.trace(:end) do |tp|
+        @definition_trace_point = TracePoint.new(:end) do |tp|
           install_pending_method_probes(tp.self)
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc}" }
+          logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
-          # TODO test this path
         end
       end
 
@@ -40,15 +53,68 @@ module Datadog
       attr_reader :telemetry
       attr_reader :probe_repository
 
+      # Stops the probe manager without permanently releasing resources.
+      #
+      # Disables the class definition trace point and unhooks all installed
+      # probe instrumentation, but preserves the probe repository so that
+      # {#reopen} can re-install probes. Can be reversed by calling {#reopen}.
+      #
+      # Why preserve the repository: RC dispatch only delivers LIVE_DEBUGGING
+      # changes when the content hash changes. If a customer toggles DI off
+      # then back on in the UI with the same probe content, the receiver
+      # is not re-invoked, so probes wiped here would never be redelivered.
+      # Preserving the repo lets {#reopen} replay the probes locally.
+      #
+      # @return [void]
+      def stop
+        definition_trace_point.disable
+        probe_repository.synchronize do
+          probe_repository.installed_probes.each_value do |probe|
+            instrumenter.unhook(probe)
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.debug { "di: error unhooking #{probe.type} probe at #{probe.location} (#{probe.id}) on stop: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error unhooking probe on stop")
+          end
+        end
+      end
+
+      # Re-enables the probe manager after a {#stop}.
+      #
+      # Re-enables the class definition trace point so that pending
+      # method probes can be installed when their target classes are defined,
+      # and re-hooks all previously-installed probes from the repository.
+      # If a probe's target is no longer present (e.g. code was unloaded
+      # between stop and reopen), it is demoted to pending so the trace
+      # point or code tracker can re-install it if the target reappears.
+      #
+      # @return [void]
+      def reopen
+        definition_trace_point.enable
+        probe_repository.synchronize do
+          # values.each so concurrent mutation of @installed_probes (via
+          # remove_installed below) does not iterate over a stale key set.
+          probe_repository.installed_probes.values.each do |probe|
+            instrumenter.hook(probe, self)
+          rescue Error::DITargetNotDefined
+            probe_repository.remove_installed(probe.id)
+            probe_repository.add_pending(probe)
+            logger.trace { "di: target for #{probe.type} probe (#{probe.id}) no longer defined on reopen, demoting to pending" }
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.debug { "di: error re-hooking #{probe.type} probe at #{probe.location} (#{probe.id}) on reopen: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error re-hooking probe on reopen")
+          end
+        end
+      end
+
       # Shuts down the probe manager and releases all resources.
       #
       # Disables the class definition trace point and removes all installed
       # probe instrumentation. Called during component teardown.
+      # Unlike {#stop}, this is not reversible.
       #
       # @return [void]
-      #
-      # TODO test that close is called during component teardown and
-      # the trace point is cleared
       def close
         definition_trace_point.disable
         clear_hooks
@@ -129,17 +195,18 @@ module Datadog
             false
           end
         end
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # In "propagate all exceptions" mode we will try to instrument again.
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-        logger.debug { "di: error processing probe configuration: #{exc.class}: #{exc}" }
+        logger.debug { "di: error processing probe configuration: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Error processing probe configuration")
 
         payload = probe_notification_builder.build_errored(probe, exc)
         probe_notifier_worker.add_status(payload, probe: probe)
 
-        probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
+        probe_repository.add_failed(probe.id, "#{exc.class}: #{exc.message}")
 
         raise
       end
@@ -160,11 +227,12 @@ module Datadog
           begin
             instrumenter.unhook(probe)
             probe_repository.remove_installed(probe_id)
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
             # Silence all exceptions?
             # TODO should we propagate here and rescue upstream?
-            logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc}" }
+            logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc.message}" }
             telemetry&.report(exc, description: "Error removing probe")
           end
         end
@@ -190,16 +258,17 @@ module Datadog
                   break
                 rescue Error::DITargetNotDefined
                   # This should not happen... try installing again later?
-                rescue => exc
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
+                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc.message}" }
                   telemetry&.report(exc, description: "Error installing probe after class is defined")
 
                   payload = probe_notification_builder.build_errored(probe, exc)
                   probe_notifier_worker.add_status(payload, probe: probe)
 
-                  probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
+                  probe_repository.add_failed(probe.id, "#{exc.class}: #{exc.message}")
                 end
               end
             end
@@ -245,25 +314,39 @@ module Datadog
         end
 
         payload = probe_notification_builder.build_executed(context)
-        probe_notifier_worker.add_snapshot(payload)
+        probe_notifier_worker.add_snapshot(payload, probe: probe)
       end
 
       # Callback invoked when a probe's condition expression fails to evaluate.
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
-      # Rate-limited to 1 notification per second per probe to avoid
-      # flooding the backend when conditions fail repeatedly.
+      # Rate-limited to 1 notification per second per probe. Once the per-probe
+      # throttle admits, the instrumenter's admission gate applies the trace
+      # sampling decision to a capturing probe's notification inside an active
+      # trace, and the process-wide GLOBAL token to every other notification,
+      # to avoid flooding the backend when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
-      # @param expr [String] The condition expression that failed
+      # @param expr [EL::Expression] The condition expression that failed
       # @param exc [Exception] The exception raised during condition evaluation
+      # @return [void]
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        if probe.condition_evaluation_failed_rate_limiter&.allow?
-          payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
-          probe_notifier_worker.add_snapshot(payload)
+        rate_limiter = probe.condition_evaluation_failed_rate_limiter
+        if rate_limiter&.allow?
+          if instrumenter.admit_condition_error_snapshot?(probe)
+            payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
+            probe_notifier_worker.add_snapshot(payload, probe: probe)
+          end
+        elsif rate_limiter
+          logger.trace do
+            "di: #{probe.type} probe #{probe.id}: skipping condition evaluation failure" \
+              " notification due to per-probe rate limit" \
+              " (#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
+          end
         end
+        nil
       end
 
       # Callback invoked when a probe is disabled, for example due to

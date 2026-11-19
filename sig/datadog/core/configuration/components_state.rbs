@@ -2,15 +2,28 @@ module Datadog
   module Core
     module Configuration
       class ComponentsState
-        @telemetry_enabled: untyped
+        @telemetry_enabled: bool
 
-        @remote_started: untyped
+        @remote_started: bool
 
-        def initialize: (telemetry_enabled: untyped, remote_started: untyped) -> void
+        @di_implicitly_enabled: bool
 
-        def telemetry_enabled?: () -> untyped
+        @rc_enablement_signal_paths: Array[Core::Remote::Configuration::Path]
 
-        def remote_started?: () -> untyped
+        def initialize: (
+          telemetry_enabled: bool,
+          remote_started: bool?,
+          ?di_implicitly_enabled: bool,
+          ?rc_enablement_signal_paths: Array[Core::Remote::Configuration::Path]?
+        ) -> void
+
+        def telemetry_enabled?: () -> bool
+
+        def remote_started?: () -> bool
+
+        def di_implicitly_enabled?: () -> bool
+
+        def rc_enablement_signal_paths: () -> Array[Core::Remote::Configuration::Path]
       end
     end
   end

@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    unscored_gem (1.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  unscored_gem (= 1.0.0)
+
+BUNDLED WITH
+   2.7.2

@@ -1,0 +1,8 @@
+# "and more" and "etc." close out a bundle of unlisted changes; each unlisted
+# change is a missing fragment, not a tail.
+extends: existence
+message: "Changelog message closes a bundle with '%s'; each change gets its own fragment."
+level: error
+scope: text
+raw:
+  - '(?i)\b(?:and more|and so on|etc)\b\.?'

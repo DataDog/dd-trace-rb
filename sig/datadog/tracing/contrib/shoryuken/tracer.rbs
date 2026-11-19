@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Shoryuken
         class Tracer
-          def initialize: (?::Hash[untyped, untyped] options) -> void
+          def initialize: (?Hash[untyped, untyped] options) -> void
 
           def call: (untyped worker_instance, untyped queue, untyped sqs_msg, untyped body) { () -> untyped } -> untyped
 

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../event'
-require_relative '../ext'
-require_relative '../../analytics'
+require_relative "../../../metadata/ext"
+require_relative "../event"
+require_relative "../ext"
+require_relative "../../analytics"
 
 module Datadog
   module Tracing
@@ -16,27 +16,28 @@ module Datadog
           module Transmit
             include ActionCable::Event
 
-            EVENT_NAME = 'transmit.action_cable'
+            EVENT_NAME = "transmit.action_cable"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_TRANSMIT
             end
 
-            def span_type
+            def self.span_type
               # ActionCable transmits data over WebSockets
               Tracing::Metadata::Ext::AppTypes::TYPE_WEB
             end
 
-            def on_start(span, _event, _id, payload)
+            def self.on_start(span, _event, _id, payload)
               channel_class = payload[:channel_class]
 
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.resource = channel_class
               span.type = span_type
 

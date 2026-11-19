@@ -1,12 +1,32 @@
 require "datadog/di/spec_helper"
-require 'datadog/di/instrumenter'
-require 'datadog/di/code_tracker'
-require 'datadog/di/serializer'
-require 'datadog/di/probe'
-require 'datadog/di/proc_responder'
-require_relative 'hook_line'
-require_relative 'hook_method'
-require 'logger'
+require "datadog/di/instrumenter"
+require "datadog/di/code_tracker"
+require "datadog/di/capture_expression_evaluator"
+require "datadog/di/serializer"
+require "datadog/di/probe"
+require "datadog/di/capture_expression"
+require "datadog/di/correlation_sampler"
+require "datadog/di/proc_responder"
+require "datadog/di/logger"
+require "datadog/di/probe_manager"
+require "datadog/di/probe_notification_builder"
+require "datadog/di/probe_notifier_worker"
+require "datadog/di/probe_repository"
+require_relative "hook_line"
+require_relative "hook_method"
+require "securerandom"
+
+# Defined at top level so #hook_method can resolve the class by name, with
+# the remove_const guard the suite's other fixture classes use.
+begin
+  Object.send(:remove_const, :InterleavedEvaluationTestClass)
+rescue NameError
+end
+class InterleavedEvaluationTestClass
+  def test_method(arg1, arg2)
+    arg1.length
+  end
+end
 
 # The examples below use a local code tracker when they set line probes,
 # for better test encapsulation and to avoid having to clear/reset global state.
@@ -17,16 +37,12 @@ RSpec.describe Datadog::DI::Instrumenter do
   let(:propagate_all_exceptions) { true }
 
   mock_settings_for_di do |settings|
-    allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
-    allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(propagate_all_exceptions)
-    allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1)
+    stub_di_settings(settings.dynamic_instrumentation)
+    allow(settings.dynamic_instrumentation.internal).to receive_messages(
+      untargeted_trace_points: false,
+      propagate_all_exceptions: propagate_all_exceptions,
+      max_processing_time: 1,
+    )
   end
 
   let(:redactor) do
@@ -34,15 +50,29 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
-  let(:logger) do
-    instance_double(Logger)
+  di_logger_double
+
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
   end
+
+  let(:capture_expression_evaluator) do
+    Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil)
+  end
+
+  let(:telemetry) { nil }
+
+  let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new }
 
   let(:instrumenter) do
-    described_class.new(settings, serializer, logger, code_tracker: code_tracker)
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: capture_expression_evaluator,
+      correlation_sampler: correlation_sampler)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -53,7 +83,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:base_probe_args) do
-    {id: '1234', type: :log, rate_limit: rate_limit}
+    {id: "1234", type: :log, rate_limit: rate_limit}
   end
 
   let(:rate_limit) { nil }
@@ -72,9 +102,13 @@ RSpec.describe Datadog::DI::Instrumenter do
     instrumenter.hook_line(probe, responder)
   end
 
-  shared_context 'with code tracking' do
+  shared_context "with code tracking" do
     let!(:code_tracker) do
       Datadog::DI::CodeTracker.new.tap do |tracker|
+        # Stub backfill so only files loaded after start (via
+        # :script_compiled) are in the registry, matching the
+        # pre-backfill behavior these tests were written for.
+        allow(tracker).to receive(:backfill_registry)
         tracker.start
       end
     end
@@ -84,17 +118,55 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
-  describe '.hook_method' do
+  # Provides the full probe lifecycle: a real ProbeManager wired to a
+  # real ProbeNotificationBuilder and CaptureExpressionEvaluator, with
+  # the worker collecting the emitted snapshot payloads into the
+  # snapshot_payloads array.
+  shared_context "with probe manager" do
+    let(:probe_notification_builder) do
+      Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
+        capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    let(:snapshot_payloads) { [] }
+
+    let(:probe_notifier_worker) do
+      instance_double(Datadog::DI::ProbeNotifierWorker).tap do |worker|
+        allow(worker).to receive(:add_status)
+        allow(worker).to receive(:add_snapshot) { |payload| snapshot_payloads << payload }
+      end
+    end
+
+    let(:probe_repository) do
+      Datadog::DI::ProbeRepository.new
+    end
+
+    let(:probe_manager) do
+      Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
+        probe_notifier_worker, logger, probe_repository,
+        telemetry: telemetry)
+    end
+
+    before do
+      allow(settings).to receive_messages(
+        service: "rspec",
+        experimental_propagate_process_tags_enabled: false,
+      )
+    end
+  end
+
+  describe ".hook_method" do
     after do
       instrumenter.unhook(probe)
     end
 
-    context 'no args' do
+    context "no args" do
       let(:probe_args) do
-        {type_name: 'HookTestClass', method_name: 'hook_test_method'}
+        {type_name: "HookTestClass", method_name: "hook_test_method"}
       end
 
-      it 'invokes callback' do
+      it "invokes callback" do
         hook_method(probe) do |payload|
           observed_calls << payload
         end
@@ -108,69 +180,69 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when target method yields to a block' do
-      shared_examples 'yields to the block' do
-        context 'when method takes a positional argument' do
+    context "when target method yields to a block" do
+      shared_examples "yields to the block" do
+        context "when method takes a positional argument" do
           let(:probe_args) do
-            {type_name: type.name, method_name: 'yielding'}
+            {type_name: type.name, method_name: "yielding"}
           end
 
-          it 'invokes callback' do
+          it "invokes callback" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             yielded_value = nil
-            expect(type.new.yielding('hello') do |value|
+            expect(type.new.yielding("hello") do |value|
               yielded_value = value
-            end).to eq [['hello'], {}]
+            end).to eq [["hello"], {}]
 
-            expect(yielded_value).to eq([['hello'], {}])
+            expect(yielded_value).to eq([["hello"], {}])
 
             expect(observed_calls.length).to eq 1
             expect(observed_calls.first).to be_a(Datadog::DI::Context)
-            expect(observed_calls.first.return_value).to eq [['hello'], {}]
+            expect(observed_calls.first.return_value).to eq [["hello"], {}]
             expect(observed_calls.first.duration).to be_a(Float)
           end
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            it 'does not invoke callback but invokes target method with block' do
+            it "does not invoke callback but invokes target method with block" do
               hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
               yielded_value = nil
-              expect(type.new.yielding('hello') do |value|
+              expect(type.new.yielding("hello") do |value|
                 yielded_value = value
-              end).to eq [['hello'], {}]
+              end).to eq [["hello"], {}]
 
-              expect(yielded_value).to eq([['hello'], {}])
+              expect(yielded_value).to eq([["hello"], {}])
 
               expect(observed_calls.length).to eq 0
             end
           end
         end
 
-        context 'when method takes a keyword argument' do
+        context "when method takes a keyword argument" do
           let(:probe_args) do
-            {type_name: type.name, method_name: 'yielding_kw'}
+            {type_name: type.name, method_name: "yielding_kw"}
           end
 
           let(:expected_rv) do
-            [[], {arg: 'hello'}]
+            [[], {arg: "hello"}]
           end
 
-          it 'invokes callback' do
+          it "invokes callback" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             yielded_value = nil
-            expect(type.new.yielding_kw(arg: 'hello') do |value|
+            expect(type.new.yielding_kw(arg: "hello") do |value|
               yielded_value = value
-            end).to eq [[], {arg: 'hello'}]
+            end).to eq [[], {arg: "hello"}]
 
             expect(yielded_value).to eq(expected_rv)
 
@@ -180,16 +252,16 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
           end
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            it 'does not invoke callback but invokes target method with block' do
+            it "does not invoke callback but invokes target method with block" do
               hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
               yielded_value = nil
-              expect(type.new.yielding_kw(arg: 'hello') do |value|
+              expect(type.new.yielding_kw(arg: "hello") do |value|
                 yielded_value = value
               end).to eq expected_rv
 
@@ -200,86 +272,86 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
         end
 
-        context 'when method takes both positional and keyword arguments' do
+        context "when method takes both positional and keyword arguments" do
           let(:probe_args) do
-            {type_name: type.name, method_name: 'yielding_both'}
+            {type_name: type.name, method_name: "yielding_both"}
           end
 
-          it 'invokes callback' do
+          it "invokes callback" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             yielded_value = nil
-            expect(type.new.yielding_both('hello', kw: 'world') do |value|
+            expect(type.new.yielding_both("hello", kw: "world") do |value|
               yielded_value = value
-            end).to eq [['hello'], {kw: 'world'}]
+            end).to eq [["hello"], {kw: "world"}]
 
-            expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+            expect(yielded_value).to eq([["hello"], {kw: "world"}])
 
             expect(observed_calls.length).to eq 1
             expect(observed_calls.first).to be_a(Datadog::DI::Context)
-            expect(observed_calls.first.return_value).to eq [['hello'], {kw: 'world'}]
+            expect(observed_calls.first.return_value).to eq [["hello"], {kw: "world"}]
             expect(observed_calls.first.duration).to be_a(Float)
           end
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            it 'does not invoke callback but invokes target method with block' do
+            it "does not invoke callback but invokes target method with block" do
               hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
               yielded_value = nil
-              expect(type.new.yielding_both('hello', kw: 'world') do |value|
+              expect(type.new.yielding_both("hello", kw: "world") do |value|
                 yielded_value = value
-              end).to eq [['hello'], {kw: 'world'}]
+              end).to eq [["hello"], {kw: "world"}]
 
-              expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+              expect(yielded_value).to eq([["hello"], {kw: "world"}])
 
               expect(observed_calls.length).to eq 0
             end
           end
         end
 
-        context 'when method takes both positional and keyword arguments squashed into a positional argument' do
+        context "when method takes both positional and keyword arguments squashed into a positional argument" do
           let(:probe_args) do
-            {type_name: type.name, method_name: 'yielding_squashed'}
+            {type_name: type.name, method_name: "yielding_squashed"}
           end
 
-          it 'invokes callback' do
+          it "invokes callback" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             yielded_value = nil
-            expect(type.new.yielding_squashed('hello', kw: 'world') do |value|
+            expect(type.new.yielding_squashed("hello", kw: "world") do |value|
               yielded_value = value
-            end).to eq [['hello'], {kw: 'world'}]
+            end).to eq [["hello"], {kw: "world"}]
 
-            expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+            expect(yielded_value).to eq([["hello"], {kw: "world"}])
 
             expect(observed_calls.length).to eq 1
             expect(observed_calls.first).to be_a(Datadog::DI::Context)
-            expect(observed_calls.first.return_value).to eq [['hello'], {kw: 'world'}]
+            expect(observed_calls.first.return_value).to eq [["hello"], {kw: "world"}]
             expect(observed_calls.first.duration).to be_a(Float)
           end
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            it 'does not invoke callback but invokes target method with block' do
+            it "does not invoke callback but invokes target method with block" do
               hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
               yielded_value = nil
-              expect(type.new.yielding_squashed('hello', kw: 'world') do |value|
+              expect(type.new.yielding_squashed("hello", kw: "world") do |value|
                 yielded_value = value
-              end).to eq [['hello'], {kw: 'world'}]
+              end).to eq [["hello"], {kw: "world"}]
 
-              expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+              expect(yielded_value).to eq([["hello"], {kw: "world"}])
 
               expect(observed_calls.length).to eq 0
             end
@@ -287,21 +359,21 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when method is explicitly defined' do
+      context "when method is explicitly defined" do
         let(:type) { HookTestClass }
 
-        include_examples 'yields to the block'
+        include_examples "yields to the block"
       end
 
-      context 'when method is defined via method_missing' do
+      context "when method is defined via method_missing" do
         let(:type) { YieldingMethodMissingHookTestClass }
 
-        include_examples 'yields to the block'
+        include_examples "yields to the block"
       end
     end
 
-    shared_examples 'does not invoke callback but invokes target method' do
-      it 'does not invoke callback but invokes target method' do
+    shared_examples "does not invoke callback but invokes target method" do
+      it "does not invoke callback but invokes target method" do
         hook_method(probe) do |payload|
           observed_calls << payload
         end
@@ -312,9 +384,9 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when capturing snapshot and there are instance variables' do
+    context "when capturing snapshot and there are instance variables" do
       let(:probe_args) do
-        {type_name: 'HookIvarTestClass', method_name: 'hook_test_method',
+        {type_name: "HookIvarTestClass", method_name: "hook_test_method",
          capture_snapshot: true}
       end
 
@@ -322,7 +394,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(HookIvarTestClass.new.hook_test_method).to eq 42
       end
 
-      it 'captures instance variables' do
+      it "captures instance variables" do
         hook_method(probe) do |payload|
           observed_calls << payload
         end
@@ -336,22 +408,22 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         expect(observed_calls.first.serialized_entry_args).to eq(
           self: {
-            type: 'HookIvarTestClass',
+            type: "HookIvarTestClass",
             fields: {
-              :@ivar => {type: 'Integer', value: '2442'},
+              :@ivar => {type: "Integer", value: "2442"},
             },
           },
         )
       end
     end
 
-    context 'positional args' do
-      context 'without snapshot capture' do
+    context "positional args" do
+      context "without snapshot capture" do
         let(:probe_args) do
-          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_arg'}
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_arg"}
         end
 
-        it 'invokes callback' do
+        it "invokes callback" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -366,9 +438,9 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'with snapshot capture' do
+      context "with snapshot capture" do
         let(:probe_args) do
-          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_arg',
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_arg",
            capture_snapshot: true}
         end
 
@@ -376,8 +448,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
         end
 
-        shared_examples 'invokes callback and captures parameters' do
-          it 'invokes callback and captures parameters' do
+        shared_examples "invokes callback and captures parameters" do
+          it "invokes callback and captures parameters" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
@@ -390,14 +462,14 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: 'Integer', value: '2'},
-              self: {type: 'HookTestClass', fields: {}},
+              arg1: {type: "Integer", value: "2"},
+              self: {type: "HookTestClass", fields: {}},
             )
           end
 
-          context 'when there are instance variables' do
+          context "when there are instance variables" do
             let(:probe_args) do
-              {type_name: 'HookIvarTestClass', method_name: 'hook_test_method_with_arg',
+              {type_name: "HookIvarTestClass", method_name: "hook_test_method_with_arg",
                capture_snapshot: true}
             end
 
@@ -405,7 +477,7 @@ RSpec.describe Datadog::DI::Instrumenter do
               expect(HookIvarTestClass.new.hook_test_method_with_arg(2)).to eq 2
             end
 
-            it 'captures instance variables in addition to parameters' do
+            it "captures instance variables in addition to parameters" do
               hook_method(probe) do |payload|
                 observed_calls << payload
               end
@@ -418,11 +490,11 @@ RSpec.describe Datadog::DI::Instrumenter do
               expect(observed_calls.first.duration).to be_a(Float)
 
               expect(observed_calls.first.serialized_entry_args).to eq(
-                arg1: {type: 'Integer', value: '2'},
+                arg1: {type: "Integer", value: "2"},
                 self: {
-                  type: 'HookIvarTestClass',
+                  type: "HookIvarTestClass",
                   fields: {
-                    :@ivar => {type: 'Integer', value: '2442'},
+                    :@ivar => {type: "Integer", value: "2442"},
                   },
                 },
               )
@@ -430,35 +502,35 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
         end
 
-        include_examples 'invokes callback and captures parameters'
+        include_examples "invokes callback and captures parameters"
 
-        context 'when rate limited' do
+        context "when rate limited" do
           let(:rate_limit) { 0 }
 
-          include_examples 'does not invoke callback but invokes target method'
+          include_examples "does not invoke callback but invokes target method"
         end
 
-        context 'when passed via a splat' do
+        context "when passed via a splat" do
           let(:target_call) do
             args = [2]
             expect(HookTestClass.new.hook_test_method_with_arg(*args)).to eq 2
           end
 
-          include_examples 'invokes callback and captures parameters'
+          include_examples "invokes callback and captures parameters"
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            include_examples 'does not invoke callback but invokes target method'
+            include_examples "does not invoke callback but invokes target method"
           end
         end
       end
     end
 
-    context 'keyword args' do
-      context 'with snapshot capture' do
+    context "keyword args" do
+      context "with snapshot capture" do
         let(:probe_args) do
-          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_kwarg',
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_kwarg",
            capture_snapshot: true}
         end
 
@@ -466,8 +538,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method_with_kwarg(kwarg: 42)).to eq 42
         end
 
-        shared_examples 'invokes callback and captures parameters' do
-          it 'invokes callback and captures parameters' do
+        shared_examples "invokes callback and captures parameters" do
+          it "invokes callback and captures parameters" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
@@ -480,38 +552,38 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              kwarg: {type: 'Integer', value: '42'},
-              self: {type: 'HookTestClass', fields: {}},
+              kwarg: {type: "Integer", value: "42"},
+              self: {type: "HookTestClass", fields: {}},
             )
           end
         end
 
-        include_examples 'invokes callback and captures parameters'
+        include_examples "invokes callback and captures parameters"
 
-        context 'when rate limited' do
+        context "when rate limited" do
           let(:rate_limit) { 0 }
 
-          include_examples 'does not invoke callback but invokes target method'
+          include_examples "does not invoke callback but invokes target method"
         end
 
-        context 'when passed via a splat' do
+        context "when passed via a splat" do
           let(:target_call) do
             kwargs = {kwarg: 42}
             expect(HookTestClass.new.hook_test_method_with_kwarg(**kwargs)).to eq 42
           end
 
-          include_examples 'invokes callback and captures parameters'
+          include_examples "invokes callback and captures parameters"
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            include_examples 'does not invoke callback but invokes target method'
+            include_examples "does not invoke callback but invokes target method"
           end
         end
 
-        context 'when there are instance variables' do
+        context "when there are instance variables" do
           let(:probe_args) do
-            {type_name: 'HookIvarTestClass', method_name: 'hook_test_method_with_kwarg',
+            {type_name: "HookIvarTestClass", method_name: "hook_test_method_with_kwarg",
              capture_snapshot: true}
           end
 
@@ -519,7 +591,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(HookIvarTestClass.new.hook_test_method_with_kwarg(kwarg: 42)).to eq 42
           end
 
-          it 'captures instance variables in addition to kwargs' do
+          it "captures instance variables in addition to kwargs" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
@@ -532,11 +604,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              kwarg: {type: 'Integer', value: '42'},
+              kwarg: {type: "Integer", value: "42"},
               self: {
-                type: 'HookIvarTestClass',
+                type: "HookIvarTestClass",
                 fields: {
-                  :@ivar => {type: 'Integer', value: '2442'},
+                  :@ivar => {type: "Integer", value: "2442"},
                 },
               },
             )
@@ -545,10 +617,10 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'positional and keyword args' do
-      context 'with snapshot capture' do
+    context "positional and keyword args" do
+      context "with snapshot capture" do
         let(:probe_args) do
-          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg',
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_pos_and_kwarg",
            capture_snapshot: true}
         end
 
@@ -556,8 +628,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(41, kwarg: 42)).to eq [41, 42]
         end
 
-        shared_examples 'invokes callback and captures parameters' do
-          it 'invokes callback and captures parameters' do
+        shared_examples "invokes callback and captures parameters" do
+          it "invokes callback and captures parameters" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
@@ -572,44 +644,73 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.serialized_entry_args).to eq(
               # TODO actual argument name not captured yet,
               # requires method call trace point.
-              arg1: {type: 'Integer', value: '41'},
-              kwarg: {type: 'Integer', value: '42'},
-              self: {type: 'HookTestClass', fields: {}},
+              arg1: {type: "Integer", value: "41"},
+              kwarg: {type: "Integer", value: "42"},
+              self: {type: "HookTestClass", fields: {}},
             )
           end
         end
 
-        include_examples 'invokes callback and captures parameters'
+        include_examples "invokes callback and captures parameters"
 
-        context 'when rate limited' do
+        context "when rate limited" do
           let(:rate_limit) { 0 }
 
-          include_examples 'does not invoke callback but invokes target method'
+          include_examples "does not invoke callback but invokes target method"
         end
 
-        context 'when passed via a splat' do
+        context "when passed via a splat" do
           let(:target_call) do
             args = [41]
             kwargs = {kwarg: 42}
             expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(*args, **kwargs)).to eq [41, 42]
           end
 
-          include_examples 'invokes callback and captures parameters'
+          include_examples "invokes callback and captures parameters"
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            include_examples 'does not invoke callback but invokes target method'
+            include_examples "does not invoke callback but invokes target method"
           end
         end
       end
     end
 
-    context 'keyword arguments squashed into a hash' do
+    context "empty hash as last argument" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "positional_and_squashed"}
+      end
+
+      let(:target_call) do
+        expect(HookTestClass.new.positional_and_squashed("hello", {})).to eq(["hello", {}])
+      end
+
+      it "invokes callback and forwards the empty hash" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        target_call
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
+        expect(observed_calls.first.return_value).to eq(["hello", {}])
+        expect(observed_calls.first.duration).to be_a(Float)
+      end
+
+      context "when rate limited" do
+        let(:rate_limit) { 0 }
+
+        include_examples "does not invoke callback but invokes target method"
+      end
+    end
+
+    context "keyword arguments squashed into a hash" do
       ruby_2_only
 
-      shared_examples 'invokes callback and captures parameters' do
-        it 'invokes callback and captures parameters' do
+      shared_examples "invokes callback and captures parameters" do
+        it "invokes callback and captures parameters" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -622,49 +723,49 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first.duration).to be_a(Float)
 
           expect(observed_calls.first.serialized_entry_args).to eq(
-            kwarg: {type: 'Integer', value: '42'},
-            self: {type: 'HookTestClass', fields: {}},
+            kwarg: {type: "Integer", value: "42"},
+            self: {type: "HookTestClass", fields: {}},
           )
         end
       end
 
       let(:probe_args) do
-        {type_name: 'HookTestClass', method_name: 'squashed',
+        {type_name: "HookTestClass", method_name: "squashed",
          capture_snapshot: true}
       end
 
-      context 'call with keyword arguments' do
+      context "call with keyword arguments" do
         let(:target_call) do
           expect(HookTestClass.new.squashed(kwarg: 42)).to eq(kwarg: 42)
         end
 
-        include_examples 'invokes callback and captures parameters'
+        include_examples "invokes callback and captures parameters"
 
-        context 'when rate limited' do
+        context "when rate limited" do
           let(:rate_limit) { 0 }
 
-          include_examples 'does not invoke callback but invokes target method'
+          include_examples "does not invoke callback but invokes target method"
         end
       end
 
-      context 'call with positional argument' do
+      context "call with positional argument" do
         let(:target_call) do
           arg = {kwarg: 42}
           expect(HookTestClass.new.squashed(arg)).to eq(kwarg: 42)
         end
 
-        include_examples 'invokes callback and captures parameters'
+        include_examples "invokes callback and captures parameters"
 
-        context 'when rate limited' do
+        context "when rate limited" do
           let(:rate_limit) { 0 }
 
-          include_examples 'does not invoke callback but invokes target method'
+          include_examples "does not invoke callback but invokes target method"
         end
       end
 
-      context 'when there is also a positional argument' do
-        shared_examples 'invokes callback and captures parameters' do
-          it 'invokes callback and captures parameters' do
+      context "when there is also a positional argument" do
+        shared_examples "invokes callback and captures parameters" do
+          it "invokes callback and captures parameters" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
@@ -673,59 +774,59 @@ RSpec.describe Datadog::DI::Instrumenter do
 
             expect(observed_calls.length).to eq 1
             expect(observed_calls.first).to be_a(Datadog::DI::Context)
-            expect(observed_calls.first.return_value).to eq(['hello', {kwarg: 42}])
+            expect(observed_calls.first.return_value).to eq(["hello", {kwarg: 42}])
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: 'String', value: 'hello'},
-              kwarg: {type: 'Integer', value: '42'},
-              self: {type: 'HookTestClass', fields: {}},
+              arg1: {type: "String", value: "hello"},
+              kwarg: {type: "Integer", value: "42"},
+              self: {type: "HookTestClass", fields: {}},
             )
           end
         end
 
         let(:probe_args) do
-          {type_name: 'HookTestClass', method_name: 'positional_and_squashed',
+          {type_name: "HookTestClass", method_name: "positional_and_squashed",
            capture_snapshot: true}
         end
 
-        context 'call with positional and keyword arguments' do
+        context "call with positional and keyword arguments" do
           let(:target_call) do
-            expect(HookTestClass.new.positional_and_squashed('hello', kwarg: 42)).to eq(['hello', {kwarg: 42}])
+            expect(HookTestClass.new.positional_and_squashed("hello", kwarg: 42)).to eq(["hello", {kwarg: 42}])
           end
 
-          include_examples 'invokes callback and captures parameters'
+          include_examples "invokes callback and captures parameters"
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            include_examples 'does not invoke callback but invokes target method'
+            include_examples "does not invoke callback but invokes target method"
           end
         end
 
-        context 'call with a splat' do
+        context "call with a splat" do
           let(:target_call) do
-            args = ['hello', {kwarg: 42}]
-            expect(HookTestClass.new.positional_and_squashed(*args)).to eq(['hello', {kwarg: 42}])
+            args = ["hello", {kwarg: 42}]
+            expect(HookTestClass.new.positional_and_squashed(*args)).to eq(["hello", {kwarg: 42}])
           end
 
-          include_examples 'invokes callback and captures parameters'
+          include_examples "invokes callback and captures parameters"
 
-          context 'when rate limited' do
+          context "when rate limited" do
             let(:rate_limit) { 0 }
 
-            include_examples 'does not invoke callback but invokes target method'
+            include_examples "does not invoke callback but invokes target method"
           end
         end
       end
     end
 
-    context 'when target method raises an exception' do
+    context "when target method raises an exception" do
       let(:probe_args) do
-        {type_name: 'HookTestClass', method_name: 'exception_method'}
+        {type_name: "HookTestClass", method_name: "exception_method"}
       end
 
-      it 'invokes callback' do
+      it "invokes callback" do
         hook_method(probe) do |payload|
           observed_calls << payload
         end
@@ -742,22 +843,22 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when hooking two identical but different probes' do
-      include_context 'with code tracking'
+    context "when hooking two identical but different probes" do
+      include_context "with code tracking"
 
       before do
-        load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
+        load File.join(File.dirname(__FILE__), "hook_line_recursive.rb")
       end
 
       let(:probe) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
-          type_name: 'HookTestClass', method_name: 'hook_test_method'
+          type_name: "HookTestClass", method_name: "hook_test_method",
         ))
       end
 
       let(:probe2) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
-          type_name: 'HookTestClass', method_name: 'hook_test_method'
+          type_name: "HookTestClass", method_name: "hook_test_method",
         ))
       end
 
@@ -766,7 +867,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       # We do not currently de-duplicate.
-      it 'invokes callback twice' do
+      it "invokes callback twice" do
         hook_method(probe) do |payload|
           observed_calls << payload
         end
@@ -787,12 +888,12 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when class does not exist' do
+    context "when class does not exist" do
       let(:probe_args) do
-        {type_name: 'NonExistent', method_name: 'non_existent'}
+        {type_name: "NonExistent", method_name: "non_existent"}
       end
 
-      it 'raises DITargetNotDefined' do
+      it "raises DITargetNotDefined" do
         expect do
           hook_method(probe) do |payload|
           end
@@ -800,7 +901,194 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe 'stack trace' do
+    context "when targeting a class in the Datadog namespace" do
+      shared_examples "rejects the probe" do |type_name|
+        let(:probe_args) do
+          {type_name: type_name, method_name: "some_method"}
+        end
+
+        it "raises ProbeTargetForbidden for #{type_name}" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+            /Method probes on the Datadog namespace are not permitted: #{Regexp.escape(type_name)}#some_method/)
+        end
+      end
+
+      it_behaves_like "rejects the probe", "Datadog"
+      it_behaves_like "rejects the probe", "Datadog::Tracing::SpanOperation"
+      it_behaves_like "rejects the probe", "Datadog::DI::Instrumenter"
+
+      # A leading "::" is Ruby's root-namespace prefix; the rejection regex
+      # accepts both "Datadog" and "::Datadog" forms, so users cannot bypass
+      # the rejection by typing the root form.
+      it_behaves_like "rejects the probe", "::Datadog"
+      it_behaves_like "rejects the probe", "::Datadog::Tracing::SpanOperation"
+
+      # Top-level constants are constants of Object, so Object.const_get
+      # resolves "Object::Datadog::DI::Instrumenter" to the real class. The
+      # rejection regex strips any leading "Object::" segments so these
+      # aliases cannot bypass it. Object:: is the only alias path to the
+      # top-level Datadog ("Foo::Datadog" does not resolve through const_get).
+      it_behaves_like "rejects the probe", "Object::Datadog"
+      it_behaves_like "rejects the probe", "Object::Datadog::DI::Instrumenter"
+      it_behaves_like "rejects the probe", "::Object::Datadog::Tracing::SpanOperation"
+      it_behaves_like "rejects the probe", "Object::Object::Datadog"
+
+      context "when the Datadog-namespaced class does not exist" do
+        let(:probe_args) do
+          # If the rejection happened after class resolution, this would
+          # raise DITargetNotDefined instead of ProbeTargetForbidden.
+          {type_name: "Datadog::NotARealClass::AtAll", method_name: "noop"}
+        end
+
+        it "rejects before attempting to resolve the class" do
+          expect do
+            hook_method(probe) { |_| }
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden)
+        end
+      end
+
+      context 'when type_name only happens to start with "Datadog" without the separator' do
+        let(:probe_args) do
+          {type_name: "DatadogLike", method_name: "some_method"}
+        end
+
+        # Class does not exist, so we expect the normal not-defined error
+        # rather than the forbidden-namespace error.
+        it "does not reject as Datadog namespace" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context "when type_name is root-prefixed but does not name the Datadog namespace" do
+        let(:probe_args) do
+          {type_name: "::DatadogLike", method_name: "some_method"}
+        end
+
+        # "::DatadogLike" does not match the rejection regex (no "::" or
+        # end-of-string follows "Datadog"), so it falls through to normal
+        # class resolution.
+        it "does not reject as Datadog namespace" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context "when type_name has an Object:: prefix but does not name the Datadog namespace" do
+        let(:probe_args) do
+          {type_name: "Object::DatadogLike", method_name: "some_method"}
+        end
+
+        # The "Object::" stripping only applies before "Datadog" followed by
+        # "::" or end-of-string; "Object::DatadogLike" does not match, so it
+        # falls through to normal class resolution.
+        it "does not reject as Datadog namespace" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+    end
+
+    context "when targeting Kernel#lambda" do
+      # The first group is the Kernel module named directly: a leading "::" is
+      # Ruby's root-namespace prefix and any number of leading "Object::"
+      # segments resolve through Object.const_get to the same top-level Kernel
+      # module, so users cannot bypass the rejection by naming Kernel through
+      # one of these aliases.
+      #
+      # The second group names other types that inherit Kernel#lambda without
+      # overriding it: every class inherits it, so the target method resolves
+      # to Kernel#lambda regardless of the type name. These are rejected by
+      # resolving the method owner, not by matching the type name.
+      [
+        "Kernel",
+        "::Kernel",
+        "Object::Kernel",
+        "::Object::Kernel",
+        "Object::Object::Kernel",
+        "Object",
+        "String",
+      ].each do |type_name|
+        context "with type name #{type_name.inspect}" do
+          let(:probe_args) do
+            {type_name: type_name, method_name: "lambda"}
+          end
+
+          it "raises ProbeTargetForbidden" do
+            expect do
+              hook_method(probe) { |_| }
+            end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+              /Method probes on Kernel#lambda are not permitted: #{Regexp.escape(type_name)}#lambda/)
+          end
+        end
+      end
+
+      context "when targeting Kernel but not the lambda method" do
+        let(:probe_args) do
+          {type_name: "Kernel", method_name: "definitely_not_lambda"}
+        end
+
+        it "is not rejected as a forbidden target" do
+          # Stub prepend so the wrapper module is not installed onto the real
+          # Kernel for the rest of the suite; this example only asserts that
+          # the forbidden check does not fire for a non-lambda Kernel method.
+          allow(Kernel).to receive(:prepend)
+          expect do
+            hook_method(probe) { |_| }
+          end.not_to raise_error
+        end
+      end
+
+      context "when targeting a lambda method on a non-Kernel type" do
+        let(:probe_args) do
+          {type_name: "KernelLike", method_name: "lambda"}
+        end
+
+        # "KernelLike" is not the Kernel module, so a "lambda" method on it is
+        # an ordinary user method; the class does not exist here, so we expect
+        # the normal not-defined error rather than the forbidden error.
+        it "does not reject as Kernel#lambda" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context "when the target type defines its own lambda method" do
+        before do
+          stub_const("OverridesLambda", Class.new do
+            def lambda
+              :not_kernel
+            end
+          end)
+        end
+
+        let(:probe_args) do
+          {type_name: "OverridesLambda", method_name: "lambda"}
+        end
+
+        # The owner of OverridesLambda#lambda is OverridesLambda, not Kernel,
+        # so this is an ordinary user method and the probe installs normally.
+        it "is not rejected and instruments the user-defined method" do
+          observed = []
+          hook_method(probe) { |payload| observed << payload }
+          expect(OverridesLambda.new.lambda).to eq(:not_kernel)
+          expect(observed.length).to eq(1)
+        end
+      end
+    end
+
+    describe "stack trace" do
       before do
         # Reload the test class because when methods are instrumented,
         # their definitions are overwritten, and we want the original
@@ -810,11 +1098,11 @@ RSpec.describe Datadog::DI::Instrumenter do
         rescue
           nil
         end
-        load File.join(File.dirname(__FILE__), 'hook_method.rb')
+        load File.join(File.dirname(__FILE__), "hook_method.rb")
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(type_name: 'HookTestClass', method_name: 'hook_test_method',
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
           id: 1, type: :log)
       end
 
@@ -833,66 +1121,66 @@ RSpec.describe Datadog::DI::Instrumenter do
         payload.caller_locations
       end
 
-      it 'contains at least 10 frames' do
+      it "contains at least 10 frames" do
         expect(stack.length >= 10).to be true
       end
 
-      it 'contains instrumented method as top frame' do
+      it "contains instrumented method as top frame" do
         frame = stack.first
-        expect(File.basename(frame.path)).to eq 'hook_method.rb'
+        expect(File.basename(frame.path)).to eq "hook_method.rb"
       end
 
-      it 'contains caller as second frame' do
+      it "contains caller as second frame" do
         frame = stack[1]
         # This test file is calling the instrumented method.
-        expect(File.basename(frame.path)).to eq 'instrumenter_spec.rb'
+        expect(File.basename(frame.path)).to eq "instrumenter_spec.rb"
       end
     end
 
-    context 'when method is recursive' do
-      context 'non-enriched probe' do
+    context "when method is recursive" do
+      context "non-enriched probe" do
         let(:probe_args) do
-          {type_name: 'HookTestClass', method_name: 'recursive'}
+          {type_name: "HookTestClass", method_name: "recursive"}
         end
 
-        it 'invokes callback for every method invocation' do
+        it "invokes callback for every method invocation" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
 
-          expect(HookTestClass.new.recursive(3)).to eq '+---'
+          expect(HookTestClass.new.recursive(3)).to eq "+---"
 
           expect(observed_calls.length).to eq 4
 
           # TODO add assertions for parameters and locals
 
           expect(observed_calls.first).to be_a(Datadog::DI::Context)
-          expect(observed_calls[0].return_value).to eq '+'
+          expect(observed_calls[0].return_value).to eq "+"
           expect(observed_calls[0].duration).to be_a(Float)
 
           expect(observed_calls[1]).to be_a(Datadog::DI::Context)
-          expect(observed_calls[1].return_value).to eq '+-'
+          expect(observed_calls[1].return_value).to eq "+-"
           expect(observed_calls[1].duration).to be_a(Float)
 
           expect(observed_calls[2]).to be_a(Datadog::DI::Context)
-          expect(observed_calls[2].return_value).to eq '+--'
+          expect(observed_calls[2].return_value).to eq "+--"
           expect(observed_calls[2].duration).to be_a(Float)
 
           expect(observed_calls[3]).to be_a(Datadog::DI::Context)
-          expect(observed_calls[3].return_value).to eq '+---'
+          expect(observed_calls[3].return_value).to eq "+---"
           expect(observed_calls[3].duration).to be_a(Float)
         end
       end
     end
 
-    context 'when method is infinitely recursive' do
-      context 'non-enriched probe' do
+    context "when method is infinitely recursive" do
+      context "non-enriched probe" do
         let(:probe) do
-          Datadog::DI::Probe.new(type_name: 'HookTestClass', method_name: 'recursive',
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "recursive",
             id: 1, type: :log)
         end
 
-        it 'does not invoke callback' do
+        it "does not invoke callback" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -908,9 +1196,9 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when there is a condition' do
+    context "when there is a condition" do
       let(:probe_args) do
-        {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg',
+        {type_name: "HookTestClass", method_name: "hook_test_method_with_pos_and_kwarg",
          condition: condition}
       end
 
@@ -918,8 +1206,8 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(41, kwarg: 42)).to eq [41, 42]
       end
 
-      shared_examples 'reports the call' do
-        it 'reports the call' do
+      shared_examples "reports the call" do
+        it "reports the call" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -930,8 +1218,8 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      shared_examples 'does not report the call' do
-        it 'does not report the call' do
+      shared_examples "does not report the call" do
+        it "does not report the call" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -942,102 +1230,262 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      shared_examples 'does not report the call and reports evaluation failure' do
-        let(:responder) { double('responder') }
+      shared_examples "does not report the call and reports evaluation failure" do
+        let(:responder) { double("responder") }
 
-        it 'does not report the call and reports evaluation failure' do
+        it "does not report the call and reports evaluation failure" do
           expect(responder).not_to receive(:probe_executed_callback)
           expect(responder).to receive(:probe_condition_evaluation_failed_callback)
+            .with(instance_of(Datadog::DI::Context), condition, instance_of(NoMethodError))
           instrumenter.hook_method(probe, responder)
 
           target_call
         end
       end
 
-      context 'when condition is on positional argument' do
-        context 'when condition is met' do
+      context "when condition is on positional argument" do
+        context "when condition is met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
+              "(expression)",
               # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 41"
+              "ref(context, 'arg1') == 41",
             )
           end
 
-          include_examples 'reports the call'
+          include_examples "reports the call"
+
+          it "consults per-probe rate limiting" do
+            expect(probe.rate_limiter).to receive(:allow?).and_return(true)
+
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+          end
         end
 
-        context 'when condition is not met' do
+        context "when condition is not met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
+              "(expression)",
               # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 42"
+              "ref(context, 'arg1') == 42",
             )
           end
 
-          include_examples 'does not report the call'
+          include_examples "does not report the call"
+
+          it "skips per-probe rate limiting" do
+            expect(probe.rate_limiter).not_to receive(:allow?)
+
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.count).to be_zero
+          end
         end
       end
 
-      context 'when condition is on keyword argument' do
-        context 'when condition is met' do
+      context "when condition is on keyword argument" do
+        context "when condition is met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
-              "ref('kwarg') == 42"
+              "(expression)",
+              "ref(context, 'kwarg') == 42",
             )
           end
 
-          include_examples 'reports the call'
+          include_examples "reports the call"
         end
 
-        context 'when condition is not met' do
+        context "when condition is not met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
-              "ref('kwarg') == 41"
+              "(expression)",
+              "ref(context, 'kwarg') == 41",
             )
           end
 
-          include_examples 'does not report the call'
+          include_examples "does not report the call"
         end
       end
 
-      context 'when expression evaluation fails' do
+      context "when expression evaluation fails" do
         let(:propagate_all_exceptions) { false }
 
         let(:condition) do
           Datadog::DI::EL::Expression.new(
-            '(expression)',
-            "unknown_function('kwarg') == 42"
+            "(expression)",
+            "unknown_function('kwarg') == 42",
           )
         end
 
-        include_examples 'does not report the call and reports evaluation failure'
+        include_examples "does not report the call and reports evaluation failure"
+      end
+
+      context "when the responder is a ProcResponder with a failed proc" do
+        let(:propagate_all_exceptions) { false }
+
+        let(:condition) do
+          Datadog::DI::EL::Expression.new(
+            "(expression)",
+            "unknown_function('kwarg') == 42",
+          )
+        end
+
+        it "invokes the failed proc with the context and exception" do
+          observed = []
+          responder = Datadog::DI::ProcResponder.new(
+            proc { |context| observed << [:executed, context] },
+            proc { |context, exc| observed << [:failed, context, exc] },
+          )
+          instrumenter.hook_method(probe, responder)
+
+          target_call
+
+          expect(observed.length).to eq 1
+          expect(observed.first[0]).to eq :failed
+          expect(observed.first[1]).to be_a(Datadog::DI::Context)
+          expect(observed.first[2]).to be_an(Exception)
+        end
+      end
+    end
+
+    # The wrapper passes caller_locations to run_method_probe so the
+    # snapshot's stack reflects the user's call site, not the wrapper's
+    # internal call chain. This regression test pins the contract: the
+    # frame immediately following the synthetic method_frame must be
+    # this spec's call site. Any change to the wrapper's call chain
+    # (extracting helpers, lambda thunks, etc.) that breaks this stack
+    # capture will fail this test.
+    context "caller_locations capture" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "hook_test_method"}
+      end
+
+      it "captures the test call site as the frame after the synthetic method frame" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        HookTestClass.new.hook_test_method
+
+        expect(observed_calls.length).to eq 1
+        caller_locs = observed_calls.first.caller_locations
+        # caller_locs[0] is the synthetic Location for the probed method
+        # (added by run_method_probe). caller_locs[1] is the first real
+        # frame from the user's stack — i.e., this spec.
+        expect(caller_locs[0].path).to end_with("hook_method.rb")
+        expect(caller_locs[0].label).to include("hook_test_method")
+        expect(caller_locs[1].path).to end_with("instrumenter_spec.rb")
+      end
+    end
+
+    # Cover each branch of the re-entrancy guard's early-return splat.
+    # When DI.in_probe? is true, the wrapper must call super with the
+    # exact arg/kwarg shape it received and skip all DI processing.
+    context "when DI.in_probe? is true (re-entrant call from within DI processing)" do
+      after do
+        # Always clear the guard so leftover state cannot affect the next test.
+        Datadog::DI.leave_probe
+      end
+
+      context "method takes no args" do
+        let(:probe_args) do
+          {type_name: "HookTestClass", method_name: "hook_test_method"}
+        end
+
+        it "calls super with no args and does not invoke the callback" do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context "method takes a positional arg" do
+        let(:probe_args) do
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_arg"}
+        end
+
+        it "calls super with the positional arg and does not invoke the callback" do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_arg(7)).to eq 7
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context "method takes a keyword arg" do
+        let(:probe_args) do
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_kwarg"}
+        end
+
+        it "calls super with the keyword arg and does not invoke the callback" do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_kwarg(kwarg: 9)).to eq 9
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context "method takes both positional and keyword args" do
+        let(:probe_args) do
+          {type_name: "HookTestClass", method_name: "hook_test_method_with_pos_and_kwarg"}
+        end
+
+        it "calls super with both shapes and does not invoke the callback" do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(1, kwarg: 2)).to eq [1, 2]
+
+          expect(observed_calls).to be_empty
+        end
       end
     end
   end
 
-  describe '.hook_line' do
+  describe ".hook_line" do
     after do
       instrumenter.unhook(probe)
     end
 
-    shared_examples 'multiple invocations' do
+    shared_examples "multiple invocations" do
       # Since the instrumentation mutates the state of the probe,
       # verify that the state mutation is not breaking the instrumentation.
-      context 'when the code is executed multiple times' do
+      context "when the code is executed multiple times" do
         before do
-          load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+          load File.join(File.dirname(__FILE__), "hook_line_load.rb")
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 25,
+          Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 25,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
-        it 'invokes the instrumentation every time' do
+        it "invokes the instrumentation every time" do
           expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
           hook_line(probe) do |payload|
@@ -1055,8 +1503,8 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'non-executable line (comment)' do
-      context 'without code tracking' do
+    context "non-executable line (comment)" do
+      context "without code tracking" do
         before do
           # We need untargeted trace points for this test since the line
           # being instrumented has already been loaded.
@@ -1066,25 +1514,25 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:code_tracker) { nil }
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 21,
+          Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 21,
             id: 1, type: :log)
         end
 
         before(:all) do
-          load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+          load File.join(File.dirname(__FILE__), "hook_line_load.rb")
         end
 
-        it 'installs trace point' do
+        it "installs trace point" do
           expect(TracePoint).to receive(:new).and_call_original
 
           hook_line(probe) do |**opts|
-            fail 'should not get here'
+            fail "should not get here"
           end
         end
 
-        it 'does not invoke callback' do
+        it "does not invoke callback" do
           hook_line(probe) do |**opts|
-            fail 'should not be invoked'
+            fail "should not be invoked"
           end
 
           # We can't run the non-executable line...
@@ -1094,35 +1542,35 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'with code tracking' do
-        include_context 'with code tracking'
+      context "with code tracking" do
+        include_context "with code tracking"
 
         before do
           expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(false)
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 21,
+          Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 21,
             id: 1, type: :log)
         end
 
         before(:all) do
-          load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+          load File.join(File.dirname(__FILE__), "hook_line_load.rb")
         end
 
-        it 'does not install trace point' do
+        it "does not install trace point" do
           expect(TracePoint).not_to receive(:new)
 
           expect do
             hook_line(probe) do |**opts|
-              fail 'should not get here'
+              fail "should not get here"
             end
           end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
         end
       end
     end
 
-    context 'method definition line' do
+    context "method definition line" do
       before do
         # We need untargeted trace points for this test since the line
         # being instrumented has already been loaded.
@@ -1130,11 +1578,11 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line.rb', line_no: 2,
+        Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 2,
           id: 1, type: :log)
       end
 
-      it 'does not invoke callback' do
+      it "does not invoke callback" do
         observed_calls
 
         expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
@@ -1149,7 +1597,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'line inside of method without code tracking' do
+    context "line inside of method without code tracking" do
       before do
         # We need untargeted trace points for this test since the line
         # being instrumented has already been loaded.
@@ -1157,7 +1605,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line.rb', line_no: 3,
+        Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
           id: 1, type: :log)
       end
 
@@ -1174,31 +1622,31 @@ RSpec.describe Datadog::DI::Instrumenter do
         observed_calls.first
       end
 
-      it 'invokes callback with expected keys' do
+      it "invokes callback with expected keys" do
         expect(payload).to be_a(Datadog::DI::Context)
       end
 
-      describe 'stack trace' do
-        it 'contains instrumented method as top frame' do
+      describe "stack trace" do
+        it "contains instrumented method as top frame" do
           frame = payload.caller_locations.first
-          expect(File.basename(frame.path)).to eq 'hook_line.rb'
+          expect(File.basename(frame.path)).to eq "hook_line.rb"
         end
       end
 
-      include_examples 'multiple invocations'
+      include_examples "multiple invocations"
     end
 
-    context 'when hooking same line twice with identical but different probes' do
+    context "when hooking same line twice with identical but different probes" do
       before(:all) do
-        require_relative 'hook_line_basic'
+        require_relative "hook_line_basic"
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(**base_probe_args.merge(file: 'hook_line_basic.rb', line_no: 3))
+        Datadog::DI::Probe.new(**base_probe_args.merge(file: "hook_line_basic.rb", line_no: 3))
       end
 
       let(:probe2) do
-        Datadog::DI::Probe.new(**base_probe_args.merge(file: 'hook_line_basic.rb', line_no: 3))
+        Datadog::DI::Probe.new(**base_probe_args.merge(file: "hook_line_basic.rb", line_no: 3))
       end
 
       after do
@@ -1213,7 +1661,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       # We do not currently de-duplicate.
-      it 'invokes callback twice' do
+      it "invokes callback twice" do
         expect(observed_calls).to be_empty
 
         hook_line(probe) do |payload|
@@ -1236,22 +1684,22 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when code tracking is available' do
-      include_context 'with code tracking'
+    context "when code tracking is available" do
+      include_context "with code tracking"
 
       before do
-        path = File.join(File.dirname(__FILE__), 'hook_line_targeted.rb')
+        path = File.join(File.dirname(__FILE__), "hook_line_targeted.rb")
         load path
         expect(code_tracker.send(:registry)[path]).to be_a(RubyVM::InstructionSequence)
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_targeted.rb', line_no: 13,
+        Datadog::DI::Probe.new(file: "hook_line_targeted.rb", line_no: 13,
           id: 1, type: :log)
       end
 
-      it 'targets the trace point' do
-        path = File.join(File.dirname(__FILE__), 'hook_line_targeted.rb')
+      it "targets the trace point" do
+        path = File.join(File.dirname(__FILE__), "hook_line_targeted.rb")
         target = code_tracker.send(:registry)[path]
         expect(target).to be_a(RubyVM::InstructionSequence)
 
@@ -1267,17 +1715,17 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(observed_calls.first).to be_a(Datadog::DI::Context)
       end
 
-      context 'end line of a method' do
+      context "end line of a method" do
         before do
-          load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+          load File.join(File.dirname(__FILE__), "hook_line_load.rb")
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 26,
+          Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 26,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
-        it 'invokes the instrumentation' do
+        it "invokes the instrumentation" do
           expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
           hook_line(probe) do |payload|
@@ -1293,8 +1741,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         # Since the instrumentation mutates the state of the probe,
         # verify that the state mutation is not breaking the instrumentation.
-        context 'when the code is executed multiple times' do
-          it 'invokes the instrumentation every time' do
+        context "when the code is executed multiple times" do
+          it "invokes the instrumentation every time" do
             expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
             hook_line(probe) do |payload|
@@ -1312,41 +1760,55 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when instrumenting a line in loaded but not tracked file' do
+      context "when instrumenting a line in loaded but not tracked file" do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line.rb', line_no: 3,
+          Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
             id: 1, type: :log)
         end
 
-        it 'raises DITargetNotInRegistry' do
+        it "raises DITargetNotInRegistry with no surviving iseqs message" do
           expect do
             hook_line(probe) do |payload|
             end
-          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
+          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs/)
+        end
+
+        context "with Windows-style probe path requiring prefix stripping" do
+          let(:probe) do
+            Datadog::DI::Probe.new(file: 'shared\rails\hook_line.rb', line_no: 3,
+              id: 1, type: :log)
+          end
+
+          it "raises DITargetNotInRegistry after backslash normalization and prefix stripping" do
+            expect do
+              hook_line(probe) do |payload|
+              end
+            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs/)
+          end
         end
       end
 
-      include_examples 'multiple invocations'
+      include_examples "multiple invocations"
     end
 
-    context 'when method is recursive' do
-      include_context 'with code tracking'
+    context "when method is recursive" do
+      include_context "with code tracking"
 
       before do
-        load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
+        load File.join(File.dirname(__FILE__), "hook_line_recursive.rb")
       end
 
-      context 'non-enriched probe' do
+      context "non-enriched probe" do
         let(:probe_args) do
-          {file: 'hook_line_recursive.rb', line_no: 13}
+          {file: "hook_line_recursive.rb", line_no: 13}
         end
 
-        it 'invokes callback for every method invocation' do
+        it "invokes callback for every method invocation" do
           hook_line(probe) do |payload|
             observed_calls << payload
           end
 
-          expect(HookLineRecursiveTestClass.new.recursive(3)).to eq '+---'
+          expect(HookLineRecursiveTestClass.new.recursive(3)).to eq "+---"
 
           expect(observed_calls.length).to eq 4
 
@@ -1367,11 +1829,11 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when method is infinitely recursive' do
-      include_context 'with code tracking'
+    context "when method is infinitely recursive" do
+      include_context "with code tracking"
 
       before do
-        load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
+        load File.join(File.dirname(__FILE__), "hook_line_recursive.rb")
       end
 
       # We need to use a rate limiter, otherwise the stack is exhausted
@@ -1381,13 +1843,13 @@ RSpec.describe Datadog::DI::Instrumenter do
         1
       end
 
-      context 'non-enriched probe' do
+      context "non-enriched probe" do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_recursive.rb', line_no: 21,
+          Datadog::DI::Probe.new(file: "hook_line_recursive.rb", line_no: 21,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
-        it 'invokes the callback only once' do
+        it "invokes the callback only once" do
           hook_line(probe) do |payload|
             observed_calls << payload
           end
@@ -1406,15 +1868,15 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'when the instrumented line raises an exception' do
-      include_context 'with code tracking'
+    context "when the instrumented line raises an exception" do
+      include_context "with code tracking"
 
       before do
-        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+        load File.join(File.dirname(__FILE__), "hook_line_load.rb")
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 52,
+        Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 52,
           id: 1, type: :log, rate_limit: rate_limit)
       end
 
@@ -1433,23 +1895,23 @@ RSpec.describe Datadog::DI::Instrumenter do
         observed_calls.first
       end
 
-      it 'invokes callback with expected keys' do
+      it "invokes callback with expected keys" do
         expect(payload).to be_a(Datadog::DI::Context)
       end
     end
 
-    context 'when there is a condition' do
-      include_context 'with code tracking'
+    context "when there is a condition" do
+      include_context "with code tracking"
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 30,
+        Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 30,
           id: 1, type: :log, rate_limit: rate_limit, condition: condition)
       end
 
       let(:condition) {}
 
       before do
-        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+        load File.join(File.dirname(__FILE__), "hook_line_load.rb")
       end
 
       before do
@@ -1458,16 +1920,16 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when condition is on local variable' do
-        context 'when condition is met' do
+      context "when condition is on local variable" do
+        context "when condition is met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
-              "ref('local') == 42"
+              "(expression)",
+              "ref(context, 'local') == 42",
             )
           end
 
-          it 'invokes the callback' do
+          it "invokes the callback" do
             expect(probe.condition).to receive(:satisfied?).and_call_original
 
             expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
@@ -1475,15 +1937,15 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
         end
 
-        context 'when condition is not met' do
+        context "when condition is not met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
-              "ref('local') == 43"
+              "(expression)",
+              "ref(context, 'local') == 43",
             )
           end
 
-          it 'does not invoke the callback' do
+          it "does not invoke the callback" do
             # Ensure the condition was evaluated
             expect(probe.condition).to receive(:satisfied?).and_call_original
 
@@ -1493,21 +1955,21 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when condition is on instance variable' do
+      context "when condition is on instance variable" do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 47,
+          Datadog::DI::Probe.new(file: "hook_line_load.rb", line_no: 47,
             id: 1, type: :log, rate_limit: rate_limit, condition: condition)
         end
 
-        context 'when condition is met' do
+        context "when condition is met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
-              "iref('@ivar') == 42"
+              "(expression)",
+              "iref(context, '@ivar') == 42",
             )
           end
 
-          it 'invokes the callback' do
+          it "invokes the callback" do
             expect(probe.condition).to receive(:satisfied?).and_call_original
 
             expect(HookLineIvarLoadTestClass.new.test_method).to eq 1337
@@ -1515,15 +1977,15 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
         end
 
-        context 'when condition is not met' do
+        context "when condition is not met" do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
-              '(expression)',
-              "iref('@ivar') == 43"
+              "(expression)",
+              "iref(context, '@ivar') == 43",
             )
           end
 
-          it 'does not invoke the callback' do
+          it "does not invoke the callback" do
             # Ensure the condition was evaluated
             expect(probe.condition).to receive(:satisfied?).and_call_original
 
@@ -1535,13 +1997,13 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
-  describe '.unhook_line' do
-    context 'when line probe was not hooked' do
+  describe ".unhook_line" do
+    context "when line probe was not hooked" do
       let(:probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, file: 'x', line_no: 1)
+        Datadog::DI::Probe.new(id: 1, type: :log, file: "x", line_no: 1)
       end
 
-      it 'does nothing and does not raise an exception' do
+      it "does nothing and does not raise an exception" do
         expect do
           instrumenter.unhook_line(probe)
         end.not_to raise_error
@@ -1549,13 +2011,13 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
-  describe '.unhook_method' do
-    context 'when method probe was not hooked' do
+  describe ".unhook_method" do
+    context "when method probe was not hooked" do
       let(:probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: 'x', method_name: 'y')
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "x", method_name: "y")
       end
 
-      it 'does nothing and does not raise an exception' do
+      it "does nothing and does not raise an exception" do
         expect do
           instrumenter.unhook_method(probe)
         end.not_to raise_error
@@ -1563,14 +2025,11 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
-  describe 'telemetry reporting' do
+  describe "telemetry reporting" do
     let(:propagate_all_exceptions) { false }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-    let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
-    end
 
-    describe 'method probe condition evaluation failed callback exceptions' do
+    describe "method probe condition evaluation failed callback exceptions" do
       before do
         Object.const_set(:DITestClass, Class.new do
           def test_method(arg)
@@ -1585,19 +2044,19 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 1, type: :log, type_name: 'DITestClass', method_name: 'test_method',
-          condition: Datadog::DI::EL::Expression.new('(expression)', 'undefined_function()')
+          id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
         )
       end
 
       let(:responder) do
-        double('responder').tap do |r|
+        double("responder").tap do |r|
           # Allow the callback to be called, but have it raise an error
           allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end
 
-      it 'reports exception to telemetry when callback fails' do
+      it "reports exception to telemetry when callback fails" do
         allow(logger).to receive(:debug)
 
         expect(telemetry).to receive(:report) do |exc, description:|
@@ -1619,11 +2078,83 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe 'line probe condition evaluation failed callback exceptions' do
-      include_context 'with code tracking'
+    describe "method probe executed callback exceptions" do
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+          capture_snapshot: false,
+        )
+      end
+
+      let(:responder) do
+        double("responder").tap do |r|
+          allow(r).to receive(:probe_executed_callback).and_raise(StandardError, "callback error")
+        end
+      end
+
+      it "does not propagate exception to customer code" do
+        expect_lazy_log(logger, :debug, /unhandled exception in method probe.*StandardError.*callback error/)
+
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(StandardError)
+          expect(exc.message).to eq("callback error")
+          expect(description).to eq("Unhandled exception in method probe")
+        end
+
+        begin
+          instrumenter.hook_method(probe, responder)
+
+          expect do
+            result = DITestClass.new.test_method(42)
+            expect(result).to eq(43)
+          end.not_to raise_error
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+
+      it "preserves customer exception when callback also raises" do
+        expect_lazy_log(logger, :debug, /unhandled exception in method probe.*StandardError.*callback error/)
+        allow(telemetry).to receive(:report)
+
+        error_class = Class.new(StandardError)
+
+        Object.send(:remove_const, :DITestClass)
+        Object.const_set(:DITestClass, Class.new do
+          define_method(:test_method) do |_arg|
+            raise error_class, "customer error"
+          end
+        end)
+
+        begin
+          instrumenter.hook_method(probe, responder)
+
+          expect do
+            DITestClass.new.test_method(42)
+          end.to raise_error(error_class, "customer error")
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+    end
+
+    describe "line probe condition evaluation failed callback exceptions" do
+      include_context "with code tracking"
 
       before do
-        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+        load File.join(File.dirname(__FILE__), "hook_line_load.rb")
       end
 
       after do
@@ -1632,19 +2163,19 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 1, type: :log, file: 'hook_line_load.rb', line_no: 30,
-          condition: Datadog::DI::EL::Expression.new('(expression)', 'undefined_function()')
+          id: 1, type: :log, file: "hook_line_load.rb", line_no: 30,
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
         )
       end
 
       let(:responder) do
-        double('responder').tap do |r|
+        double("responder").tap do |r|
           # Allow the callback to be called, but have it raise an error
           allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end
 
-      it 'reports exception to telemetry when callback fails' do
+      it "reports exception to telemetry when callback fails" do
         allow(logger).to receive(:debug)
 
         expect(telemetry).to receive(:report) do |exc, description:|
@@ -1660,6 +2191,1205 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect do
           HookLineLoadTestClass.new.test_method_with_local
         end.not_to raise_error
+      end
+    end
+
+    describe "evaluation timeout" do
+      # The constant name is unique per example because the class object
+      # stays in ObjectSpace with its cached Module#name after the
+      # remove_const cleanup, and a fixed name would collide across
+      # examples in name-keyed ObjectSpace walks.
+      let(:timeout_class_name) { :"DITimeoutClass#{SecureRandom.hex(4)}" }
+
+      let(:timeout_class) { Object.const_get(timeout_class_name) }
+
+      before do
+        Object.const_set(timeout_class_name, Class.new do
+          def test_method(arg1)
+            arg1.length
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, timeout_class_name)
+      end
+
+      before do
+        expect(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).at_least(:once).and_return(0)
+      end
+
+      let(:guardrails_telemetry) do
+        Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+      end
+
+      def expect_condition_timeout_skip_metric
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1})
+      end
+
+      # Compiles `arg.filter(@it >= 0).length > 0`, a collection filter over
+      # the positional argument named +arg_name+. With a zero evaluation
+      # budget the cooperative check inside #filter raises immediately,
+      # aborting condition evaluation before any capture happens.
+      def compile_timeout_condition(arg_name)
+        src, regexps = Datadog::DI::EL::Compiler.new.compile(
+          "gt" => [
+            {
+              "len" => {
+                "filter" => [
+                  {"ref" => arg_name},
+                  {"ge" => [{"ref" => "@it"}, 0]},
+                ],
+              },
+            },
+            0,
+          ],
+        )
+        Datadog::DI::EL::Expression.new("#{arg_name}.filter(@it >= 0).length > 0", src, regexps: regexps)
+      end
+
+      let(:responder) do
+        instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: timeout_class_name.to_s, method_name: "test_method",
+          condition: compile_timeout_condition("arg1"),
+        )
+      end
+
+      context "method probe callback" do
+        it "invokes the condition evaluation failed callback with the timeout and the customer method runs normally" do
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
+          expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+
+          begin
+            instrumenter.hook_method(probe, responder)
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+        end
+      end
+
+      context "method probe hit after a timeout" do
+        it "evaluates the condition again on the next hit" do
+          allow(logger).to receive(:debug)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1).twice
+          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+            tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1}).twice
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback).twice do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+          expect(probe.condition).to receive(:satisfied?).twice.and_call_original
+
+          begin
+            instrumenter.hook_method(probe, responder)
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+        end
+      end
+
+      context "method probe timeout with propagate_all_exceptions enabled" do
+        let(:propagate_all_exceptions) { true }
+
+        it "keeps the evaluation timeout contained and the customer method runs normally" do
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
+          expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+
+          begin
+            instrumenter.hook_method(probe, responder)
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+        end
+      end
+
+      context "method probe snapshot through the probe manager" do
+        include_context "with probe manager"
+
+        it "emits an evaluation error snapshot with no captured data" do
+          allow(telemetry).to receive(:inc)
+          allow(logger).to receive(:debug)
+
+          begin
+            instrumenter.hook_method(probe, probe_manager)
+
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+
+          expect(snapshot_payloads.length).to eq 1
+          snapshot = snapshot_payloads.first[:debugger][:snapshot]
+          expect(snapshot[:captures]).to eq({})
+          evaluation_errors = snapshot[:evaluationErrors]
+          expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
+        end
+      end
+
+      context "method probe capture expression timeout through the probe manager" do
+        include_context "with probe manager"
+
+        # The capture expression filters the first positional argument so
+        # its evaluation crosses a cooperative deadline check, which the
+        # zero evaluation budget makes raise immediately.
+        let(:probe) do
+          src, regexps = Datadog::DI::EL::Compiler.new.compile(
+            "filter" => [{"ref" => "arg1"}, {"ge" => [{"ref" => "@it"}, 0]}],
+          )
+          Datadog::DI::Probe.new(
+            id: 1, type: :log, type_name: timeout_class_name.to_s, method_name: "test_method",
+            capture_expressions: [
+              Datadog::DI::CaptureExpression.new(
+                name: "filtered",
+                expr: Datadog::DI::EL::Expression.new("arg1.filter(@it >= 0)", src, regexps: regexps),
+              ),
+            ],
+          )
+        end
+
+        it "emits an evaluation error snapshot with no captured value for the expression" do
+          allow(telemetry).to receive(:inc)
+          allow(telemetry).to receive(:report)
+          allow(logger).to receive(:debug)
+
+          begin
+            instrumenter.hook_method(probe, probe_manager)
+
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+
+          expect(snapshot_payloads.length).to eq 1
+          snapshot = snapshot_payloads.first[:debugger][:snapshot]
+          expect(snapshot[:captures][:return][:captureExpressions]).to eq({})
+          evaluation_errors = snapshot[:evaluationErrors]
+          expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first[:expr]).to eq("filtered")
+          expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
+        end
+      end
+
+      context "method probe template timeout through the probe manager" do
+        include_context "with probe manager"
+
+        # The template holds one expression segment, whose pre-segment
+        # deadline check raises before the segment evaluates under the
+        # zero evaluation budget.
+        let(:probe) do
+          src, regexps = Datadog::DI::EL::Compiler.new.compile("ref" => "arg1")
+          Datadog::DI::Probe.new(
+            id: 1, type: :log, type_name: timeout_class_name.to_s, method_name: "test_method",
+            template_segments: [Datadog::DI::EL::Expression.new("arg1", src, regexps: regexps)],
+          )
+        end
+
+        it "renders the timed-out template as an evaluation error in the emitted message" do
+          allow(telemetry).to receive(:inc)
+          allow(logger).to receive(:debug)
+
+          begin
+            instrumenter.hook_method(probe, probe_manager)
+
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+
+          expect(snapshot_payloads.length).to eq 1
+          snapshot = snapshot_payloads.first[:debugger][:snapshot]
+          expect(snapshot[:evaluationErrors].length).to eq 1
+          expect(snapshot[:evaluationErrors].first[:expr]).to eq("arg1")
+          expect(snapshot[:evaluationErrors].first[:message]).to match(/EvaluationTimeout/)
+          expect(snapshot_payloads.first[:message]).to eq("[evaluation error]")
+        end
+      end
+
+      shared_context "timing-out line probe" do
+        include_context "with code tracking"
+
+        before do
+          load File.join(File.dirname(__FILE__), "hook_line_load.rb")
+        end
+
+        after do
+          instrumenter.unhook(probe)
+        end
+
+        # The condition filters the argument of
+        # HookLineLoadTestClass#test_method_with_arg, whose line 34 the
+        # probe hooks.
+        let(:probe) do
+          Datadog::DI::Probe.new(
+            id: 1, type: :log, file: "hook_line_load.rb", line_no: 34,
+            condition: compile_timeout_condition("arg"),
+          )
+        end
+      end
+
+      context "line probe callback" do
+        include_context "timing-out line probe"
+
+        it "invokes the condition evaluation failed callback with the timeout" do
+          allow(logger).to receive(:debug)
+
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+
+          instrumenter.hook_line(probe, responder)
+
+          expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
+        end
+      end
+
+      context "line probe hit after a timeout" do
+        include_context "timing-out line probe"
+
+        it "evaluates the condition again on the next hit" do
+          allow(logger).to receive(:debug)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1).twice
+          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+            tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1}).twice
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback).twice do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+          expect(probe.condition).to receive(:satisfied?).twice.and_call_original
+
+          instrumenter.hook_line(probe, responder)
+
+          expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
+          expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
+        end
+      end
+    end
+  end
+
+  describe "interleaved evaluation of the same probe" do
+    include_context "with probe manager"
+
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    # The condition is `len(arg1) == 3 ||
+    # arg1.filter(isUndefined(@it) != true && arg2 == 'outer').length == 2`:
+    # the inner invocation satisfies the first clause alone, while the
+    # outer invocation satisfies the second, whose filter reads arg2 after
+    # the yielding item's nil? check has paused the evaluation.
+    let(:probe) do
+      src, regexps = Datadog::DI::EL::Compiler.new.compile(
+        "or" => [
+          {"eq" => [{"len" => {"ref" => "arg1"}}, 3]},
+          {"eq" => [
+            {"len" => {"filter" => [
+              {"ref" => "arg1"},
+              {"and" => [
+                {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]},
+                {"eq" => [{"ref" => "arg2"}, "outer"]},
+              ]},
+            ]}},
+            2,
+          ]},
+        ],
+      )
+      condition = Datadog::DI::EL::Expression.new(
+        "len(arg1) == 3 || arg1.filter(isUndefined(@it) != true && arg2 == 'outer').length == 2",
+        src, regexps: regexps,
+      )
+      Datadog::DI::Probe.new(
+        id: 1, type: :log,
+        type_name: "InterleavedEvaluationTestClass", method_name: "test_method",
+        capture_snapshot: true,
+        rate_limit: 100,
+        condition: condition,
+      )
+    end
+
+    let(:yielding_item) do
+      Object.new.tap do |item|
+        item.define_singleton_method(:nil?) do
+          Fiber.yield
+          false
+        end
+      end
+    end
+
+    it "reads each invocation's locals from that invocation's context" do
+      instrumenter.hook_method(probe, probe_manager)
+      begin
+        outer = Fiber.new { InterleavedEvaluationTestClass.new.test_method([yielding_item, 5], "outer") }
+        # The outer condition evaluation pauses inside its filter, at the
+        # yielding item's nil? check.
+        outer.resume
+
+        # The inner invocation of the same probe evaluates and completes
+        # while the outer evaluation is paused mid-iteration.
+        InterleavedEvaluationTestClass.new.test_method([1, 2, 3], "inner")
+        expect(snapshot_payloads.length).to eq(1)
+
+        expect(outer.resume).to eq(2)
+        expect(snapshot_payloads.length).to eq(2)
+      ensure
+        instrumenter.unhook_method(probe)
+      end
+
+      entry_args = snapshot_payloads.map do |payload|
+        payload[:debugger][:snapshot][:captures][:entry][:arguments]
+      end
+      expect(entry_args.map { |args| args[:arg2] }).to contain_exactly(
+        {type: "String", value: "outer"},
+        {type: "String", value: "inner"},
+      )
+    end
+  end
+
+  describe "global rate limiting" do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    end
+
+    # Asserts the guardrails skip metric emission for a rejected probe
+    # firing.
+    def expect_rate_limit_skip_metric(reason:, event_type:, probe_id: nil)
+      tags = {reason: reason, event_type: event_type}
+      tags[:probe_id] = probe_id if probe_id
+      expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+        tags: tags)
+    end
+
+    describe "constants and limiters" do
+      it "builds the global log limiter at its rate" do
+        expect(instrumenter.global_log_rate_limiter).to be_a(Datadog::Core::TokenBucket)
+        expect(instrumenter.global_log_rate_limiter.rate).to eq 5000
+      end
+    end
+
+    describe "#emit? with a correlation sampler" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log, capture_snapshot: true, rate_limit: 5000)
+      end
+
+      context "with an active trace" do
+        before do
+          stub_active_trace(123)
+
+          freeze_rate_limiter_clock
+        end
+
+        it "does not consult the instrumenter's hard log limiter for a correlated hit" do
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "applies the sampler's drop to a correlated hit and records the skip metric" do
+          # The first hit establishes the trace's unit and admits; the second
+          # is dropped once PER_PROBE_BUDGET is spent.
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+          expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+
+        it "records the global skip metric when TOP denies a new trace's top probe" do
+          # TOP admits TOP_RATE traces; the next trace's top probe is refused
+          # at the TOP gate and the trace is marked starved.
+          1.upto(Datadog::DI::CorrelationSampler::TOP_RATE) do
+            established = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+            allow(Datadog::DI).to receive(:active_trace).and_return(established)
+            expect(instrumenter.send(:emit?, probe)).to be(true)
+          end
+
+          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+          starved = instance_double(Datadog::Tracing::TraceOperation, id: 2)
+          allow(Datadog::DI).to receive(:active_trace).and_return(starved)
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+
+        context "with a TOP rate of 0" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(top_rate: 0) }
+
+          it "records the trace-budget skip metric for a starved trace's correlated hit" do
+            trace = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+            allow(Datadog::DI).to receive(:active_trace).and_return(trace)
+
+            # top_rate 0 refuses the top probe and marks the trace starved.
+            expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+            expect(instrumenter.send(:emit?, probe)).to be(false)
+
+            # The starved trace's correlated hit drops at its zeroed budget.
+            expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+            expect(instrumenter.send(:emit?, probe)).to be(false)
+          end
+        end
+      end
+
+      context "without an active trace" do
+        before do
+          stub_no_trace
+
+          freeze_rate_limiter_clock
+        end
+
+        it "admits an uncorrelated capturing hit through the sampler" do
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "drops an uncorrelated capturing hit when the probe's own rate limit denies" do
+          limited_probe = Datadog::DI::Probe.new(type_name: "HookTestClass",
+            method_name: "hook_test_method",
+            id: 1, type: :log, capture_snapshot: true, rate_limit: 1)
+
+          expect(instrumenter.send(:emit?, limited_probe)).to be(true)
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
+          expect(instrumenter.send(:emit?, limited_probe)).to be(false)
+        end
+
+        context "with a GLOBAL rate of 1" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(global_rate: 1) }
+
+          it "drops an uncorrelated capturing hit when the sampler's GLOBAL is exhausted" do
+            expect(instrumenter.send(:emit?, probe)).to be(true)
+            expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+            expect(instrumenter.send(:emit?, probe)).to be(false)
+          end
+        end
+      end
+
+      context "when the correlation gate raises" do
+        let(:propagate_all_exceptions) { false }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        before do
+          stub_active_trace(123)
+        end
+
+        it "fails open through the probe's own rate limit and reports telemetry" do
+          allow(logger).to receive(:debug)
+          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+
+          expect(probe.rate_limiter).to receive(:allow?).and_return(true)
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("gate boom")
+            expect(description).to eq("Error in DI correlation gate")
+          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "re-raises fatal exceptions" do
+          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(SystemExit)
+
+          expect { instrumenter.send(:emit?, probe) }.to raise_error(SystemExit)
+        end
+
+        it "fails open when resolving the active trace raises" do
+          allow(logger).to receive(:debug)
+          expect(Datadog::DI).to receive(:active_trace).and_raise(StandardError, "trace boom")
+
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("trace boom")
+            expect(description).to eq("Error in DI correlation gate")
+          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "records the per-probe skip metric when the fail-open limiter denies" do
+          allow(logger).to receive(:debug)
+          allow(telemetry).to receive(:report)
+          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+          expect(probe.rate_limiter).to receive(:allow?).and_return(false)
+
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
+
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+      end
+    end
+
+    describe "method probe enforcement" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      context "when the global limit rejects" do
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback but still runs the target method" do
+          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "log")
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+          end
+        end
+      end
+
+      context "when an uncorrelated capturing probe hits its own rate limit" do
+        let(:probe) do
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+            id: 1, type: :log, capture_snapshot: true, rate_limit: 1)
+        end
+
+        it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+
+      context "when the per-probe limit rejects" do
+        let(:probe) do
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+            id: 1, type: :log, rate_limit: 0)
+        end
+
+        it "does not consult the global limiter" do
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "log", probe_id: 1)
+
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/per-probe rate limit \(rateLimitProbe\)/)
+          end
+        end
+      end
+
+      context "when both limits allow" do
+        it "invokes the callback and consumes a global token" do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_call_original
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+
+      context "when the global log limit rejects" do
+        let(:propagate_all_exceptions) { false }
+
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        context "when emitting the skip metric raises" do
+          let(:telemetry) { telemetry_double_raising_on_inc }
+
+          it "completes the probed method normally and logs the telemetry failure" do
+            expect_lazy_log(logger, :debug,
+              /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
+            expect(telemetry).to receive(:report).with(instance_of(StandardError),
+              description: "Error emitting debugger.events.skipped metric")
+
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            expect(HookTestClass.new.hook_test_method).to eq 42
+
+            expect(observed_calls.length).to eq 0
+          end
+        end
+
+        context "when emitting the skip metric raises and all exceptions propagate" do
+          let(:propagate_all_exceptions) { true }
+          let(:telemetry) { telemetry_double_raising_on_inc }
+
+          it "raises the telemetry failure out of the probed method" do
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            expect { HookTestClass.new.hook_test_method }.to raise_error(StandardError, "telemetry down")
+          end
+        end
+
+        context "when emitting the skip metric raises a fatal exception" do
+          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
+
+          it "re-raises the fatal exception out of the probed method" do
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            expect { HookTestClass.new.hook_test_method }.to raise_error(SystemExit)
+
+            expect(observed_calls).to be_empty
+          end
+        end
+
+        context "when telemetry is nil" do
+          let(:telemetry) { nil }
+
+          it "still runs the target method with nothing observed" do
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            expect(HookTestClass.new.hook_test_method).to eq 42
+
+            expect(observed_calls).to be_empty
+          end
+        end
+      end
+    end
+
+    describe "line probe enforcement" do
+      before do
+        expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(true)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      context "when the per-probe limit rejects" do
+        let(:probe) do
+          Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
+            rate_limit: 0)
+        end
+
+        it "does not consult the global limiter" do
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "log", probe_id: 1)
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          # The untargeted TracePoint#enable form is exercised by the
+          # sibling contexts of this describe across the full supported
+          # Ruby matrix (2.6 through 4.0).
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to be_empty
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/per-probe rate limit \(rateLimitProbe\)/)
+          end
+        end
+      end
+
+      context "when the global limit rejects" do
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback" do
+          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "log")
+
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to be_empty
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+          end
+        end
+      end
+
+      context "when an uncorrelated capturing line probe hits its own rate limit" do
+        let(:probe) do
+          Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
+            capture_snapshot: true, rate_limit: 1)
+        end
+
+        it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+
+      context "when both limits allow" do
+        it "invokes the callback" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+
+      context "re-entrancy guard" do
+        it "holds the guard while processing a hit" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |_payload|
+            observed_calls << Datadog::DI.in_probe?
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to eq([true])
+        end
+
+        it "keeps a pre-held guard set for a hit nested in other DI processing" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          begin
+            HookLineTestClass.new.test_method
+          ensure
+            expect(Datadog::DI.in_probe?).to be(true)
+            Datadog::DI.leave_probe
+          end
+
+          expect(observed_calls.length).to eq 1
+          expect(Datadog::DI.in_probe?).to be(false)
+        end
+
+        it "short-circuits a method probe nested in the callback's dispatches" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+          stub_active_trace(123)
+
+          capturing_line_probe = Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
+            id: "p-line", type: :log, capture_snapshot: true, rate_limit: 5000)
+          hook_line(capturing_line_probe) do |payload|
+            observed_calls << payload
+          end
+
+          # TraceBudgetLedger#fetch calls WeakRef#weakref_alive? on a second
+          # capturing hit in the same trace. Probe that method so the nested
+          # wrapper must short-circuit under the guard; unguarded, it fires.
+          weakref_probe = Datadog::DI::Probe.new(type_name: "WeakRef",
+            method_name: "weakref_alive?", id: "p-weakref", type: :log,
+            capture_snapshot: true, rate_limit: 5000)
+          weakref_probe_calls = []
+          hook_method(weakref_probe) do |payload|
+            weakref_probe_calls << payload
+          end
+
+          begin
+            HookLineTestClass.new.test_method
+            HookLineTestClass.new.test_method
+            expect(weakref_probe_calls).to be_empty
+
+            # Strong local so GC cannot collect the referent before this unguarded call.
+            weakref_target = Object.new
+            expect(WeakRef.new(weakref_target).weakref_alive?).to be(true)
+          ensure
+            instrumenter.unhook(capturing_line_probe)
+            instrumenter.unhook(weakref_probe)
+          end
+
+          expect(weakref_probe_calls.length).to eq 1
+          expect(observed_calls.length).to eq 1
+        end
+      end
+    end
+
+    describe "condition error enforcement" do
+      let(:propagate_all_exceptions) { false }
+
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+        manager.close
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+          capture_snapshot: true,
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
+        )
+      end
+
+      let(:probe_notification_builder) do
+        instance_double(Datadog::DI::ProbeNotificationBuilder)
+      end
+
+      let(:probe_notifier_worker) do
+        instance_double(Datadog::DI::ProbeNotifierWorker)
+      end
+
+      let(:probe_repository) do
+        Datadog::DI::ProbeRepository.new
+      end
+
+      let(:manager) do
+        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
+          probe_notifier_worker, logger, probe_repository)
+      end
+
+      let(:snapshot) { double("snapshot") }
+
+      before do
+        allow(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+          .and_return(snapshot)
+      end
+
+      context "with no active trace" do
+        before do
+          stub_no_trace
+        end
+
+        context "when the process-wide GLOBAL budget admits a condition error" do
+          it "emits the condition error snapshot through the probe manager" do
+            # The condition-error path must not draw the probe's base rate
+            # limit: evaluation errors must not consume the probe's snapshot
+            # allowance.
+            expect(probe.rate_limiter).not_to receive(:allow?)
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+        end
+
+        context "when the process-wide GLOBAL budget rejects a condition error" do
+          before do
+            expect(instrumenter.correlation_sampler).to receive(:admit_process_wide_snapshot?).and_return(false)
+          end
+
+          it "does not emit the condition error snapshot and emits the rateLimitGlobal skip metric" do
+            expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+            expect(probe_notifier_worker).not_to receive(:add_snapshot)
+            expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+              tags: {reason: "rateLimitGlobal", event_type: "snapshot"})
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+
+            expect(logger).to have_received(:trace) do |&block|
+              expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+            end
+          end
+
+          context "when emitting the skip metric raises" do
+            let(:telemetry) { telemetry_double_raising_on_inc }
+
+            it "completes the probed method and logs the telemetry failure" do
+              expect_lazy_log(logger, :debug,
+                /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
+
+              instrumenter.hook_method(probe, manager)
+
+              expect(DITestClass.new.test_method(42)).to eq 43
+            end
+          end
+        end
+
+        context "when the per-probe limiter rejects a condition error" do
+          before do
+            allow(probe).to receive(:condition_evaluation_failed_rate_limiter)
+              .and_return(instance_double(Datadog::Core::TokenBucket, allow?: false))
+          end
+
+          it "does not emit the condition error snapshot and emits no events.skipped metric" do
+            expect(instrumenter).not_to receive(:admit_condition_error_snapshot?)
+            expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+            expect(probe_notifier_worker).not_to receive(:add_snapshot)
+            expect(telemetry).not_to receive(:inc)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+
+            expect(logger).to have_received(:trace) do |&block|
+              expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+            end
+          end
+        end
+      end
+
+      context "with an active trace" do
+        before do
+          stub_active_trace(123)
+        end
+
+        context "when the trace's budget admits the condition error" do
+          it "emits the condition error snapshot through the trace's coordinated decision" do
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+
+          it "charges the condition error emission to the trace's per-probe budget" do
+            rate_limiter_time = Datadog::Core::Utils::Time.get_time
+            allow(Datadog::Core::Utils::Time).to receive(:get_time) { rate_limiter_time }
+            allow(probe_notifier_worker).to receive(:add_snapshot)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+            expect(probe_notification_builder).to have_received(:build_condition_evaluation_failed).once
+            expect(probe_notifier_worker).to have_received(:add_snapshot).once
+
+            # Advance past the per-probe condition-error limiter's one-second
+            # window; the trace's emission counters hold their consumed state.
+            rate_limiter_time += 2
+
+            expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+            expect(probe_notification_builder).to have_received(:build_condition_evaluation_failed).once
+            expect(probe_notifier_worker).to have_received(:add_snapshot).once
+          end
+        end
+
+        context "when the trace is starved" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(top_rate: 0) }
+
+          let(:starving_probe) do
+            Datadog::DI::Probe.new(
+              id: 2, type: :log, type_name: "DITestClass", method_name: "test_method",
+              capture_snapshot: true,
+            )
+          end
+
+          after do
+            instrumenter.unhook(starving_probe)
+          end
+
+          it "emits no condition error snapshot and records the trace-budget skip metric" do
+            instrumenter.hook_method(probe, manager)
+            # Hooked last, the starving probe's wrapper runs first: its
+            # capturing hit meets the TOP gate, which refuses at rate 0 and
+            # starves the trace, so the condition error then meets the
+            # starved budget.
+            instrumenter.hook_method(starving_probe, manager)
+
+            expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+            expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+            expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+            expect(probe_notification_builder).not_to receive(:build_executed)
+            expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+        end
+
+        context "when a non-capturing probe's condition fails" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(top_rate: 0) }
+
+          let(:probe) do
+            Datadog::DI::Probe.new(
+              id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+              condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
+            )
+          end
+
+          it "admits the condition error through the process-wide GLOBAL token" do
+            # TOP at rate 0 starves every capturing trace; a non-capturing
+            # probe is exempt from coordination, so its condition error draws
+            # the GLOBAL token instead of the trace decision.
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+        end
+
+        context "when the admission gate raises" do
+          it "fails open, emits the condition error and reports the gate error" do
+            allow(logger).to receive(:debug)
+            expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+            expect(telemetry).to receive(:report) do |exc, description:|
+              expect(exc).to be_a(StandardError)
+              expect(exc.message).to eq("gate boom")
+              expect(description).to eq("Error in DI correlation gate")
+            end
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+
+          it "re-raises fatal gate exceptions out of the probed method" do
+            expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(SystemExit)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect { DITestClass.new.test_method(42) }.to raise_error(SystemExit)
+          end
+        end
+      end
+    end
+  end
+
+  describe "guardrails metric emission through the probe lifecycle" do
+    before do
+      Object.const_set(:DIGuardrailsTestClass, Class.new do
+        def deep_arg_method(arg)
+          42
+        end
+      end)
+    end
+
+    after do
+      Object.send(:remove_const, :DIGuardrailsTestClass)
+    end
+
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    end
+
+    context "when a capture limit truncates the snapshot" do
+      let(:serializer) do
+        Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: nil)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "DIGuardrailsTestClass",
+          method_name: "deep_arg_method", capture_snapshot: true)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      it "still captures the truncated snapshot and emits the capture.incomplete metric" do
+        expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
+          tags: {reason: "depth", event_type: "snapshot"})
+
+        hook_method(probe) { |payload| observed_calls << payload }
+
+        # The Ruby 2.x method wrapper moves a trailing Hash argument into
+        # keyword arguments (Instrumenter#kwargs_from_splat); wrapping the
+        # hash in an array keeps it a positional argument on every
+        # supported Ruby version.
+        expect(DIGuardrailsTestClass.new.deep_arg_method([{a: {b: {c: 1}}}])).to eq 42
+
+        expect(observed_calls.length).to eq 1
+        inner = observed_calls.first.serialized_entry_args[:arg1]
+        expect(inner[:elements][0][:entries][0][1][:notCapturedReason]).to eq "depth"
+      end
+    end
+
+    context "when capture expression evaluation exceeds the capture time budget" do
+      before do
+        allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "DIGuardrailsTestClass",
+          method_name: "deep_arg_method", capture_snapshot: false, evaluate_at: :entry,
+          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: nil)])
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      it "skips the capture expression and emits the evaluationTimeout skip metric" do
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1})
+
+        hook_method(probe) { |payload| observed_calls << payload }
+
+        expect(DIGuardrailsTestClass.new.deep_arg_method(42)).to eq 42
+
+        expect(observed_calls.length).to eq 1
       end
     end
   end

@@ -6,7 +6,7 @@ module Datadog
           include Contrib::Integration
           MINIMUM_VERSION: untyped
 
-          def self.version: () -> ::Gem::Version?
+          def self.version: () -> Gem::Version?
 
           def self.loaded?: () -> bool
 

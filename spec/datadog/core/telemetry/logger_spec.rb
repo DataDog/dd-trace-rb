@@ -1,26 +1,26 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/telemetry/logger'
+require "datadog/core/telemetry/logger"
 
 RSpec.describe Datadog::Core::Telemetry::Logger do
-  let(:exception) { StandardError.new('Exception message') }
+  let(:exception) { StandardError.new("Exception message") }
 
   before do
     expect(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
   end
 
-  describe '.report' do
-    context 'when there is a telemetry component configured' do
+  describe ".report" do
+    context "when there is a telemetry component configured" do
       let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
       it do
         expect(Datadog.logger).not_to receive(:warn)
-        expect(telemetry).to receive(:report).with(exception, level: :error, description: 'Oops...')
+        expect(telemetry).to receive(:report).with(exception, level: :error, description: "Oops...")
 
-        described_class.report(exception, level: :error, description: 'Oops...')
+        described_class.report(exception, level: :error, description: "Oops...")
       end
 
-      context 'when only given an exception' do
+      context "when only given an exception" do
         it do
           expect(Datadog.logger).not_to receive(:warn)
           expect(telemetry).to receive(:report).with(exception, level: :error, description: nil)
@@ -30,36 +30,36 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
       end
     end
 
-    context 'when there is no telemetry component configured' do
+    context "when there is no telemetry component configured" do
       let(:telemetry) { nil }
 
       it do
         expect(Datadog.logger).to receive(:warn).with(/Failed to send telemetry/)
 
-        described_class.report(exception, level: :error, description: 'Oops...')
+        described_class.report(exception, level: :error, description: "Oops...")
       end
     end
   end
 
-  describe '.error' do
-    context 'when there is a telemetry component configured' do
+  describe ".error" do
+    context "when there is a telemetry component configured" do
       let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
       it do
         expect(Datadog.logger).not_to receive(:warn)
-        expect(telemetry).to receive(:error).with('description')
+        expect(telemetry).to receive(:error).with("description")
 
-        described_class.error('description')
+        described_class.error("description")
       end
     end
 
-    context 'when there is no telemetry component configured' do
+    context "when there is no telemetry component configured" do
       let(:telemetry) { nil }
 
       it do
         expect(Datadog.logger).to receive(:warn).with(/Failed to send telemetry/)
 
-        described_class.error('description')
+        described_class.error("description")
       end
     end
   end

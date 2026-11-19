@@ -142,3 +142,89 @@ logger.debug("Processing DD_CUSTOM_METRIC_NAME") # rubocop:disable CustomCops/En
 ### Additional information
 
 See docs/AccessEnvironmentVariables.md for details.
+
+## ExceptionMessageCop
+
+The `CustomCops::ExceptionMessageCop` enforces consistent exception logging format.
+
+### Purpose
+
+`Exception#to_s` and `Exception#message` have different contracts in Ruby. `Exception#to_s` reads the message ivar directly and returns the class name when it's nil. `Exception#message` calls `to_s` by default — but exception subclasses commonly override `message` to compute a string from instance variables (Bundler, Rails ActionView/ActiveSupport, RubyGems, and several classes inside this gem do this). When `message` is overridden without a matching `to_s` override, `e.to_s` (and therefore `"#{e}"`) returns just the class name, while `e.message` returns the actual error string.
+
+The codebase convention is `"#{e.class}: #{e.message}"`. This cop enforces it by detecting `e.class.name` and bare `#{e}` interpolations inside rescue blocks, and by requiring `#{e.class}` alongside any exception interpolation.
+
+### Examples
+
+#### Bad
+
+```ruby
+rescue => e
+  log("#{e.class.name}: #{e.message}")  # e.class.name should be e.class
+  log("#{e.class}: #{e}")               # bare #{e} should be #{e.message}
+  log("error: #{e.message}")            # missing class name
+  log("error: #{e}")                    # both: bare e and missing class
+```
+
+#### Good
+
+```ruby
+rescue => e
+  log("#{e.class}: #{e.message}")
+```
+
+### Auto-correction
+
+The cop auto-corrects within string interpolation only:
+
+- `#{e}` → `#{e.message}`
+- `#{e.class.name}` → `#{e.class}`
+
+The missing-`#{e.class}` rule is not auto-corrected — it requires a human to choose where the class name belongs in the surrounding text.
+
+Outside interpolation (e.g., `log(e.class.name)`), the cop flags the offense but does not auto-correct, since the replacement may change semantics.
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/exception_message_cop_spec.rb
+```
+
+## RemoveInstanceVariableCop
+
+The `CustomCops::RemoveInstanceVariableCop` prevents `remove_instance_variable` in library code.
+
+### Purpose
+
+Removing an instance variable costs about 19ns, against about 2.4ns for `@foo = nil`. It also changes the object's shape, so every later instance variable access on that object becomes polymorphic. Assign `nil` and test for `nil` instead. When `nil` is itself a meaningful value, keep a separate boolean flag next to the variable.
+
+The cop also flags `send`, `__send__` and `public_send` calls that name `remove_instance_variable` with a literal symbol or string. Calls with a dynamic method name are not flagged.
+
+### Examples
+
+#### Bad
+
+```ruby
+remove_instance_variable(:@foo)
+object.remove_instance_variable(:@foo)
+object.send(:remove_instance_variable, :@foo)
+```
+
+#### Good
+
+```ruby
+@foo = nil
+```
+
+### Auto-correction
+
+None. The replacement depends on how the variable is read afterwards.
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/remove_instance_variable_cop_spec.rb
+```

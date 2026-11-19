@@ -1,0 +1,63 @@
+module Datadog
+  module AppSec
+    module RouteNormalizer
+      class RailsRoutePattern
+        DOT_CHAR: String
+
+        GROUP_OPEN_CHAR: String
+
+        OPTIONAL_GROUP_PATTERN: Regexp
+
+        NAMED_PARAM_PREFIX_CHAR: String
+
+        GLOB_PARAM_PREFIX_CHAR: String
+
+        @pattern: untyped
+
+        @path_params: Hash[Symbol, untyped]
+
+        @path: String
+
+        def initialize: (untyped pattern) -> void
+
+        def normalize: (path_params: Hash[Symbol, untyped], path: String) -> String
+
+        private
+
+        def remove_paramless_optional_groups: (String pattern) -> String
+
+        def visit_route_node: (untyped node, Buffer buffer) -> void
+
+        def group_present?: (untyped node) -> bool
+
+        def param_matched_path?: (Symbol name) -> bool
+
+        def collect_group_param_names: (untyped node, Array[String] memo) -> Array[String]
+
+        def optional_group_has_route_params?: (String group) -> bool
+
+        class Buffer
+          @segments: Array[String]
+
+          @text: String
+
+          @params: Array[String]
+
+          @nameless_param_count: Integer
+
+          def add_literal: (String text) -> void
+
+          def add_param: (String name) -> void
+
+          def flush: () -> void
+
+          def to_path: () -> String
+
+          private
+
+          def render_params: (Array[String] params) -> String
+        end
+      end
+    end
+  end
+end

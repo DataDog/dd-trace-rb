@@ -13,6 +13,7 @@ module Datadog
               configuration = Datadog.configuration.tracing[:sidekiq]
 
               Datadog::Tracing.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
@@ -38,6 +39,7 @@ module Datadog
               configuration = Datadog.configuration.tracing[:sidekiq]
 
               Datadog::Tracing.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)

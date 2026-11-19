@@ -4,9 +4,10 @@ module Datadog
   module Profiling
     # Monkey patches needed for profiler features and compatibility
     module Ext
-      # All Ruby versions as of this writing have bugs in the dir class implementation, causing issues such as
+      # Ruby versions before 3.4 have bugs in the `Dir` class implementation, causing issues such as
       # https://github.com/DataDog/dd-trace-rb/issues/3450 .
-      # See also https://bugs.ruby-lang.org/issues/20586 for more details.
+      # This was fixed upstream in https://bugs.ruby-lang.org/issues/20586 but we use this monkey patch to work around
+      # the issue on legacy versions (it gets applied by `Datadog::Profiling::Component`).
       #
       # This monkey patch for the Ruby `Dir` class works around these bugs for affected Ruby versions by temporarily
       # blocking the profiler from interrupting system calls.
@@ -27,7 +28,7 @@ module Datadog
         end
       end
 
-      if RUBY_VERSION.start_with?("2.")
+      if RubyVersion.is?("< 3")
         # Monkey patches for Dir.singleton_class (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirClassMonkeyPatches
           # Steep: Workaround that defines args and block only for Ruby 2.x.
@@ -269,7 +270,7 @@ module Datadog
         end
       end
 
-      if RUBY_VERSION.start_with?("2.")
+      if RubyVersion.is?("< 3")
         # Monkey patches for Dir (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirInstanceMonkeyPatches
           # Steep: Workaround that defines args and block only for Ruby 2.x.
@@ -299,7 +300,7 @@ module Datadog
             end
           end
 
-          unless RUBY_VERSION.start_with?("2.5.") # This is Ruby 2.6+
+          if RubyVersion.is?(">= 2.6.0") # This method is Ruby 2.6+
             # See note on methods that yield above.
             def each_child(*args, &block)
               if block

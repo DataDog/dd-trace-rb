@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'utils'
-require_relative '../core/logging/ext'
+require_relative "utils"
+require_relative "../core/logging/ext"
 
 module Datadog
   module Tracing
@@ -13,12 +13,12 @@ module Datadog
       # Represents current trace state with key identifiers
       # @public_api
       class Identifier
-        LOG_ATTR_ENV = 'dd.env'
-        LOG_ATTR_SERVICE = 'dd.service'
-        LOG_ATTR_SPAN_ID = 'dd.span_id'
-        LOG_ATTR_TRACE_ID = 'dd.trace_id'
-        LOG_ATTR_VERSION = 'dd.version'
-        LOG_ATTR_SOURCE = 'ddsource'
+        LOG_ATTR_ENV = "dd.env"
+        LOG_ATTR_SERVICE = "dd.service"
+        LOG_ATTR_SPAN_ID = "dd.span_id"
+        LOG_ATTR_TRACE_ID = "dd.trace_id"
+        LOG_ATTR_VERSION = "dd.version"
+        LOG_ATTR_SOURCE = "ddsource"
 
         attr_reader \
           :env,
@@ -51,9 +51,9 @@ module Datadog
               service: service.to_s,
               version: version.to_s,
               trace_id: trace_id.to_s,
-              span_id: span_id.to_s
+              span_id: span_id.to_s,
             },
-            ddsource: Core::Logging::Ext::DD_SOURCE
+            ddsource: Core::Logging::Ext::DD_SOURCE,
           }
         end
 
@@ -68,7 +68,7 @@ module Datadog
             attributes << "#{LOG_ATTR_TRACE_ID}=#{trace_id}"
             attributes << "#{LOG_ATTR_SPAN_ID}=#{span_id}"
             attributes << "#{LOG_ATTR_SOURCE}=#{Core::Logging::Ext::DD_SOURCE}"
-            attributes.join(' ')
+            attributes.join(" ")
           end
         end
 
@@ -77,14 +77,12 @@ module Datadog
         end
       end
 
-      module_function
-
       # Produces a CorrelationIdentifier from the TraceDigest provided
       #
       # DEV: can we memoize this object, give it can be common to
       # use a correlation multiple times, specially in the context of logging?
       # @!visibility private
-      def identifier_from_digest(digest)
+      def self.identifier_from_digest(digest)
         return Identifier.new unless digest
 
         Identifier.new(
@@ -93,7 +91,7 @@ module Datadog
         )
       end
 
-      def format_trace_id(trace_id)
+      def self.format_trace_id(trace_id)
         if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled
           format_trace_id_128(trace_id)
         else
@@ -101,9 +99,9 @@ module Datadog
         end
       end
 
-      def format_trace_id_128(trace_id)
+      def self.format_trace_id_128(trace_id)
         if !Tracing::Utils::TraceId.to_high_order(trace_id).zero?
-          Kernel.format('%032x', trace_id)
+          Kernel.format("%032x", trace_id)
         else
           Tracing::Utils::TraceId.to_low_order(trace_id).to_s
         end

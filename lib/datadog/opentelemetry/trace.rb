@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../tracing/trace_digest'
+require_relative "../tracing/trace_digest"
 
 module Datadog
   module OpenTelemetry
@@ -50,6 +50,9 @@ module Datadog
             trace_service: digest.trace_service,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            trace_otel_random_value: digest.trace_otel_random_value,
+            trace_otel_threshold: digest.trace_otel_threshold,
+            trace_otel_unknown_fields: digest.trace_otel_unknown_fields,
             span_remote: digest.span_remote,
           ).freeze
         end

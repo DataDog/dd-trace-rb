@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/remote/dispatcher'
-require_relative 'processor/rule_loader'
+require_relative "../core/remote/dispatcher"
+require_relative "processor/rule_loader"
 
 module Datadog
   module AppSec
@@ -56,10 +56,10 @@ module Datadog
         ].freeze
 
         ASM_PRODUCTS = [
-          'ASM_DD',       # Datadog employee issued configuration
-          'ASM',          # customer issued configuration (rulesets, passlist...)
-          'ASM_FEATURES', # capabilities
-          'ASM_DATA',     # config files (IP addresses or users for blocking)
+          "ASM_DD",       # Datadog employee issued configuration
+          "ASM",          # customer issued configuration (rulesets, passlist...)
+          "ASM_FEATURES", # capabilities
+          "ASM_DATA",     # config files (IP addresses or users for blocking)
         ].freeze
 
         def capabilities
@@ -78,17 +78,23 @@ module Datadog
             engine = AppSec.security_engine
             next unless engine
 
+            # We must process delete operations before insert and update operations
+            # to prevent duplicate-rule errors when the config name changes
+            changes.each do |change|
+              next unless change.type == :delete
+
+              engine.remove_config_at_path(change.path.to_s)
+            end
+
             changes.each do |change|
               content = repository[change.path]
-              next unless content || change.type == :delete
+              next unless content
 
               case change.type
               when :insert, :update
                 # @type var content: Core::Remote::Configuration::Content
                 engine.add_or_update_config(parse_content(content), path: change.path.to_s)
                 content.applied
-              when :delete
-                engine.remove_config_at_path(change.path.to_s)
               end
             end
 

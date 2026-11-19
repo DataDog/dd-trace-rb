@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'path'
-require_relative 'digest'
+require_relative "path"
+require_relative "digest"
 
 module Datadog
   module Core
@@ -28,7 +28,7 @@ module Datadog
               # As such, the class is not written to expect +data+ to be nil.
               # Detect bad incoming values here to provide earlier diagnostics
               # when developing tests, for example.
-              raise ArgumentError, 'data must not be nil'
+              raise ArgumentError, "data must not be nil"
             end
             unless String === data
               raise ArgumentError, "Invalid type for data: #{data.class}: expected String"

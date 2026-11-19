@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'patcher'
-require_relative 'configuration/settings'
+require_relative "../integration"
+require_relative "patcher"
+require_relative "configuration/settings"
 
 module Datadog
   module Tracing
@@ -12,16 +12,16 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('0.9')
+          MINIMUM_VERSION = Gem::Version.new("0.9")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :concurrent_ruby
           def self.gem_name
-            'concurrent-ruby'
+            "concurrent-ruby"
           end
 
           def self.version
-            Gem.loaded_specs['concurrent-ruby']&.version
+            Gem.loaded_specs["concurrent-ruby"]&.version
           end
 
           def self.loaded?

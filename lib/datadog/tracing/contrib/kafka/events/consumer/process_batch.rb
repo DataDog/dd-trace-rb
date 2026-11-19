@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../../event'
-require_relative '../../consumer_event'
+require_relative "../../ext"
+require_relative "../../event"
+require_relative "../../consumer_event"
 
 module Datadog
   module Tracing
@@ -15,11 +15,9 @@ module Datadog
               include Kafka::Event
               extend Kafka::ConsumerEvent
 
-              EVENT_NAME = 'process_batch.consumer.kafka'
+              EVENT_NAME = "process_batch.consumer.kafka"
 
-              module_function
-
-              def on_start(span, _event, _id, payload)
+              def self.on_start(span, _event, _id, payload)
                 super
 
                 span.resource = payload[:topic]
@@ -33,11 +31,11 @@ module Datadog
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
               end
 
-              def span_name
+              def self.span_name
                 Ext::SPAN_PROCESS_BATCH
               end
 
-              def span_options
+              def self.span_options
                 super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_PROCESS_BATCH}})
               end
             end

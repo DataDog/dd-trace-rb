@@ -1,0 +1,9 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      module Client
+        def self.evaluate: (Array[Message] messages) -> Outcome
+      end
+    end
+  end
+end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "set"
-require "time"
+require "json"
 require "libdatadog"
+require_relative "../../core/utils/time"
 
 module Datadog
   module Profiling
@@ -10,25 +10,62 @@ module Datadog
       # Collects information of relevance for profiler. This will get sent alongside
       # the profile and show up in the UI or potentially influence processing in some way.
       #
-      # Information is currently collected and frozen at construction time. A full collector
-      # could be seen as overkill for this case but it allows us to centralize information
-      # gathering and easily support more flexible/dynamic info collection in the future.
+      # Most information is static: collected and frozen at construction time. The exception is
+      # what `collect_dynamic_info` collects, which can change during the process lifetime.
       class Info
+        # @rbs @static_info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        # @rbs @info_json_cache: [::Hash[::Symbol, bool], ::String]?
+        # @rbs @platform_info: ::Hash[::Symbol, untyped]
+        # @rbs @runtime_info: ::Hash[::Symbol, untyped]
+        # @rbs @application_info: ::Hash[::Symbol, untyped]
+        # @rbs @profiler_info: ::Hash[::Symbol, untyped]?
+        # @rbs @gc_tuning_info: ::Hash[::Symbol, ::String]
+
+        #: (untyped) -> void
         def initialize(settings)
           @profiler_info = nil
 
-          # Steep: https://github.com/soutaro/steep/issues/363
-          @info = { # steep:ignore IncompatibleAssignment
+          @static_info = {
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info(settings),
             profiler: collect_profiler_info(settings),
           }.freeze
+          @info_json_cache = nil
         end
 
-        attr_reader :info
+        #: () -> ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        def info
+          build_info(collect_dynamic_info)
+        end
+
+        # Serializing the same info on every flush would be wasteful, so the latest result is
+        # cached and reused for as long as the dynamic info is unchanged.
+        #: () -> ::String
+        def info_json
+          dynamic_info = collect_dynamic_info
+          cached_dynamic_info, cached_json = @info_json_cache
+          return cached_json if cached_json && cached_dynamic_info == dynamic_info
+
+          json = JSON.generate(build_info(dynamic_info)).freeze
+          @info_json_cache = [dynamic_info, json].freeze #: [::Hash[::Symbol, bool], ::String]
+          json
+        end
 
         private
+
+        #: (::Hash[::Symbol, bool]) -> ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        def build_info(dynamic_info)
+          @static_info.merge(runtime: @static_info.fetch(:runtime).merge(dynamic_info))
+        end
+
+        #: () -> ::Hash[::Symbol, bool]
+        def collect_dynamic_info
+          {
+            yjit_enabled: defined?(::RubyVM::YJIT) ? ::RubyVM::YJIT.enabled? : false,
+            zjit_enabled: defined?(::RubyVM::ZJIT) ? ::RubyVM::ZJIT.enabled? : false,
+          }
+        end
 
         # Ruby GC tuning environment variables
         RUBY_GC_TUNING_ENV_VARS = [
@@ -64,21 +101,20 @@ module Datadog
         # Instead of trying to figure out real process start time by checking
         # /proc or some other complex/non-portable way, approximate start time
         # by time of requirement of this file.
-        #
-        # Note: this does not use Core::Utils::Time.now because this constant
-        # gets initialized before a user has a chance to configure the library.
-        START_TIME = Time.now.utc.freeze
+        START_TIME = Datadog::Core::Utils::Time.now.utc.freeze
 
+        #: () -> ::Hash[::Symbol, untyped]
         def collect_platform_info
           @platform_info ||= {
             container_id: Datadog::Core::Environment::Container.container_id,
             hostname: Datadog::Core::Environment::Platform.hostname,
             kernel_name: Datadog::Core::Environment::Platform.kernel_name,
             kernel_release: Datadog::Core::Environment::Platform.kernel_release,
-            kernel_version: Datadog::Core::Environment::Platform.kernel_version
+            kernel_version: Datadog::Core::Environment::Platform.kernel_version,
           }.freeze
         end
 
+        #: () -> ::Hash[::Symbol, untyped]
         def collect_runtime_info
           @runtime_info ||= {
             engine: Datadog::Core::Environment::Identity.lang_engine,
@@ -88,6 +124,7 @@ module Datadog
           }.freeze
         end
 
+        #: (untyped) -> ::Hash[::Symbol, untyped]
         def collect_application_info(settings)
           @application_info ||= {
             start_time: START_TIME.iso8601,
@@ -97,6 +134,7 @@ module Datadog
           }.freeze
         end
 
+        #: (untyped) -> ::Hash[::Symbol, untyped]
         def collect_profiler_info(settings)
           @profiler_info ||= begin
             lib_datadog_gem = ::Gem.loaded_specs["libdatadog"]
@@ -123,6 +161,7 @@ module Datadog
         # instances without proper serialization.
         # This method navigates a settings object recursively, converting
         # it into more basic types that are trivially convertible to JSON.
+        #: (untyped) -> untyped
         def collect_settings_recursively(v)
           v = v.options_hash if v.respond_to?(:options_hash)
 
@@ -143,6 +182,7 @@ module Datadog
           end
         end
 
+        #: () -> ::Hash[::Symbol, ::String]
         def collect_gc_tuning_info
           return @gc_tuning_info if defined?(@gc_tuning_info)
 

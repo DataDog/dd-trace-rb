@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../../event'
-require_relative '../../consumer_event'
-require_relative '../../consumer_group_event'
+require_relative "../../ext"
+require_relative "../../event"
+require_relative "../../consumer_event"
+require_relative "../../consumer_group_event"
 
 module Datadog
   module Tracing
@@ -17,15 +17,13 @@ module Datadog
               extend Kafka::ConsumerEvent
               extend Kafka::ConsumerGroupEvent
 
-              EVENT_NAME = 'sync_group.consumer.kafka'
+              EVENT_NAME = "sync_group.consumer.kafka"
 
-              module_function
-
-              def span_name
+              def self.span_name
                 Ext::SPAN_CONSUMER_SYNC_GROUP
               end
 
-              def span_options
+              def self.span_options
                 super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_CONSUMER_SYNC_GROUP}})
               end
             end

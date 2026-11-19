@@ -1,10 +1,10 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/worker'
-require 'datadog/core/workers/interval_loop'
+require "datadog/core/worker"
+require "datadog/core/workers/interval_loop"
 
 RSpec.describe Datadog::Core::Workers::IntervalLoop do
-  context 'when included into a worker' do
+  context "when included into a worker" do
     subject(:worker) { worker_class.new(&task) }
 
     let(:worker_class) do
@@ -12,14 +12,14 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
     end
 
     let(:task) { proc { |*args| worker_spy.perform(*args) } }
-    let(:worker_spy) { double('worker spy') }
+    let(:worker_spy) { double("worker spy") }
 
     before do
       allow(worker_spy).to receive(:perform)
       allow(worker.send(:shutdown)).to receive(:wait) # Stub conditional wait so tests run faster
     end
 
-    shared_context 'loop limit' do
+    shared_context "loop limit" do
       let(:perform_limit) { 2 }
 
       before do
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    shared_context 'perform loop in fiber' do
+    shared_context "perform loop in fiber" do
       let(:fiber) do
         Fiber.new do
           worker.perform
@@ -58,21 +58,21 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#perform' do
+    describe "#perform" do
       subject(:perform) { worker.perform(*args) }
 
       let(:args) { [:foo, :bar] }
 
-      context 'given arguments' do
-        include_context 'loop limit'
+      context "given arguments" do
+        include_context "loop limit"
 
-        it 'performs the loop' do
+        it "performs the loop" do
           perform
           expect(@perform_invocations).to eq(perform_limit)
         end
       end
 
-      it 'executes the task BEFORE the first sleep' do
+      it "executes the task BEFORE the first sleep" do
         perform_executed = false
         allow(worker_spy).to receive(:perform) { perform_executed = true }
 
@@ -84,12 +84,12 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
         perform
       end
 
-      context 'when #loop_wait_before_first_iteration? is true' do
+      context "when #loop_wait_before_first_iteration? is true" do
         before do
           allow(worker).to receive(:loop_wait_before_first_iteration?).and_return(true)
         end
 
-        it 'executes the task AFTER the first sleep' do
+        it "executes the task AFTER the first sleep" do
           perform_executed = false
           allow(worker_spy).to receive(:perform) { perform_executed = true }
 
@@ -103,17 +103,17 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#stop_loop' do
+    describe "#stop_loop" do
       subject(:stop_loop) { worker.stop_loop }
 
-      context 'when the worker is not running' do
+      context "when the worker is not running" do
         before { worker.stop_loop }
 
         it { is_expected.to be true }
       end
 
-      context 'when the worker is running' do
-        include_context 'perform loop in fiber'
+      context "when the worker is running" do
+        include_context "perform loop in fiber"
 
         it { is_expected.to be true }
 
@@ -131,40 +131,40 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#work_pending?' do
+    describe "#work_pending?" do
       subject(:work_pending?) { worker.work_pending? }
 
-      context 'when the worker is not running' do
+      context "when the worker is not running" do
         it { is_expected.to be false }
       end
 
-      context 'when the worker is running' do
-        include_context 'perform loop in fiber'
+      context "when the worker is running" do
+        include_context "perform loop in fiber"
         it { is_expected.to be true }
       end
     end
 
-    describe '#run_loop?' do
+    describe "#run_loop?" do
       subject(:run_loop?) { worker.run_loop? }
 
-      context 'when worker is not running' do
+      context "when worker is not running" do
         it { is_expected.to be false }
       end
 
-      context 'when worker is running' do
-        include_context 'perform loop in fiber'
+      context "when worker is running" do
+        include_context "perform loop in fiber"
         it { is_expected.to be true }
       end
     end
 
-    describe '#loop_base_interval' do
+    describe "#loop_base_interval" do
       subject(:loop_base_interval) { worker.loop_base_interval }
 
-      context 'default' do
+      context "default" do
         it { is_expected.to eq(described_class::BASE_INTERVAL) }
       end
 
-      context 'when set' do
+      context "when set" do
         let(:value) { rand }
 
         it do
@@ -176,14 +176,14 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#loop_back_off_ratio' do
+    describe "#loop_back_off_ratio" do
       subject(:loop_back_off_ratio) { worker.loop_back_off_ratio }
 
-      context 'default' do
+      context "default" do
         it { is_expected.to eq(described_class::BACK_OFF_RATIO) }
       end
 
-      context 'when set' do
+      context "when set" do
         let(:value) { rand }
 
         it do
@@ -195,14 +195,14 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#loop_back_off_max' do
+    describe "#loop_back_off_max" do
       subject(:loop_back_off_max) { worker.loop_back_off_max }
 
-      context 'default' do
+      context "default" do
         it { is_expected.to eq(described_class::BACK_OFF_MAX) }
       end
 
-      context 'when set' do
+      context "when set" do
         let(:value) { rand }
 
         it do
@@ -214,15 +214,15 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#loop_wait_time' do
+    describe "#loop_wait_time" do
       subject(:loop_wait_time) { worker.loop_wait_time }
 
-      context 'default' do
+      context "default" do
         it { is_expected.to eq(described_class::BASE_INTERVAL) }
       end
     end
 
-    describe '#loop_wait_time=' do
+    describe "#loop_wait_time=" do
       let(:value) { rand }
 
       it do
@@ -233,7 +233,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    describe '#loop_back_off!' do
+    describe "#loop_back_off!" do
       it do
         expect { worker.loop_back_off! }
           .to change { worker.loop_wait_time }

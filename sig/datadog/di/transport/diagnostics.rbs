@@ -6,7 +6,7 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
-          def send_diagnostics: (untyped payload) -> untyped
+          def send_diagnostics: (Array[Hash[Symbol, untyped]] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
         end
       end
     end

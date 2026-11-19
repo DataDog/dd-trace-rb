@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'grpc'
-require 'datadog'
-require 'datadog/tracing/contrib/grpc/patcher'
+require "grpc"
+require "datadog"
+require "datadog/tracing/contrib/grpc/patcher"
 
-RSpec.describe 'GRPC instrumentation' do
-  include_context 'tracer logging'
+RSpec.describe "GRPC instrumentation" do
+  include_context "tracer logging"
 
   let(:configuration_options) { {} }
 

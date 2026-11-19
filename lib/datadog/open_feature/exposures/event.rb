@@ -1,41 +1,50 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/time'
+require_relative "../../core/utils/time"
 
 module Datadog
   module OpenFeature
     module Exposures
       # A data model for an exposure event
       module Event
-        TARGETING_KEY_FIELD = 'targeting_key'
+        TARGETING_KEY_FIELD = "targeting_key"
         ALLOWED_FIELD_TYPES = [String, Integer, Float, TrueClass, FalseClass].freeze
 
         class << self
-          def cache_key(result, flag_key:, context:)
-            "#{flag_key}:#{context.targeting_key}"
+          def cache_key(flag_key:, targeting_key:)
+            "#{flag_key}:#{targeting_key}"
           end
 
-          def cache_value(result, flag_key:, context:)
-            "#{result.allocation_key}:#{result.variant}"
+          # NOTE: The serial id is part of the value because it can appear or change on a
+          #       configuration refresh while the allocation and the variant stay the same.
+          def cache_value(allocation_key:, variant:, serial_id:)
+            "#{allocation_key}:#{variant}:#{serial_id}"
           end
 
-          def build(result, flag_key:, context:)
-            {
+          # Features stay out of the cache value: a features change alone is not a new exposure.
+          def build(flag_key:, allocation_key:, variant:, serial_id:, context:, features:)
+            # @type var event: t
+            event = {
               timestamp: current_timestamp_ms,
               allocation: {
-                key: result.allocation_key
+                key: allocation_key,
               },
               flag: {
-                key: flag_key
+                key: flag_key,
               },
               variant: {
-                key: result.variant
+                key: variant,
               },
               subject: {
                 id: context.targeting_key,
-                attributes: extract_attributes(context)
-              }
-            }.freeze
+                attributes: extract_attributes(context),
+              },
+            }
+
+            event[:serial_id] = serial_id unless serial_id.nil?
+            event[:features] = features unless features.empty?
+
+            event.freeze
           end
 
           private

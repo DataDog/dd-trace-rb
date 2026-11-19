@@ -1,0 +1,11 @@
+module Sequel
+  class Database
+    def opts: () -> ::Hash[::Symbol, untyped]?
+
+    def synchronize: [T] (?untyped server) { (untyped connection) -> T } -> T
+
+    def database_type: () -> ::Symbol
+
+    def adapter_scheme: () -> ::Symbol
+  end
+end

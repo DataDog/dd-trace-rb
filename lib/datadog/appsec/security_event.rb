@@ -6,8 +6,8 @@ module Datadog
     # representing an attack or fingerprinting results as attributes or an API
     # security check with extracted schema.
     class SecurityEvent
-      SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
-      FINGERPRINT_KEY_PREFIX = '_dd.appsec.fp.'
+      SCHEMA_KEY_PREFIX = "_dd.appsec.s."
+      FINGERPRINT_KEY_PREFIX = "_dd.appsec.fp."
 
       attr_reader :waf_result, :trace, :span
 

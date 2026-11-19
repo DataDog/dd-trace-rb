@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../../event'
-require_relative '../../consumer_event'
-require_relative '../../consumer_group_event'
+require_relative "../../ext"
+require_relative "../../event"
+require_relative "../../consumer_event"
+require_relative "../../consumer_group_event"
 
 module Datadog
   module Tracing
@@ -17,11 +17,9 @@ module Datadog
               extend Kafka::ConsumerEvent
               extend Kafka::ConsumerGroupEvent
 
-              EVENT_NAME = 'heartbeat.consumer.kafka'
+              EVENT_NAME = "heartbeat.consumer.kafka"
 
-              module_function
-
-              def on_start(span, _event, _id, payload)
+              def self.on_start(span, _event, _id, payload)
                 super
 
                 if payload.key?(:topic_partitions)
@@ -31,11 +29,11 @@ module Datadog
                 end
               end
 
-              def span_name
+              def self.span_name
                 Ext::SPAN_CONSUMER_HEARTBEAT
               end
 
-              def span_options
+              def self.span_options
                 super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_CONSUMER_HEARTBEAT}})
               end
             end

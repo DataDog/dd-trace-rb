@@ -19,7 +19,7 @@ module Datadog
             @header_tags = header_tags
 
             @header_tags.each do |header_tag|
-              header, tag = header_tag.split(':', 2)
+              header, tag = header_tag.split(":", 2)
 
               next unless header # Empty string guard
 
@@ -65,7 +65,7 @@ module Datadog
           # For easy configuration inspection,
           # print the original configuration setting.
           def to_s
-            @header_tags.join(',').to_s
+            @header_tags.join(",").to_s
           end
         end
       end

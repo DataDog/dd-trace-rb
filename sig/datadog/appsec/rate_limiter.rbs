@@ -11,11 +11,11 @@ module Datadog
 
       private
 
-      def self.trace_rate_limit: () -> ::Integer
+      def self.trace_rate_limit: () -> Integer
 
       public
 
-      def initialize: (::Integer rate) -> void
+      def initialize: (Integer rate) -> void
 
       def limit: () { () -> untyped } -> void
     end

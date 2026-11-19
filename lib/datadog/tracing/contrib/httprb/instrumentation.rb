@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative '../http_annotation_helper'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -28,20 +29,21 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
                   if Tracing::Distributed::PropagationPolicy.enabled?(
                     pin_config: client_config,
                     global_config: Datadog.configuration.tracing[:httprb],
-                    trace: trace
+                    trace: trace,
                   )
-                    Contrib::HTTP.inject(trace, req)
+                    Contrib::HTTP.inject(trace, req.headers)
                   end
 
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
-                  logger.error("error preparing span for http.rb request: #{e}, Source: #{e.backtrace}")
+                  logger.error("error preparing span for http.rb request: #{e.class}: #{e.message}, Source: #{e.backtrace}")
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   res = super(req, options)
@@ -62,29 +64,29 @@ module Datadog
               if req_options[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  req_options[:peer_service]
+                  req_options[:peer_service],
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
+              uri = req.uri
+              path = uri&.path
               if req.verb&.is_a?(String) || req.verb.is_a?(Symbol)
                 http_method = req.verb.to_s.upcase
-                span.resource = http_method
+                span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                  http_method,
+                  path,
+                  enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
+                )
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
               else
                 logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing request verb")
               end
 
-              if req.uri
-                uri = req.uri
-                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+              if uri
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
@@ -96,7 +98,7 @@ module Datadog
               set_analytics_sample_rate(span, req_options)
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.request_tags(req.headers)
+                Datadog.configuration.tracing.header_tags.request_tags(req.headers),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -110,14 +112,14 @@ module Datadog
               if request_options[:error_status_codes].include? response.code.to_i
                 # https://github.com/DataDog/dd-trace-rb/issues/1116
                 # parsing the response body message will alter downstream application behavior
-                span.set_error(["Error #{response.code}", 'Error'])
+                span.set_error(["Error #{response.code}", "Error"])
               end
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.response_tags(response.headers)
+                Datadog.configuration.tracing.header_tags.response_tags(response.headers),
               )
             rescue => e
-              logger.error("error preparing span from http.rb response: #{e}, Source: #{e.backtrace}")
+              logger.error("error preparing span from http.rb response: #{e.class}: #{e.message}, Source: #{e.backtrace}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

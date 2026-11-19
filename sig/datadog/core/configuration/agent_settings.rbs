@@ -5,7 +5,7 @@ module Datadog
         # IPv6 regular expression from
         # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
         # Does not match IPv4 addresses.
-        IPV6_REGEXP: ::Regexp
+        IPV6_REGEXP: Regexp
 
         def initialize: (?adapter: untyped, ?ssl: untyped, ?hostname: untyped, ?port: untyped, ?uds_path: untyped, ?timeout_seconds: untyped) -> void
 
@@ -16,7 +16,7 @@ module Datadog
         attr_reader uds_path: untyped
         attr_reader timeout_seconds: untyped
 
-        def url: () -> ::String
+        def url: () -> String
       end
     end
   end

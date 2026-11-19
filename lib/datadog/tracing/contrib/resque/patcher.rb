@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative '../sidekiq/ext'
+require_relative "../patcher"
+require_relative "../sidekiq/ext"
 
 module Datadog
   module Tracing
@@ -11,14 +11,12 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'resque_job'
+          def self.patch
+            require_relative "resque_job"
 
             ::Resque::Job.prepend(Resque::Job)
           end

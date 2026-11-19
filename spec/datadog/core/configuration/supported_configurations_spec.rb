@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'json'
+require "spec_helper"
+require "json"
 
-RSpec.describe 'Supported configurations' do
-  describe 'consistency validation' do
-    it 'validates that the generated data matches the JSON file' do
-      json_data = JSON.parse(File.read('supported-configurations.json')).transform_keys(&:to_sym)
+RSpec.describe "Supported configurations" do
+  describe "consistency validation" do
+    it "validates that the generated data matches the JSON file" do
+      json_data = JSON.parse(File.read("supported-configurations.json")).transform_keys(&:to_sym)
       aliases = {}
       deprecations = Set.new
       alias_to_canonical = {}

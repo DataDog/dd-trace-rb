@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'metrics_collection'
+require_relative "metrics_collection"
 
 module Datadog
   module Core

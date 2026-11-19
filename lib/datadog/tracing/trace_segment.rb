@@ -1,21 +1,21 @@
 # frozen_string_literal: true
 
-require_relative '../core/runtime/ext'
-require_relative '../core/utils/safe_dup'
+require_relative "../core/runtime/ext"
+require_relative "../core/utils/safe_dup"
 
-require_relative 'sampling/ext'
-require_relative 'metadata/ext'
-require_relative 'metadata/tagging'
-require_relative 'utils'
+require_relative "sampling/ext"
+require_relative "metadata/ext"
+require_relative "metadata/tagging"
+require_relative "utils"
 
 module Datadog
   module Tracing
     # Serializable construct representing a trace
     # @public_api
     class TraceSegment
-      TAG_NAME = 'name'
-      TAG_RESOURCE = 'resource'
-      TAG_SERVICE = 'service'
+      TAG_NAME = "name"
+      TAG_RESOURCE = "resource"
+      TAG_SERVICE = "service"
 
       attr_reader \
         :id,
@@ -140,7 +140,7 @@ module Datadog
       def high_order_tid
         high_order = Tracing::Utils::TraceId.to_high_order(@id)
 
-        format('%016x', high_order) if high_order != 0
+        format("%016x", high_order) if high_order != 0
       end
 
       protected

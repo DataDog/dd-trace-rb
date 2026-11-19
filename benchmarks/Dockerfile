@@ -1,8 +1,8 @@
 FROM ruby:3.3.0-bullseye
 
 # Make apt non-interactive
-RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
-  && echo 'DPkg::Options "--force-confnew";' >> /etc/apt/apt.conf.d/90circleci
+RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90ci \
+  && echo 'DPkg::Options "--force-confnew";' >> /etc/apt/apt.conf.d/90ci
 
 ENV DEBIAN_FRONTEND=noninteractive
 

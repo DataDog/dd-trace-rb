@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative '../http_annotation_helper'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -28,12 +29,13 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
                   if Tracing::Distributed::PropagationPolicy.enabled?(
                     pin_config: client_config,
                     global_config: Datadog.configuration.tracing[:httpclient],
-                    trace: trace
+                    trace: trace,
                   )
                     Contrib::HTTP.inject(trace, req.header)
                   end
@@ -41,7 +43,9 @@ module Datadog
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
-                  Datadog.logger.error("error preparing span for httpclient request: #{e}, Source: #{e.backtrace}")
+                  Datadog.logger.error(
+                    "error preparing span for httpclient request: #{e.class}: #{e.message}, Source: #{e.backtrace}",
+                  )
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   res = super
@@ -62,13 +66,8 @@ module Datadog
               if req_options[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  req_options[:peer_service]
+                  req_options[:peer_service],
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -76,10 +75,15 @@ module Datadog
 
               http_method = req.header.request_method.upcase
               uri = req.header.request_uri
+              path = uri.path
 
-              span.resource = http_method
+              span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                http_method,
+                path,
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
+              )
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
@@ -88,7 +92,7 @@ module Datadog
               set_analytics_sample_rate(span, req_options)
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.request_tags(req.http_header)
+                Datadog.configuration.tracing.header_tags.request_tags(req.http_header),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -104,10 +108,12 @@ module Datadog
               end
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.response_tags(response.header)
+                Datadog.configuration.tracing.header_tags.response_tags(response.header),
               )
             rescue => e
-              Datadog.logger.error("error preparing span from httpclient response: #{e}, Source: #{e.backtrace}")
+              Datadog.logger.error(
+                "error preparing span from httpclient response: #{e.class}: #{e.message}, Source: #{e.backtrace}",
+              )
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

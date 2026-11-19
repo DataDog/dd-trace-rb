@@ -2,7 +2,7 @@
 
 require "datadog/profiling/spec_helper"
 
-RSpec.describe "Datadog::Profiling::Ext::ExecMonkeyPatch", ruby: '>= 2.7' do
+RSpec.describe "Datadog::Profiling::Ext::ExecMonkeyPatch", ruby: ">= 2.7" do
   let(:described_class) { Datadog::Profiling::Ext::ExecMonkeyPatch }
 
   subject! do

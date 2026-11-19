@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -12,7 +12,7 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             DEFAULT_HEADERS = {
-              response: %w[Content-Type X-Request-ID]
+              response: %w[Content-Type X-Request-ID],
             }.freeze
 
             option :enabled do |o|

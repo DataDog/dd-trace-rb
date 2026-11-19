@@ -13,8 +13,6 @@ module Datadog
       module Transport
         module HTTP
           FORM_FIELD_TAG_PROFILER_VERSION = "profiler_version"
-
-          CODE_PROVENANCE_FILENAME = "code-provenance.json"
         end
       end
     end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -12,7 +12,7 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('1.0.0')
+          MINIMUM_VERSION = Gem::Version.new("1.0.0")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :elasticsearch, auto_patch: true
@@ -21,9 +21,9 @@ module Datadog
             # elastic-transport gem for version >= 8.0.0
             # elasticsearch-transport gem for version < 8.0.0
 
-            Gem.loaded_specs['elastic-transport']&.version ||
+            Gem.loaded_specs["elastic-transport"]&.version ||
 
-              Gem.loaded_specs['elasticsearch-transport']&.version
+              Gem.loaded_specs["elasticsearch-transport"]&.version
           end
 
           def self.loaded?

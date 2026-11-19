@@ -1,0 +1,27 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Outcome
+        @blocking_enabled: bool
+
+        attr_reader result: Result
+
+        attr_reader redaction: Redaction::Result
+
+        attr_reader extra_tags: Hash[String, Helpers::json]
+
+        attr_reader extra_metastruct: Hash[String, Helpers::json]
+
+        def initialize: (
+          result: Result,
+          redaction: Redaction::Result,
+          blocking_enabled: bool,
+          extra_tags: Hash[String, Helpers::json],
+          extra_metastruct: Hash[String, Helpers::json]
+        ) -> void
+
+        def block?: () -> bool
+      end
+    end
+  end
+end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../core/buffer/cruby'
+require_relative "../../core/buffer/cruby"
 
 module Datadog
   module OpenFeature
@@ -19,6 +19,10 @@ module Datadog
           @dropped_count = 0
 
           super
+        end
+
+        def pending_dropped_count
+          @dropped
         end
 
         protected

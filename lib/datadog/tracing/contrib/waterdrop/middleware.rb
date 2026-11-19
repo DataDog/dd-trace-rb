@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -14,16 +14,16 @@ module Datadog
 
               if trace_op && Datadog::Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: configuration,
-                trace: trace_op
+                trace: trace_op,
               )
                 WaterDrop.inject(trace_op.to_digest, message[:headers] ||= {})
               end
 
               if Datadog::DataStreams.enabled?
                 Datadog::DataStreams.set_produce_checkpoint(
-                  type: 'kafka',
+                  type: "kafka",
                   destination: message[:topic],
-                  auto_instrumentation: true
+                  auto_instrumentation: true,
                 ) do |key, value|
                   message[:headers] ||= {}
                   message[:headers][key] = value

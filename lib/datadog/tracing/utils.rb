@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/forking'
-require_relative '../core/utils/time'
+require_relative "../core/utils/forking"
+require_relative "../core/utils/time"
 
 module Datadog
   module Tracing
@@ -67,30 +67,28 @@ module Datadog
       module TraceId
         MAX = (1 << 128) - 1
 
-        module_function
-
         # Format for generating 128 bits trace id =>
         # - 32-bits : seconds since Epoch
         # - 32-bits : set to zero,
         # - 64 bits : random 64-bits
-        def next_id
+        def self.next_id
           return Utils.next_id unless Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
 
           concatenate(
             Core::Utils::Time.now.to_i << 32,
-            Utils.next_id
+            Utils.next_id,
           )
         end
 
-        def to_high_order(trace_id)
+        def self.to_high_order(trace_id)
           trace_id >> 64
         end
 
-        def to_low_order(trace_id)
+        def self.to_low_order(trace_id)
           trace_id & 0xFFFFFFFFFFFFFFFF
         end
 
-        def concatenate(high_order, low_order)
+        def self.concatenate(high_order, low_order)
           high_order << 64 | low_order
         end
       end

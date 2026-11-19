@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'zlib'
-require_relative 'route_extractor'
-require_relative '../../core/utils/time'
-require_relative '../../core/utils/lru_cache'
+require "zlib"
+require_relative "route_extractor"
+require_relative "../../core/utils/time"
+require_relative "../../core/utils/lru_cache"
 
 module Datadog
   module AppSec
@@ -35,7 +35,7 @@ module Datadog
         end
 
         def initialize(sample_delay)
-          raise ArgumentError, 'sample_delay must be an Integer' unless sample_delay.is_a?(Integer)
+          raise ArgumentError, "sample_delay must be an Integer" unless sample_delay.is_a?(Integer)
 
           @cache = Core::Utils::LRUCache.new(MAX_CACHE_SIZE)
           @sample_delay_seconds = sample_delay

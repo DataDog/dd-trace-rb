@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Rails
         module Framework
+          RACK_OPTION_NAMES: Array[Symbol]
+
           def self.setup: () -> untyped
 
           def self.activate_rack!: (untyped datadog_config, untyped rails_config) -> untyped

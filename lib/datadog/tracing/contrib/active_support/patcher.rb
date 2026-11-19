@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'cache/patcher'
+require_relative "../patcher"
+require_relative "cache/patcher"
 
 module Datadog
   module Tracing
@@ -11,13 +11,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Cache::Patcher.patch
           end
         end

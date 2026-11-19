@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../event'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -15,20 +15,21 @@ module Datadog
           module RenderTemplate
             include ActionView::Event
 
-            EVENT_NAME = 'render_template.action_view'
+            EVENT_NAME = "render_template.action_view"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_RENDER_TEMPLATE
             end
 
-            def on_start(span, _event, _id, payload)
-              span.service = configuration[:service_name] if configuration[:service_name]
+            def self.on_start(span, _event, _id, payload)
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -47,7 +48,7 @@ module Datadog
 
               record_exception(span, payload)
             rescue => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.debug { "#{e.class}: #{e.message}" }
             end
           end
         end

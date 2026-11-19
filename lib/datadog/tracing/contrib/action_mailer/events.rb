@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/process'
-require_relative 'events/deliver'
+require_relative "events/process"
+require_relative "events/deliver"
 
 module Datadog
   module Tracing
@@ -11,20 +11,18 @@ module Datadog
         module Events
           ALL = [
             Events::Process,
-            Events::Deliver
+            Events::Deliver,
           ].freeze
 
-          module_function
-
-          def all
+          def self.all
             self::ALL
           end
 
-          def subscriptions
+          def self.subscriptions
             all.collect(&:subscriptions).collect(&:to_a).flatten
           end
 
-          def subscribe!
+          def self.subscribe!
             all.each(&:subscribe!)
           end
         end

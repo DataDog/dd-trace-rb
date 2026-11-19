@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'logger'
+require "logger"
 
 module Datadog
   module Core
@@ -9,7 +9,10 @@ module Datadog
     # - adds last caller stack-trace info to know where the message comes from
     # @public_api
     class Logger < ::Logger
-      PREFIX = 'datadog'
+      PREFIX = "datadog"
+      # Not `__dir__`: it resolves symlinks, unlike the paths in `caller_locations`.
+      LIB_DATADOG_DIR = File.dirname(File.dirname(__FILE__)) + "/"
+      private_constant :LIB_DATADOG_DIR
 
       def initialize(*args, &block)
         super
@@ -18,12 +21,12 @@ module Datadog
       end
 
       def add(severity, message = nil, progname = nil, &block)
-        where = ''
+        where = ""
 
         # We are in debug mode, or this is an error, add stack trace to help debugging
         if debug? || severity >= ::Logger::ERROR
-          c = caller
-          where = "(#{c[1]}) " if c.length > 1
+          location = caller_locations(2, 1)&.first
+          where = "(#{location.path.to_s.delete_prefix(LIB_DATADOG_DIR)}:#{location.lineno}) " if location
         end
 
         if message.nil?

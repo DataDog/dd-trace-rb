@@ -1,9 +1,9 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog'
-require 'shoryuken'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog"
+require "shoryuken"
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Patcher do
-  describe '.patch' do
+  describe ".patch" do
     subject!(:patch) { described_class.patch }
 
     let(:middlewares) { Shoryuken.server_middleware.entries.map(&:klass) }

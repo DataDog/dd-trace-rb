@@ -63,7 +63,7 @@ module Datadog
       # rubocop:enable Style/TrivialAccessors
 
       def to_s
-        pretty_options = options.to_a.map { |k, v| "#{k}:#{v}" }.join(', ')
+        pretty_options = options.to_a.map { |k, v| "#{k}:#{v}" }.join(", ")
         "Pin(#{pretty_options})"
       end
 

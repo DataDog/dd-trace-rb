@@ -1,13 +1,14 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/svc_src_examples"
 
-require 'datadog'
-require 'sneakers'
+require "datadog"
+require "sneakers"
 
 class MiddlewareWorker
   include Sneakers::Worker
 
-  from_queue 'middleware-demo', ack: false
+  from_queue "middleware-demo", ack: false
 
   def work_with_params(msg, _delivery_info, _metadata)
     msg
@@ -17,10 +18,10 @@ end
 class FailingMiddlewareWorker
   include Sneakers::Worker
 
-  from_queue 'failing-middleware-demo', ack: false
+  from_queue "failing-middleware-demo", ack: false
 
   def work_with_params(_msg, _delivery_info, _metadata)
-    raise ZeroDivisionError, 'failed'
+    raise ZeroDivisionError, "failed"
   end
 end
 
@@ -34,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
     allow(queue).to receive(:name).and_return(queue_name)
     allow(queue).to receive(:opts).and_return({})
     allow(queue).to receive(:exchange).and_return(exchange)
-    Sneakers.configure(daemonize: true, log: '/tmp/sneakers.log')
+    Sneakers.configure(daemonize: true, log: "/tmp/sneakers.log")
     Datadog.configure do |c|
       c.tracing.instrument :sneakers, configuration_options
     end
@@ -49,24 +50,24 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
     Sneakers.clear!
   end
 
-  shared_context 'Sneakers::Worker' do
+  shared_context "Sneakers::Worker" do
     let(:worker) { MiddlewareWorker.new(queue, Concurrent::ImmediateExecutor.new) }
-    let(:queue_name) { 'middleware-demo' }
+    let(:queue_name) { "middleware-demo" }
   end
 
-  describe '#call' do
+  describe "#call" do
     subject(:call) do
       worker.do_work(delivery_info, metadata, message, handler)
     end
 
     let(:delivery_info) { double }
-    let(:message) { Sneakers::ContentType.deserialize('{"foo":"bar"}', 'application/json') }
+    let(:message) { Sneakers::ContentType.deserialize('{"foo":"bar"}', "application/json") }
     let(:handler) { Object.new }
-    let(:metadata) { {content_type: 'application/json'} }
-    let(:routing_key) { 'something' }
-    let(:consumer) { double('Consumer') }
+    let(:metadata) { {content_type: "application/json"} }
+    let(:routing_key) { "something" }
+    let(:consumer) { double("Consumer") }
 
-    include_context 'Sneakers::Worker'
+    include_context "Sneakers::Worker"
 
     before do
       allow(delivery_info).to receive(:routing_key).and_return(routing_key)
@@ -78,55 +79,62 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
       expect { call }.to_not raise_error
       expect(spans).to have(1).items
       expect(span.service).to eq(tracer.default_service)
-      expect(span.resource).to eq('MiddlewareWorker')
+      expect(span.resource).to eq("MiddlewareWorker")
       expect(span.name).to eq(Datadog::Tracing::Contrib::Sneakers::Ext::SPAN_JOB)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_ROUTING_KEY)).to eq(routing_key)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sneakers')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
-      expect(span.get_tag('span.kind')).to eq('consumer')
-      expect(span.get_tag('messaging.system')).to eq('rabbitmq')
-      expect(span.get_tag('messaging.rabbitmq.routing_key')).to eq('something')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("sneakers")
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("job")
+      expect(span.get_tag("span.kind")).to eq("consumer")
+      expect(span.get_tag("messaging.system")).to eq("rabbitmq")
+      expect(span.get_tag("messaging.rabbitmq.routing_key")).to eq("something")
     end
 
-    context 'when the tag_body is true' do
+    context "when the tag_body is true" do
       let(:configuration_options) { super().merge(tag_body: true) }
 
-      it 'sends to body in the trace' do
+      it "sends to body in the trace" do
         call
         expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to eq('{"foo":"bar"}')
       end
     end
 
-    context 'when the tag_body is false' do
+    context "when service_name is overridden" do
+      let(:configuration_options) { {service_name: "custom-sneakers"} }
+      it_behaves_like "tags _dd.svc_src", "sneakers" do
+        before { call }
+      end
+    end
+
+    context "when the tag_body is false" do
       let(:configuration_options) { super().merge(tag_body: false) }
 
-      it 'sends to body in the trace' do
+      it "sends to body in the trace" do
         call
         expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to be_nil
       end
     end
 
-    it_behaves_like 'analytics for integration' do
-      include_context 'Sneakers::Worker'
+    it_behaves_like "analytics for integration" do
+      include_context "Sneakers::Worker"
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Sneakers::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sneakers::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       before { call }
     end
 
-    it_behaves_like 'measured span for integration', true do
-      include_context 'Sneakers::Worker'
+    it_behaves_like "measured span for integration", true do
+      include_context "Sneakers::Worker"
       before { call }
     end
 
-    context 'with custom error handler' do
+    context "with custom error handler" do
       let(:configuration_options) { super().merge(on_error: error_handler) }
       let(:error_handler) { proc { @error_handler_called = true } }
 
       let(:worker) { FailingMiddlewareWorker.new(queue, Concurrent::ImmediateExecutor.new) }
-      let(:queue_name) { 'failing-middleware-demo' }
+      let(:queue_name) { "failing-middleware-demo" }
 
-      it 'uses custom error handler' do
+      it "uses custom error handler" do
         call
         expect(@error_handler_called).to be_truthy
       end

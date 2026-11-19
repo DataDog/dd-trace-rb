@@ -1,10 +1,10 @@
-require 'datadog/tracing/contrib/integration_examples'
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog'
-require 'net/http'
+require "datadog/tracing/contrib/integration_examples"
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog"
+require "net/http"
 
-RSpec.describe 'net/http patcher' do
-  let(:host) { 'example.com' }
+RSpec.describe "net/http patcher" do
+  let(:host) { "example.com" }
   let(:request_span) do
     spans.find { |span| span.name == Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST }
   end
@@ -21,22 +21,22 @@ RSpec.describe 'net/http patcher' do
     end
   end
 
-  describe 'with default configuration' do
-    subject { Net::HTTP.get(host, '/') }
+  describe "with default configuration" do
+    subject { Net::HTTP.get(host, "/") }
 
-    it 'uses default service name' do
+    it "uses default service name" do
       subject
-      expect(request_span.service).to eq('net/http')
+      expect(request_span.service).to eq("net/http")
     end
 
-    it_behaves_like 'a peer service span' do
-      let(:peer_service_val) { 'example.com' }
-      let(:peer_service_source) { 'peer.hostname' }
+    it_behaves_like "a peer service span" do
+      let(:peer_service_val) { "example.com" }
+      let(:peer_service_source) { "peer.hostname" }
     end
   end
 
-  describe 'with changed service name' do
-    let(:new_service_name) { 'new_service_name' }
+  describe "with changed service name" do
+    let(:new_service_name) { "new_service_name" }
 
     before do
       Datadog.configure do |c|
@@ -50,16 +50,16 @@ RSpec.describe 'net/http patcher' do
       end
     end
 
-    subject { Net::HTTP.get(host, '/') }
+    subject { Net::HTTP.get(host, "/") }
 
-    it 'uses new service name' do
+    it "uses new service name" do
       subject
       expect(request_span.service).to eq(new_service_name)
     end
 
-    it_behaves_like 'a peer service span' do
-      let(:peer_service_val) { 'example.com' }
-      let(:peer_service_source) { 'peer.hostname' }
+    it_behaves_like "a peer service span" do
+      let(:peer_service_val) { "example.com" }
+      let(:peer_service_source) { "peer.hostname" }
     end
   end
 end

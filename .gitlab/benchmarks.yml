@@ -39,6 +39,9 @@ variables:
       - platform/artifacts/
     expire_in: 3 months
   variables:
+    # See https://datadoghq.atlassian.net/wiki/spaces/APMINT/pages/7223313012/Flaky+Benchmarks+Monitoring for more details.
+    FLAKY_BENCHMARKS_REGEX: ""
+
     # Benchmark's env variables. Modify to tweak benchmark parameters.
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
@@ -73,7 +76,6 @@ variables:
 
     # Gitlab and BP specific env vars. Do not modify.
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
 
   # Workaround: Currently we're not running the benchmarks on every PR, but GitHub still shows them as pending.
   # By marking the benchmarks as allow_failure, this should go away. (This workaround should be removed once the
@@ -90,6 +92,23 @@ only-tracing:
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing
     DD_TRACE_ENABLED: "true"
+
+only-tracing-with-tracecontext-extract:
+  extends: .macrobenchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-tracing-with-tracecontext-extract
+    DD_TRACE_ENABLED: "true"
+    K6_ENDPOINT: "/root/trace-context-benchmark"
+    K6_TRACE_CONTEXT_ENABLED: "true"
+
+only-tracing-without-tracecontext-extract:
+  extends: .macrobenchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-tracing-without-tracecontext-extract
+    DD_TRACE_ENABLED: "true"
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,baggage"
+    K6_ENDPOINT: "/root/trace-context-benchmark"
+    K6_TRACE_CONTEXT_ENABLED: "true"
 
 only-profiling:
   extends: .macrobenchmarks
@@ -137,6 +156,22 @@ profiling-and-tracing-and-appsec:
     DD_PROFILING_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
+# DSM overhead (baseline / apm-only / apm+dsm) on benchmarks/kafka_dsm. Report-only.
+dsm-throughput:
+  stage: macrobenchmarks
+  # install-dependencies (the only libdatadog_api build) is an SSI GEM_HOME skipped by SKIP_SHARED_PIPELINE,
+  # so the child job compiles it from this checkout instead.
+  needs: []
+  trigger:
+    include: .gitlab/benchmarks/dsm-throughput.yml
+  variables:
+    DD_DISABLE_VPA: "true"
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: on_success
+    - when: manual
+
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
 # -----------------------------------------------------
@@ -180,7 +215,6 @@ ddprof-benchmark:
       - reports/
     expire_in: 3 months
   variables:
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
     LATEST_COMMIT_ID: $CI_COMMIT_SHA
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
 
@@ -194,6 +228,26 @@ ddprof-benchmark:
 include:
   - local: benchmarks/execution.yml
 
+.microbenchmark-rules: &microbenchmark-rules
+  # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
+  # but stated explicitly here for clarity)
+  - if: $CI_COMMIT_REF_NAME == "master"
+    interruptible: false
+  # On PR branches: only run when files that affect benchmark results are changed.
+  # Without this, benchmarks run on every PR regardless of what changed (e.g. docs, specs, CI config).
+  # Note: on the first push of a new branch (no diff base), GitLab evaluates changes: as true,
+  # so benchmarks run once — conservative/safe behavior.
+  - changes:
+      - lib/**/*
+      - ext/**/*
+      - benchmarks/**/*
+      - datadog.gemspec
+      - .gitlab/**/*
+    interruptible: true
+  # Terminating rule: if no rule above matched, skip the job.
+  # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
+  - when: never
+
 microbenchmarks:
   extends: .execution  # From benchmarks/execution.yml
   stage: microbenchmarks
@@ -201,25 +255,7 @@ microbenchmarks:
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
-  rules:
-    # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
-    # but stated explicitly here for clarity)
-    - if: $CI_COMMIT_REF_NAME == "master"
-      interruptible: false
-    # On PR branches: only run when files that affect benchmark results are changed.
-    # Without this, benchmarks run on every PR regardless of what changed (e.g. docs, specs, CI config).
-    # Note: on the first push of a new branch (no diff base), GitLab evaluates changes: as true,
-    # so benchmarks run once — conservative/safe behavior.
-    - changes:
-        - lib/**/*
-        - ext/**/*
-        - benchmarks/**/*
-        - datadog.gemspec
-        - .gitlab/**/*
-      interruptible: true
-    # Terminating rule: if no rule above matched, skip the job.
-    # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
-    - when: never
+  rules: *microbenchmark-rules
   timeout: 1h
   variables:
     # GitLab CI variables passed to bp-runner
@@ -228,6 +264,8 @@ microbenchmarks:
     CI_PROJECT_NAME: $CI_PROJECT_NAME
     CI_JOB_ID: $CI_JOB_ID
     CI_PIPELINE_ID: $CI_PIPELINE_ID
+    # See https://datadoghq.atlassian.net/wiki/spaces/APMINT/pages/7223313012/Flaky+Benchmarks+Monitoring for more details.
+    FLAKY_BENCHMARKS_REGEX: ""
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts"
     - |
@@ -259,7 +297,68 @@ microbenchmarks:
         exit 1
       fi
     - cd platform
-    - bp-runner bp-runner.yml --debug
+    - bp-runner ../.gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
+
+open-feature-microbenchmarks:
+  stage: microbenchmarks
+  when: manual
+  needs: []
+  tags: ["runner:apm-k8s-tweaked-metal"]
+  image: $BASE_CI_IMAGE
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: manual
+      interruptible: false
+    - changes:
+        - benchmarks/open_feature_flagevaluation.rb
+        - lib/datadog/open_feature/**/*
+        - spec/datadog/open_feature/**/*
+        - .gitlab/benchmarks.yml
+        - .gitlab/benchmarks/bp-runner.microbenchmarks.yml
+      when: manual
+      interruptible: true
+    - when: never
+  timeout: 1h
+  allow_failure: true
+  variables:
+    # GitLab CI variables passed to bp-runner
+    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+    CI_COMMIT_SHA: $CI_COMMIT_SHA
+    CI_PROJECT_NAME: $CI_PROJECT_NAME
+    CI_JOB_ID: $CI_JOB_ID
+    CI_PIPELINE_ID: $CI_PIPELINE_ID
+    # OpenFeature EVP benchmarks are informational and manual to avoid allocating a dedicated
+    # bare-metal benchmark runner unless someone explicitly needs fresh performance data.
+    BENCHMARKS: "open_feature_flagevaluation.rb"
+    REPETITIONS: "4"
+    CPU_AFFINITY: "24-47"
+    CPUS_PER_BENCHMARK: "2"
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
+    - |
+      if [ -z "$CI_JOB_TOKEN" ]; then
+        echo "Error: CI_JOB_TOKEN is not set" >&2
+        exit 1
+      fi
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
+    - |
+      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
+        exit 1
+      fi
+    - cd platform
+    - bp-runner ../.gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
   artifacts:
     name: "artifacts"
     when: always
@@ -269,16 +368,17 @@ microbenchmarks:
 
 microbenchmarks-pr-comment:
   stage: microbenchmarks
-  when: on_success
+  rules: *microbenchmark-rules
   allow_failure: true
-  needs: [microbenchmarks]
+  needs:
+    - job: microbenchmarks
+      optional: true
+    - job: open-feature-microbenchmarks
+      optional: true
   tags: ["arch:amd64"]
   image: $BASE_CI_IMAGE
   timeout: 30m
   variables:
-    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
-    CI_PROJECT_NAME: $CI_PROJECT_NAME
-
     # In percent, how much the confidence intervals of
     # candidate and baseline results should differ to be considered significant
     SIGNIFICANT_IMPACT_THRESHOLD: 5
@@ -302,6 +402,29 @@ microbenchmarks-pr-comment:
       fi
     - cd platform
     - bp-runner bp-runner.pr-comment.yml --debug
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
+
+# This repository is using PR-level performance quality gates.
+# Verify that the microbenchmarks-check-big-regressions CI job has passed. If any regression happened, merging this PR will be blocked.
+# If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
+microbenchmarks-check-big-regressions:
+  stage: microbenchmarks
+  needs:
+    - job: microbenchmarks
+      optional: true
+  tags: ["arch:amd64"]
+  image: $BASE_CI_IMAGE
+  timeout: 30m
+  allow_failure: false
+  rules: *microbenchmark-rules
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - bp-runner .gitlab/benchmarks/bp-runner.fail-on-regression.yml --debug
   artifacts:
     name: "artifacts"
     when: always

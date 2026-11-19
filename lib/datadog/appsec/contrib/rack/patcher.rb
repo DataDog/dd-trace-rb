@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../monitor'
-require_relative 'gateway/watcher'
+require_relative "../../monitor"
+require_relative "gateway/watcher"
 
 module Datadog
   module AppSec
@@ -9,17 +9,15 @@ module Datadog
       module Rack
         # Patcher for Rack integration
         module Patcher
-          module_function
-
-          def patched?
-            Patcher.instance_variable_get(:@patched) # TODO: Patcher.flag_patched
+          def self.patched?
+            !!Patcher.instance_variable_get(:@patched) # TODO: Patcher.flag_patched
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Monitor::Gateway::Watcher.watch
             Gateway::Watcher.watch
             Patcher.instance_variable_set(:@patched, true)

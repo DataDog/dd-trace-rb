@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'gateway/request'
-require_relative '../../instrumentation/gateway'
-require_relative '../../response'
+require_relative "gateway/request"
+require_relative "../../instrumentation/gateway"
+require_relative "../../response"
 
 module Datadog
   module AppSec
@@ -12,7 +12,8 @@ module Datadog
         # This should be inserted just below Rack::JSONBodyParser or
         # legacy Rack::PostBodyContentTypeParser from rack-contrib
         class RequestBodyMiddleware
-          def initialize(app, opt = {})
+          # TODO: opt is never used, it can probably be safely removed
+          def initialize(app, opt = {}) # steep:ignore DifferentMethodParameterKind
             @app = app
           end
 
@@ -23,18 +24,21 @@ module Datadog
 
             # TODO: handle exceptions, except for @app.call
 
-            http_response = nil
-            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              http_response, _request = Instrumentation.gateway.push('rack.request.body', Gateway::Request.new(env)) do
+            http_response = nil #: Rack::response?
+            interrupted = context.catch_interrupt do
+              http_response, _request = Instrumentation.gateway.push("rack.request.body", Gateway::Request.new(env)) do
                 @app.call(env)
               end
-
-              nil
             end
 
-            return AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack if interrupt_params
+            response_shared = http_response && context.shared?
+            if interrupted && !response_shared
+              return AppSec::Response.from_interrupt_params(context.state[:interrupt_params], env["HTTP_ACCEPT"]).to_rack
+            end
 
-            http_response
+            # Steep can't see that the catch block always populates http_response
+            # when no interrupt is thrown.
+            http_response #: Rack::response
           end
         end
       end

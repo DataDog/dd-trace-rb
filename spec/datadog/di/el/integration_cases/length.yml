@@ -2,7 +2,7 @@
   ast:
     len:
       ref: var
-  compiled: len(ref('var'), 'var')
+  compiled: len(ref(context, 'var'), 'var')
 
 # The value here is of the wrong type, should fail compilation.
 # We should also use the value as the variable name.
@@ -20,7 +20,7 @@
   ast:
     len:
       ref: var
-  compiled: len(ref('var'), 'var')
+  compiled: len(ref(context, 'var'), 'var')
 
   eval:
     - name: string
@@ -45,7 +45,7 @@
     len:
       len:
         ref: var
-  compiled: len(len(ref('var'), 'var'), '(expression)')
+  compiled: len(len(ref(context, 'var'), 'var'), '(expression)')
 
   eval:
     - locals:

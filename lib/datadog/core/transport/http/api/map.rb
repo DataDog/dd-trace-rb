@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'fallbacks'
+require_relative "fallbacks"
 
 module Datadog
   module Core

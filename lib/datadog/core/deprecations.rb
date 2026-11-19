@@ -19,7 +19,7 @@ module Datadog
 
         logger.warn do
           message = yield
-          message += ' This will be enforced in the next major release.' if disallowed_next_major
+          message += " This will be enforced in the next major release." if disallowed_next_major
           message
         end
 

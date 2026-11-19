@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
+require "datadog/appsec/spec_helper"
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Result do
-  describe '.new' do
-    context 'when initializing non-error result' do
+  describe ".new" do
+    context "when initializing non-error result" do
       subject(:result) do
         described_class::Ok.new(
           events: [1],
-          actions: {'2' => '2'},
-          attributes: {'3' => '3'},
+          actions: {"2" => "2"},
+          attributes: {"3" => "3"},
           keep: true,
           timeout: true,
           duration_ns: 400,
           duration_ext_ns: 500,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -22,13 +22,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       it { expect(result).to be_timeout }
       it { expect(result).not_to be_input_truncated }
       it { expect(result.events).to eq([1]) }
-      it { expect(result.actions).to eq({'2' => '2'}) }
-      it { expect(result.attributes).to eq({'3' => '3'}) }
+      it { expect(result.actions).to eq({"2" => "2"}) }
+      it { expect(result.attributes).to eq({"3" => "3"}) }
       it { expect(result.duration_ns).to eq(400) }
       it { expect(result.duration_ext_ns).to eq(500) }
     end
 
-    context 'when initializing error result' do
+    context "when initializing error result" do
       subject(:result) { described_class::Error.new(duration_ext_ns: 100, input_truncated: false) }
 
       it { expect(result).not_to be_keep }
@@ -42,23 +42,23 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
   end
 
-  describe '#timeout?' do
-    context 'when result indicates timeout' do
+  describe "#timeout?" do
+    context "when result indicates timeout" do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
       it { expect(result).to be_timeout }
     end
 
-    context 'when result does not indicate timeout' do
+    context "when result does not indicate timeout" do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -66,12 +66,12 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
   end
 
-  describe '#match?' do
-    context 'when result is a generic type' do
+  describe "#match?" do
+    context "when result is a generic type" do
       subject(:result) do
         described_class::Base.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Match.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -93,7 +93,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -107,12 +107,12 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
   end
 
-  describe '#error?' do
-    context 'when result is a generic type' do
+  describe "#error?" do
+    context "when result is a generic type" do
       subject(:result) do
         described_class::Base.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -123,7 +123,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -134,7 +134,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -148,12 +148,12 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
   end
 
-  describe '#keep?' do
+  describe "#keep?" do
     context 'when result is a "match" type' do
       subject(:result) do
         described_class::Match.new(
           events: [], actions: {}, attributes: {}, timeout: false, keep: true, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -164,7 +164,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, keep: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

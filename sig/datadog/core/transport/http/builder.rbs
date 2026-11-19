@@ -21,9 +21,9 @@ module Datadog
 
           def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 
-          def headers: (?::Hash[untyped, untyped] values) -> untyped
+          def headers: (?Hash[untyped, untyped] values) -> untyped
 
-          def api: (untyped key, untyped spec, ?::Hash[untyped, untyped] options) -> untyped
+          def api: (untyped key, untyped spec, ?Hash[untyped, untyped] options) -> untyped
 
           def default_api=: (untyped key) -> untyped
 
@@ -37,7 +37,7 @@ module Datadog
 
             def initialize: (untyped key) -> void
 
-            def message: () -> ::String
+            def message: () -> String
           end
           class UnknownAdapterError < StandardError
             @type: untyped
@@ -46,7 +46,7 @@ module Datadog
 
             def initialize: (untyped type) -> void
 
-            def message: () -> ::String
+            def message: () -> String
           end
           class NoAdapterForApiError < StandardError
             @key: untyped
@@ -55,7 +55,7 @@ module Datadog
 
             def initialize: (untyped key) -> void
 
-            def message: () -> ::String
+            def message: () -> String
           end
           class NoApisError < StandardError
             def message: () -> "No APIs configured for transport!"

@@ -3,6 +3,7 @@ module Datadog
     module Configuration
       module Ext
         ENV_AI_GUARD_ENABLED: String
+        ENV_AI_GUARD_REDACTION_ENABLED: String
         ENV_AI_GUARD_ENDPOINT: String
         ENV_APP_KEY: String
         ENV_AI_GUARD_TIMEOUT: String

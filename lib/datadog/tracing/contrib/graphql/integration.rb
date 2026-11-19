@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -12,11 +12,13 @@ module Datadog
         class Integration
           include Contrib::Integration
 
+          MINIMUM_VERSION = Gem::Version.new("1.13.21")
+
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :graphql, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['graphql']&.version
+            Gem.loaded_specs["graphql"]&.version
           end
 
           def self.loaded?
@@ -31,15 +33,15 @@ module Datadog
           #
           def self.compatible?
             super && (
-              (version >= Gem::Version.new('1.13.21') && version < Gem::Version.new('2.0')) ||
-              (version >= Gem::Version.new('2.0.28') && version < Gem::Version.new('2.1')) ||
-              (version >= Gem::Version.new('2.1.11') && version < Gem::Version.new('2.2')) ||
-              (version >= Gem::Version.new('2.2.6'))
+              (version >= MINIMUM_VERSION && version < Gem::Version.new("2.0")) ||
+              (version >= Gem::Version.new("2.0.28") && version < Gem::Version.new("2.1")) ||
+              (version >= Gem::Version.new("2.1.11") && version < Gem::Version.new("2.2")) ||
+              (version >= Gem::Version.new("2.2.6"))
             )
           end
 
           def self.trace_supported?
-            version >= Gem::Version.new('2.0.19')
+            version >= Gem::Version.new("2.0.19")
           end
 
           def new_configuration

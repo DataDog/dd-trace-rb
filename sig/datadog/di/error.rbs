@@ -5,6 +5,8 @@ module Datadog
       end
       class MissingLineNumber < Error
       end
+      class MissingMethodName < Error
+      end
       class AgentCommunicationError < Error
       end
       class DITargetNotDefined < Error
@@ -15,6 +17,8 @@ module Datadog
       end
       class AlreadyInstrumented < Error
       end
+      class ProbeTargetForbidden < Error
+      end
       class MultiplePathsMatch < Error
       end
       class InvalidExpression < Error
@@ -22,6 +26,12 @@ module Datadog
       class BadVariableName < InvalidExpression
       end
       class ExpressionEvaluationError < Error
+      end
+
+      class EvaluationTimeout < ExpressionEvaluationError
+        DEFAULT_MESSAGE: String
+
+        def initialize: (?message: String) -> void
       end
     end
   end

@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:2.7-gnu-gcc
+FROM ghcr.io/datadog/images-rb/engines/ruby:2.7-gnu-gcc-g63fa2083a2632159fdfccba0106614dd88a4f742
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -13,10 +13,12 @@ RUN set -ex && \
         apt-get install -y --force-yes --no-install-recommends nodejs && \
         \
         echo "===> Installing Yarn" && \
-        curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-        echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+        install -d -m 0755 /etc/apt/keyrings && \
+        curl -fsSL --retry 5 --retry-delay 2 -o /tmp/yarn-pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg && \
+        gpg --dearmor -o /etc/apt/keyrings/yarn.gpg /tmp/yarn-pubkey.gpg && rm /tmp/yarn-pubkey.gpg && \
+        echo "deb [signed-by=/etc/apt/keyrings/yarn.gpg] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list && \
         apt-get update && \
-        apt-get install -y --force-yes --no-install-recommends yarn && \
+        apt-get install -y --no-install-recommends yarn && \
         \
         echo "===> Installing database libraries" && \
         apt-get install -y --force-yes --no-install-recommends \
@@ -39,13 +41,7 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-# Install RubyGems
-RUN gem update --system 3.4.1
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
-
-# Install RubyGems
-RUN gem update --system 3.4.1
-RUN gem install bundler
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Setup demo environment includes

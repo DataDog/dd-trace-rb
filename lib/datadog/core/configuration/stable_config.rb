@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../utils/only_once'
+require_relative "../utils/only_once"
 
 module Datadog
   module Core

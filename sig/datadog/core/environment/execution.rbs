@@ -9,10 +9,10 @@ module Datadog
         def self.test?: () -> bool
         def self.repl?: () -> bool
 
-        REPL_PROGRAM_NAMES: ::Array[::String]
+        REPL_PROGRAM_NAMES: Array[String]
         def self.rspec?: () -> bool
 
-        RSPEC_PROGRAM_NAME: ::String
+        RSPEC_PROGRAM_NAME: String
         def self.minitest?: () -> bool
 
         def self.cucumber?: -> bool

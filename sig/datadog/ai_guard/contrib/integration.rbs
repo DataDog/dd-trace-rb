@@ -21,6 +21,8 @@ module Datadog
           def loaded?: () -> bool
 
           def compatible?: () -> bool
+
+          def auto_instrument?: () -> bool
         end
 
         class RegisteredIntegration < ::Struct[[::Symbol, _IntegrationKlass, integration_options]]

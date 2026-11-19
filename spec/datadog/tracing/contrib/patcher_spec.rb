@@ -1,6 +1,6 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'datadog/tracing/contrib/patcher'
+require "datadog/tracing/contrib/patcher"
 
 RSpec.describe Datadog::Tracing::Contrib::Patcher do
   before do
@@ -9,52 +9,52 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
     RSpec::Mocks.space.any_instance_proxy_for(Datadog::Tracing::Contrib::Patcher::CommonMethods).unstub(:on_patch_error)
   end
 
-  describe 'implemented in a class' do
-    describe 'class behavior' do
-      describe '#patch' do
-        include_context 'health metrics'
+  describe "implemented in a class" do
+    describe "class behavior" do
+      describe "#patch" do
+        include_context "health metrics"
 
         subject(:patch) { patcher.patch }
 
-        context 'when patcher does not define .patch' do
+        context "when patcher does not define .patch" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
           it { expect(patch).to be nil }
         end
 
-        context 'when patcher defines .patch' do
-          context 'and .target_version is not defined' do
+        context "when patcher defines .patch" do
+          context "and .target_version is not defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Class.new do
                   include Datadog::Tracing::Contrib::Patcher
 
                   def self.patch
                     :patched
                   end
-                end
+                end,
               )
             end
 
             it do
               expect(patch).to be :patched
               expect(health_metrics).to have_received(:instrumentation_patched)
-                .with(1, tags: array_including('patcher:TestPatcher'))
+                .with(1, tags: array_including("patcher:TestPatcher"))
             end
           end
 
-          context 'and .target_version is defined' do
+          context "and .target_version is defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Class.new do
                   include Datadog::Tracing::Contrib::Patcher
 
@@ -65,120 +65,120 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
             it do
               expect(patch).to be :patched
               expect(health_metrics).to have_received(:instrumentation_patched)
-                .with(1, tags: array_including('patcher:TestPatcher', 'target_version:1.0'))
+                .with(1, tags: array_including("patcher:TestPatcher", "target_version:1.0"))
             end
           end
         end
 
-        context 'when patcher .patch raises an error' do
-          context 'and .target_version is not defined' do
+        context "when patcher .patch raises an error" do
+          context "and .target_version is not defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Class.new do
                   include Datadog::Tracing::Contrib::Patcher
 
                   def self.patch
-                    raise StandardError, 'Patch error!'
+                    raise StandardError, "Patch error!"
                   end
-                end
+                end,
               )
             end
 
-            it 'handles the error' do
+            it "handles the error" do
               expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
               expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+                .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
               expect { patch }.to_not raise_error
 
               expect(health_metrics).to have_received(:error_instrumentation_patch)
-                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+                .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError"))
             end
           end
 
-          context 'and .target_version is defined' do
+          context "and .target_version is defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Class.new do
                   include Datadog::Tracing::Contrib::Patcher
 
                   def self.patch
-                    raise StandardError, 'Patch error!'
+                    raise StandardError, "Patch error!"
                   end
 
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
-            it 'handles the error' do
+            it "handles the error" do
               expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
               expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+                .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
               expect { patch }.to_not raise_error
 
               expect(health_metrics).to have_received(:error_instrumentation_patch)
-                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+                .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError", "target_version:1.0"))
             end
           end
         end
       end
 
-      describe '#patched?' do
+      describe "#patched?" do
         subject(:patched?) { patcher.patched? }
 
-        context 'when patcher does not define .patch' do
+        context "when patcher does not define .patch" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
-          context 'and patch has not been applied' do
+          context "and patch has not been applied" do
             it { expect(patched?).to be false }
           end
 
-          context 'and patch has been applied' do
+          context "and patch has been applied" do
             before { patcher.patch }
 
             it { expect(patched?).to be false }
           end
         end
 
-        context 'when patcher defines .patch' do
+        context "when patcher defines .patch" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   :patched
                 end
-              end
+              end,
             )
           end
 
-          context 'and patch has not been applied' do
+          context "and patch has not been applied" do
             it { expect(patched?).to be false }
           end
 
-          context 'and patch has been applied' do
+          context "and patch has been applied" do
             before { patcher.patch }
 
             it { expect(patched?).to be true }
@@ -186,87 +186,87 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
         end
       end
 
-      describe '#on_patch_error' do
-        include_context 'health metrics'
+      describe "#on_patch_error" do
+        include_context "health metrics"
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { StandardError.new('Oops..').tap { |e| e.set_backtrace([]) } }
+        let(:error) { StandardError.new("Oops..").tap { |e| e.set_backtrace([]) } }
 
-        context 'and .target_version is not defined' do
+        context "and .target_version is not defined" do
           let(:patcher) do
-            stub_const('TestPatcher', Class.new { include Datadog::Tracing::Contrib::Patcher })
+            stub_const("TestPatcher", Class.new { include Datadog::Tracing::Contrib::Patcher })
           end
 
-          it 'handles the error' do
+          it "handles the error" do
             expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
             expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+              .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
             subject
             expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+              .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError"))
           end
         end
 
-        context 'and .target_version is defined' do
+        context "and .target_version is defined" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
 
                 def self.target_version
                   Gem::Version.new(1.0)
                 end
-              end
+              end,
             )
           end
 
-          it 'handles the error' do
+          it "handles the error" do
             expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
             expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+              .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
             subject
 
             expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+              .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError", "target_version:1.0"))
           end
         end
       end
     end
 
-    describe 'instance behavior' do
+    describe "instance behavior" do
       subject(:patcher) { patcher_class.new }
 
       let(:patcher_class) do
         stub_const(
-          'TestPatcher',
+          "TestPatcher",
           Class.new do
             include Datadog::Tracing::Contrib::Patcher
-          end
+          end,
         )
       end
 
-      describe '#patch' do
+      describe "#patch" do
         subject(:patch) { patcher.patch }
 
-        context 'when patcher does not define #patch' do
+        context "when patcher does not define #patch" do
           it { expect(patch).to be nil }
         end
 
-        context 'when patcher defines #patch' do
+        context "when patcher defines #patch" do
           let(:patcher_class) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
 
                 def patch
                   :patched
                 end
-              end
+              end,
             )
           end
 
@@ -274,105 +274,105 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
         end
       end
 
-      describe '#on_patch_error' do
-        include_context 'health metrics'
+      describe "#on_patch_error" do
+        include_context "health metrics"
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { StandardError.new('Oops..').tap { |e| e.set_backtrace([]) } }
+        let(:error) { StandardError.new("Oops..").tap { |e| e.set_backtrace([]) } }
 
-        context 'and .target_version is not defined' do
+        context "and .target_version is not defined" do
           let(:patcher_class) do
-            stub_const('TestPatcher', Class.new { include Datadog::Tracing::Contrib::Patcher })
+            stub_const("TestPatcher", Class.new { include Datadog::Tracing::Contrib::Patcher })
           end
 
-          it 'handles the error' do
+          it "handles the error" do
             expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
             expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+              .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
             subject
 
             expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+              .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError"))
           end
         end
 
-        context 'and .target_version is defined' do
+        context "and .target_version is defined" do
           let(:patcher_class) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
 
                 def target_version
                   Gem::Version.new(1.0)
                 end
-              end
+              end,
             )
           end
 
-          it 'handles the error' do
+          it "handles the error" do
             expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
             expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+              .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
             subject
 
             expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+              .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError", "target_version:1.0"))
           end
         end
       end
     end
   end
 
-  describe 'implemented in a module' do
-    describe 'module behavior' do
-      describe '#patch' do
-        include_context 'health metrics'
+  describe "implemented in a module" do
+    describe "module behavior" do
+      describe "#patch" do
+        include_context "health metrics"
 
         subject(:patch) { patcher.patch }
 
-        context 'when patcher does not define .patch' do
+        context "when patcher does not define .patch" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Module.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
           it { expect(patch).to be nil }
         end
 
-        context 'when patcher defines .patch' do
-          context 'and .target_version is not defined' do
+        context "when patcher defines .patch" do
+          context "and .target_version is not defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Module.new do
                   include Datadog::Tracing::Contrib::Patcher
 
                   def self.patch
                     :patched
                   end
-                end
+                end,
               )
             end
 
             it do
               expect(patch).to be :patched
               expect(health_metrics).to have_received(:instrumentation_patched)
-                .with(1, tags: array_including('patcher:TestPatcher'))
+                .with(1, tags: array_including("patcher:TestPatcher"))
             end
           end
 
-          context 'and .target_version is defined' do
+          context "and .target_version is defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Module.new do
                   include Datadog::Tracing::Contrib::Patcher
 
@@ -383,120 +383,120 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
             it do
               expect(patch).to be :patched
               expect(health_metrics).to have_received(:instrumentation_patched)
-                .with(1, tags: array_including('patcher:TestPatcher', 'target_version:1.0'))
+                .with(1, tags: array_including("patcher:TestPatcher", "target_version:1.0"))
             end
           end
         end
 
-        context 'when patcher .patch raises an error' do
-          context 'and .target_version is not defined' do
+        context "when patcher .patch raises an error" do
+          context "and .target_version is not defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Module.new do
                   include Datadog::Tracing::Contrib::Patcher
 
                   def self.patch
-                    raise StandardError, 'Patch error!'
+                    raise StandardError, "Patch error!"
                   end
-                end
+                end,
               )
             end
 
-            it 'handles the error' do
+            it "handles the error" do
               expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
               expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+                .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
               expect { patch }.to_not raise_error
 
               expect(health_metrics).to have_received(:error_instrumentation_patch)
-                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+                .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError"))
             end
           end
 
-          context 'and .target_version is defined' do
+          context "and .target_version is defined" do
             let(:patcher) do
               stub_const(
-                'TestPatcher',
+                "TestPatcher",
                 Module.new do
                   include Datadog::Tracing::Contrib::Patcher
 
                   def self.patch
-                    raise StandardError, 'Patch error!'
+                    raise StandardError, "Patch error!"
                   end
 
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
-            it 'handles the error' do
+            it "handles the error" do
               expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
               expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+                .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
               expect { patch }.to_not raise_error
 
               expect(health_metrics).to have_received(:error_instrumentation_patch)
-                .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+                .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError", "target_version:1.0"))
             end
           end
         end
       end
 
-      describe '#patched?' do
+      describe "#patched?" do
         subject(:patched?) { patcher.patched? }
 
-        context 'when patcher does not define .patch' do
+        context "when patcher does not define .patch" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Module.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
-          context 'and patch has not been applied' do
+          context "and patch has not been applied" do
             it { expect(patched?).to be false }
           end
 
-          context 'and patch has been applied' do
+          context "and patch has been applied" do
             before { patcher.patch }
 
             it { expect(patched?).to be false }
           end
         end
 
-        context 'when patcher defines .patch' do
+        context "when patcher defines .patch" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Module.new do
                 include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   :patched
                 end
-              end
+              end,
             )
           end
 
-          context 'and patch has not been applied' do
+          context "and patch has not been applied" do
             it { expect(patched?).to be false }
           end
 
-          context 'and patch has been applied' do
+          context "and patch has been applied" do
             before { patcher.patch }
 
             it { expect(patched?).to be true }
@@ -504,53 +504,53 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
         end
       end
 
-      describe '#on_patch_error' do
-        include_context 'health metrics'
+      describe "#on_patch_error" do
+        include_context "health metrics"
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { StandardError.new('Oops..').tap { |e| e.set_backtrace([]) } }
+        let(:error) { StandardError.new("Oops..").tap { |e| e.set_backtrace([]) } }
 
-        context 'and .target_version is not defined' do
+        context "and .target_version is not defined" do
           let(:patcher) do
-            stub_const('TestPatcher', Module.new { include Datadog::Tracing::Contrib::Patcher })
+            stub_const("TestPatcher", Module.new { include Datadog::Tracing::Contrib::Patcher })
           end
 
-          it 'handles the error' do
+          it "handles the error" do
             expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
             expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+              .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
             subject
 
             expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
+              .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError"))
           end
         end
 
-        context 'and .target_version is defined' do
+        context "and .target_version is defined" do
           let(:patcher) do
             stub_const(
-              'TestPatcher',
+              "TestPatcher",
               Module.new do
                 include Datadog::Tracing::Contrib::Patcher
 
                 def self.target_version
                   Gem::Version.new(1.0)
                 end
-              end
+              end,
             )
           end
 
-          it 'handles the error' do
+          it "handles the error" do
             expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
             expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+              .with(an_instance_of(StandardError), description: "Failed to apply TestPatcher patch")
 
             subject
 
             expect(health_metrics).to have_received(:error_instrumentation_patch)
-              .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
+              .with(1, tags: array_including("patcher:TestPatcher", "error:StandardError", "target_version:1.0"))
           end
         end
       end

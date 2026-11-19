@@ -1,6 +1,6 @@
-require 'graphql'
-require 'json'
-require 'ostruct'
+require "ostruct" # graphql 1.13 uses OpenStruct without requiring ostruct itself
+require "graphql"
+require "json"
 
 module TestGraphQL
   class Case < GraphQL::Schema::Directive
@@ -8,8 +8,8 @@ module TestGraphQL
     locations FIELD
 
     TRANSFORMS = [
-      'upcase',
-      'downcase',
+      "upcase",
+      "downcase",
     ].freeze
 
     # Implement the Directive API
@@ -42,40 +42,40 @@ module TestGraphQL
   end
 
   class Query < ::GraphQL::Schema::Object
-    field :user, UserType, null: false, description: 'Find an user by ID' do
+    field :user, UserType, null: false, description: "Find an user by ID" do
       argument :id, ::GraphQL::Types::ID, required: true
     end
 
     def user(id:)
-      return OpenStruct.new(id: id, name: 'Caniche') if Integer(id) == 10
+      return OpenStruct.new(id: id, name: "Caniche") if Integer(id) == 10
 
-      OpenStruct.new(id: id, name: 'Bits')
+      OpenStruct.new(id: id, name: "Bits")
     end
 
-    field :userByName, UserType, null: false, description: 'Find an user by name' do
+    field :userByName, UserType, null: false, description: "Find an user by name" do
       argument :name, ::GraphQL::Types::String, required: true
     end
 
     # rubocop:disable Naming/MethodName
     def userByName(name:)
-      return OpenStruct.new(id: 10, name: name) if name == 'Caniche'
+      return OpenStruct.new(id: 10, name: name) if name == "Caniche"
 
       OpenStruct.new(id: 1, name: name)
     end
 
-    field :unexpected_error, UserType, description: 'Raises error'
+    field :unexpected_error, UserType, description: "Raises error"
 
     def unexpected_error
-      raise 'Unexpected error'
+      raise "Unexpected error"
     end
 
-    field :mutationUserByName, UserType, null: false, description: 'Find an user by name' do
+    field :mutationUserByName, UserType, null: false, description: "Find an user by name" do
       argument :name, ::GraphQL::Types::String, required: true
     end
 
     def mutationUserByName(name:)
       if Users.users[name].nil?
-        ::GraphQL::ExecutionError.new('User not found')
+        ::GraphQL::ExecutionError.new("User not found")
       else
         OpenStruct.new(id: Users.users[name], name: name)
       end
@@ -105,7 +105,7 @@ module TestGraphQL
           Users.users[name] = Users.users.size + 1
           {user: item, errors: []}
         else
-          ::GraphQL::ExecutionError.new('User already exists')
+          ::GraphQL::ExecutionError.new("User already exists")
         end
       end
     end

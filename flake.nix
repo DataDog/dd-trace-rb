@@ -34,8 +34,10 @@
           # enable calling gem scripts without bundle exec
           export PATH="$GEM_HOME/bin:$PATH"
 
-          # enable implicitly resolving gems to bundled version
-          export RUBYGEMS_GEMDEPS="$(pwd)/Gemfile"
+          export BUNDLE_GEMFILE="$(pwd)/gemfiles/ruby-''${RUBY_VERSION%.0}.gemfile"
+
+          # enable implicitly resolving gems to the bundled version
+          export RUBYGEMS_GEMDEPS="$BUNDLE_GEMFILE"
 
           export SKIP_SIMPLECOV=1
         '';

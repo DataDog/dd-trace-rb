@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
+require_relative "../configuration_value"
 
 module Datadog
   module Core
@@ -23,7 +24,7 @@ module Datadog
           end
 
           def type
-            'app-started'
+            "app-started"
           end
 
           def payload
@@ -51,15 +52,21 @@ module Datadog
             # @type var products: telemetry_products
             products = {
               appsec: {
-                # TODO take appsec status out of component tree?
-                enabled: components.settings.appsec.enabled,
+                enabled: !!components.appsec,
               },
               profiler: {
-                enabled: !!components.profiler&.enabled?,
+                enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
-                enabled: !!components.dynamic_instrumentation,
-              }
+                # With always-build, the DI component is constructed by
+                # default (when the runtime supports DI, RC is available, and
+                # DI is not explicitly disabled) regardless of whether the
+                # customer turned DI on. Its presence therefore no longer
+                # indicates the enabled state. started? reflects whether DI was
+                # actually enabled by env var or by implicit enablement via
+                # remote config.
+                enabled: components.dynamic_instrumentation&.started? || false,
+              },
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)
@@ -72,169 +79,107 @@ module Datadog
             products
           end
 
-          TARGET_OPTIONS = %w[
-            dynamic_instrumentation.enabled
-            logger.level
-            profiling.advanced.code_provenance_enabled
-            profiling.advanced.endpoint.collection.enabled
-            profiling.enabled
-            runtime_metrics.enabled
-            tracing.analytics.enabled
-            tracing.propagation_style_extract
-            tracing.propagation_style_inject
-            tracing.enabled
-            tracing.log_injection
-            tracing.partial_flush.enabled
-            tracing.partial_flush.min_spans_threshold
-            tracing.report_hostname
-            tracing.sampling.rate_limit
-            apm.tracing.enabled
-            agent.host
-            tracing.sampling.default_rate
-            tracing.contrib.global_default_service_name.enabled
-            tracing.contrib.peer_service_defaults
-            tracing.contrib.peer_service_mapping
-            diagnostics.debug
-            opentelemetry.exporter.endpoint
-            opentelemetry.exporter.protocol
-            opentelemetry.exporter.timeout_millis
-            opentelemetry.metrics.enabled
-            opentelemetry.metrics.exporter
-            opentelemetry.metrics.endpoint
-            opentelemetry.metrics.protocol
-            opentelemetry.metrics.timeout_millis
-            opentelemetry.metrics.temporality_preference
-            opentelemetry.metrics.export_interval_millis
-            opentelemetry.metrics.export_timeout_millis
-          ].freeze
-
           def configuration(settings, agent_settings)
             # Special values that are not tied to a configuration option
             list = [
               conf_value(
-                'DD_GIT_REPOSITORY_URL',
+                "DD_GIT_REPOSITORY_URL",
                 Core::Environment::Git.git_repository_url,
-                (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
               conf_value(
-                'DD_GIT_COMMIT_SHA',
+                "DD_GIT_COMMIT_SHA",
                 Core::Environment::Git.git_commit_sha,
-                (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              unknown_conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
+              unknown_conf_value("DD_AGENT_TRANSPORT", agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
             ]
 
             # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
             auto_instrument_enabled = !defined?(Datadog::AutoInstrument::LOADED).nil?
             list << conf_value(
-              'tracing.auto_instrument.enabled',
+              "tracing.auto_instrument.enabled",
               auto_instrument_enabled,
-              auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT,
             )
             opentelemetry_enabled = !defined?(Datadog::OpenTelemetry::LOADED).nil?
             list << conf_value(
-              'tracing.opentelemetry.enabled',
+              "tracing.opentelemetry.enabled",
               opentelemetry_enabled,
-              opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT,
             )
 
             # Track ssi configurations
             instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
                 Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
                 Datadog::SingleStepInstrument::LOADED
-              'ssi'
+              "ssi"
             else
-              'manual'
+              "manual"
             end
 
             list.push(
               conf_value(
-                'instrumentation_source',
+                "instrumentation_source",
                 instrumentation_source,
-                (instrumentation_source == 'ssi') ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+                (instrumentation_source == "ssi") ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT,
               ),
               conf_value(
-                'DD_INJECT_FORCE',
-                Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false),
-                (DATADOG_ENV.key?('DD_INJECT_FORCE') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                "DD_INJECT_FORCE",
+                Core::Environment::VariableHelpers.env_to_bool("DD_INJECT_FORCE", false),
+                (DATADOG_ENV.key?("DD_INJECT_FORCE") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
               conf_value(
-                'DD_INJECTION_ENABLED',
-                DATADOG_ENV['DD_INJECTION_ENABLED'] || '',
-                (DATADOG_ENV.key?('DD_INJECTION_ENABLED') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                "DD_INJECTION_ENABLED",
+                DATADOG_ENV["DD_INJECTION_ENABLED"] || "",
+                (DATADOG_ENV.key?("DD_INJECTION_ENABLED") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
             )
 
             # Extract writer options as separate configuration payloads.
-            resolve_option(settings, 'tracing.writer_options').values_per_precedence.each do |precedence, value|
+            resolve_option(settings, "tracing.writer_options").values_per_precedence.each do |precedence, value|
               list << conf_value(
-                'tracing.writer_options.buffer_size',
+                "tracing.writer_options.buffer_size",
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:buffer_size]), # steep:ignore NoMethod
-                precedence
+                precedence,
               )
               list << conf_value(
-                'tracing.writer_options.flush_interval',
+                "tracing.writer_options.flush_interval",
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
-                precedence
-              )
-            end
-
-            # OpenTelemetry configuration options (using environment variable names)
-            otel_exporter_headers_option = resolve_option(settings, 'opentelemetry.exporter.headers')
-            otel_exporter_headers_option.values_per_precedence.each do |precedence, value|
-              list << conf_value(
-                option_telemetry_name(otel_exporter_headers_option),
-                # Steep: Value is always a hash for opentelemetry.exporter.headers (ensured by o.type :hash)
-                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
-                precedence
-              )
-            end
-
-            otel_metrics_headers_option = resolve_option(settings, 'opentelemetry.metrics.headers')
-            otel_metrics_headers_option.values_per_precedence.each do |precedence, value|
-              list << conf_value(
-                option_telemetry_name(otel_metrics_headers_option),
-                # Steep: Value is always a hash for opentelemetry.metrics.headers (ensured by o.type :hash)
-                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
-                precedence
+                precedence,
               )
             end
 
             # Add some more custom additional payload values here
             if settings.logger.instance
-              logger_instance_option = resolve_option(settings, 'logger.instance')
+              logger_instance_option = resolve_option(settings, "logger.instance")
               logger_instance_option.values_per_precedence.each do |precedence, value|
-                list << conf_value(option_telemetry_name(logger_instance_option), value.class.to_s, precedence)
+                list << conf_value(option_telemetry_name(logger_instance_option), value.nil? ? nil : value.class.to_s, precedence)
               end
             end
-            if settings.respond_to?('appsec')
-              list.push(*get_telemetry_payload(settings, 'appsec.enabled'))
-              list.push(*get_telemetry_payload(settings, 'appsec.sca_enabled'))
-            end
-            if settings.respond_to?('ci')
-              list.push(*get_telemetry_payload(settings, 'ci.enabled'))
-            end
 
-            # Whitelist of configuration options to send in additional payload object
-            TARGET_OPTIONS.each do |option_path|
-              list.push(*get_telemetry_payload(settings, option_path))
+            # Configuration options (regular + integration specific)
+            collect_all_configuration_options(settings).each do |option|
+              option.values_per_precedence.each do |precedence, value|
+                list << conf_value(option_telemetry_name(option), to_telemetry_value(value), precedence)
+              end
             end
 
             # We still want to report nil default and programmatic values as they are valid values
-            list.reject! { |entry| entry[:origin] != 'default' && entry[:origin] != 'code' && entry[:value].nil? }
+            list.reject! { |entry| entry[:origin] != "default" && entry[:origin] != "code" && entry[:value].nil? }
             list
           end
 
           def agent_transport(agent_settings)
             adapter = agent_settings.adapter
             if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
-              'UDS'
+              "UDS"
             else
-              'TCP'
+              "TCP"
             end
           end
 
@@ -251,17 +196,17 @@ module Datadog
           end
 
           def unknown_conf_value(name, value)
-            build_conf_value(name, value, 'unknown', Configuration::Option::Precedence::LIST.size + 1)
+            build_conf_value(name, value, "unknown", Configuration::Option::Precedence::LIST.size + 1)
           end
 
           def build_conf_value(name, value, origin, seq_id)
             # @type var result: Event::telemetry_configuration
             result = {name: name, value: value, origin: origin, seq_id: seq_id}
 
-            if origin == 'fleet_stable_config'
+            if origin == "fleet_stable_config"
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
               result[:config_id] = fleet_id if fleet_id
-            elsif origin == 'local_stable_config'
+            elsif origin == "local_stable_config"
               local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
               result[:config_id] = local_id if local_id
             end
@@ -270,46 +215,55 @@ module Datadog
           end
 
           def to_telemetry_value(value)
-            # TODO: Add float if telemetry starts accepting it
-            case value
-            when Integer, String, true, false, nil
-              value
-            when Hash
-              value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
-            when Array
-              value.join(',')
-            else
-              value.to_s
-            end
+            return value.to_s if value.is_a?(Float)
+
+            Telemetry::ConfigurationValue.convert(value)
           end
 
           def install_signature(settings)
             {
-              install_id: settings.dig('telemetry', 'install_id'),
-              install_type: settings.dig('telemetry', 'install_type'),
-              install_time: settings.dig('telemetry', 'install_time'),
+              install_id: settings.dig("telemetry", "install_id"),
+              install_type: settings.dig("telemetry", "install_type"),
+              install_time: settings.dig("telemetry", "install_time"),
             }
           end
 
-          def get_telemetry_payload(settings, config_path)
-            option = resolve_option(settings, config_path)
-            name = option_telemetry_name(option)
+          def collect_all_configuration_options(settings)
+            collect_configuration_options_from(settings).concat(collect_integration_configuration_options(settings.tracing))
+          end
 
-            option.values_per_precedence.map do |precedence, value|
-              conf_value(name, to_telemetry_value(value), precedence)
+          def collect_integration_configuration_options(tracing_settings)
+            return [] unless tracing_settings.respond_to?(:instrumented_built_in_integrations)
+
+            tracing_settings.instrumented_built_in_integrations.each_with_object([]) do |integration, entries|
+              integration.configurations.each_value do |configuration|
+                entries.concat(collect_configuration_options_from(configuration))
+              end
+            end
+          end
+
+          def collect_configuration_options_from(settings)
+            settings.class.options.each_key.with_object([]) do |name, options|
+              option = settings.send(:resolve_option, name)
+              next if option.definition.skip_telemetry
+
+              if option.settings?
+                options.concat(collect_configuration_options_from(option.get))
+              else
+                options << option
+              end
             end
           end
 
           def option_telemetry_name(option)
-            option.definition.env || option.definition.name.to_s
+            option.definition.env || option.name_with_settings_path
           end
 
           def resolve_option(settings, config_path)
-            split_option = config_path.split('.')
+            split_option = config_path.split(".")
             option_name = split_option.pop
             raise ArgumentError, "Invalid config path: #{config_path}" if option_name.nil?
 
-            # @type var parent_setting: Core::Configuration::Options
             parent_setting = settings.dig(*split_option)
             parent_setting.send(:resolve_option, option_name.to_sym)
           end

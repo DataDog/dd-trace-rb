@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'event'
+require_relative "event"
 
-require_relative '../utils/only_once_successful'
-require_relative '../workers/polling'
-require_relative '../workers/queue'
+require_relative "../utils/only_once_successful"
+require_relative "../workers/polling"
+require_relative "../workers/queue"
 
 module Datadog
   module Core
@@ -27,6 +27,9 @@ module Datadog
           metrics_manager:,
           dependency_collection:,
           logger:,
+          settings:,
+          agent_settings:,
+          extended_heartbeat_interval_seconds:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
@@ -35,8 +38,11 @@ module Datadog
           @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
           @logger = logger
+          @settings = settings
+          @agent_settings = agent_settings
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
+          @ticks_per_extended_heartbeat = (extended_heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
 
           # Workers::Polling settings
@@ -46,23 +52,25 @@ module Datadog
           # We actually restart the worker after fork, but this is done
           # via the AtForkMonkeyPatch rather than the worker fork policy
           # because we also need to reset state outside of the worker
-          # (e.g. the metrics).
+          # (the metrics, for example).
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
           @shutdown_timeout = shutdown_timeout
           @buffer_size = buffer_size
+          @initial_event = nil
 
           initialize_state
         end
 
         # To make the method calls clear, the initialization code is in this
         # method called +initialize_state+ which is called from +after_fork+.
-        # This way users of this class (e.g. telemetry Component) do not
+        # This way users of this class (telemetry Component, for example) do not
         # need to invoke +initialize_state+ directly, which can be confusing.
         private def initialize_state
           self.buffer = buffer_klass.new(@buffer_size)
 
           @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
+          @extended_heartbeat_ticks = 0
         end
 
         attr_reader :logger
@@ -79,7 +87,7 @@ module Datadog
           @initial_event = initial_event
 
           # starts async worker
-          # perform should return true if thread was actually started,
+          # perform returns true when it actually starts the thread,
           # false otherwise
           perform
         end
@@ -132,7 +140,7 @@ module Datadog
           if need_initial_event?
             started!
             unless sent_initial_event?
-              # We still haven't succeeded in sending the started event,
+              # We still have not succeeded in sending the started event,
               # which will make flush_events do nothing - but the events
               # given to us as the parameter have already been removed
               # from the queue.
@@ -151,6 +159,13 @@ module Datadog
           end
 
           @current_ticks += 1
+          @extended_heartbeat_ticks += 1
+
+          if @extended_heartbeat_ticks >= @ticks_per_extended_heartbeat
+            @extended_heartbeat_ticks = 0
+            extended_heartbeat!
+          end
+
           return if @current_ticks < @ticks_per_heartbeat
 
           @current_ticks = 0
@@ -170,8 +185,17 @@ module Datadog
           send_event(Event::AppHeartbeat.new)
         end
 
+        def extended_heartbeat!
+          return if !enabled? || !sent_initial_event?
+
+          send_event(Event::AppExtendedHeartbeat.new(settings: @settings, agent_settings: @agent_settings))
+        end
+
         def started!
           return unless enabled?
+
+          initial_event = @initial_event
+          return unless initial_event
 
           initial_event_once.run do
             res = send_event(initial_event)
@@ -179,8 +203,8 @@ module Datadog
             if res.ok?
               logger.debug { "Telemetry initial event (#{initial_event.type}) is successfully sent" }
 
-              # TODO Dependencies loaded event should probably check for new
-              # dependencies and send the new ones.
+              # TODO The DependenciesLoaded event can probably also check
+              # for new dependencies and send the new ones.
               # System tests demand only one instance of this event per
               # dependency.
               if @dependency_collection && initial_event.app_started?
@@ -219,7 +243,7 @@ module Datadog
         end
 
         def buffer_klass
-          if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
+          if Core::Environment::Ext::RUBY_ENGINE == "ruby"
             Core::Buffer::CRuby
           else
             Core::Buffer::ThreadSafe
@@ -234,16 +258,17 @@ module Datadog
         def disable_on_not_found!(response)
           return unless response.not_found?
 
-          logger.debug('Agent does not support telemetry; disabling future telemetry events.')
+          logger.debug("Agent does not support telemetry; disabling future telemetry events.")
           disable!
         end
 
         # Call this method in a forked child to reset the state of this worker.
         #
-        # Discard any accumulated events since they will be sent by
-        # the parent.
+        # Discard any accumulated events since the parent will send
+        # them.
         # Discard any accumulated metrics.
-        # Restart the worker thread, if it was running in the parent process.
+        # If the worker thread was running in the parent process,
+        # restart it.
         #
         # This method cannot be called +after_fork+ because workers define
         # and call +after_fork+ which is supposed to do different things.
@@ -254,25 +279,26 @@ module Datadog
           initialize_state
           # In the child process, we get a new runtime_id.
           # As such we need to send AppStarted event.
-          # In the parent process, the event may have been the
+          # In the parent process, the previous event was possibly the
           # SynthAppClientConfigurationChange instead of AppStarted,
           # and in that case we need to convert it to the "regular"
           # AppStarted event.
-          if defined?(@initial_event) && @initial_event.is_a?(Event::SynthAppClientConfigurationChange)
-            # It would be great to just replace the initial event in
-            # +initialize_state+ method. Unfortunately this event requires
+          initial_event = @initial_event
+          if initial_event.is_a?(Event::SynthAppClientConfigurationChange)
+            # Ideally we replace the initial event in
+            # +initialize_state+ directly. Unfortunately this event requires
             # the entire component tree to build its payload, which we
-            # 1) don't currently have in telemetry and
-            # 2) don't want to keep a permanent reference to in any case.
+            # 1) do not currently have in telemetry and
+            # 2) do not want to keep a permanent reference to in any case.
             # Therefore we have this +reset!+ method that changes the
             # event type while keeping the payload.
-            @initial_event.reset! # steep:ignore NoMethod
+            initial_event.reset!
           end
 
           if enabled? && !worker.nil?
-            # Start the background thread if it was started in the parent
-            # process (which requires telemetry to be enabled).
-            # This should be done after all of the state resets.
+            # If the background thread was started in the parent
+            # process (which requires telemetry to be enabled), start it.
+            # Do this after all of the state resets.
             perform
           end
         end
@@ -309,16 +335,16 @@ module Datadog
         end
 
         def idle?
-          # The AppStarted event is triggered by the worker itself,
+          # The worker itself sends the AppStarted event,
           # from the worker thread. As such the main thread has no way
           # to delay itself until that event is queued and we need some
           # way to wait until that event is sent out to assert on it in
-          # the test suite. Check the run once flag which *should*
-          # indicate the event has been queued (at which point our queue
-          # depth check should wait until it's sent).
+          # the test suite. Check the run once flag which *normally*
+          # indicates the event was queued (at which point our queue
+          # depth check waits until it is sent).
           # This is still a hack because the flag can be overridden
           # either way with or without the event being sent out.
-          # Note that if the AppStarted sending fails, this check
+          # If sending the AppStarted event fails, this check
           # will return false and flushing will be blocked until the
           # 15 second timeout.
           # Note that the first wait interval between telemetry event

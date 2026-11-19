@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../utils/quantization/hash'
+require_relative "../utils/quantization/hash_formatter"
 
 module Datadog
   module Tracing
@@ -8,30 +8,28 @@ module Datadog
       module Elasticsearch
         # Quantize contains ES-specific resource quantization tools.
         module Quantize
-          PLACEHOLDER = '?'
+          PLACEHOLDER = "?"
           ID_PLACEHOLDER = '\1?'
           EXCLUDE_KEYS = [].freeze
           SHOW_KEYS = [:_index, :_type, :_id].freeze
           DEFAULT_OPTIONS = {
             exclude: EXCLUDE_KEYS,
             show: SHOW_KEYS,
-            placeholder: PLACEHOLDER
+            placeholder: PLACEHOLDER,
           }.freeze
 
-          module_function
-
-          def format_url(url)
+          def self.format_url(url)
             sanitize_fragment_with_id(url)
               .gsub(/(?:\d+)/, PLACEHOLDER)
           end
 
-          def format_body(body, options = {})
+          def self.format_body(body, options = {})
             format_body!(body, options)
           rescue
             options[:placeholder] || PLACEHOLDER
           end
 
-          def format_body!(body, options = {})
+          def self.format_body!(body, options = {})
             options = merge_options(DEFAULT_OPTIONS, options)
 
             # Determine if bulk query or not, based on content
@@ -40,12 +38,12 @@ module Datadog
             # Parse each statement and quantize them.
             statements.collect do |string|
               reserialize_json(string, options[:placeholder]) do |obj|
-                Contrib::Utils::Quantization::Hash.format(obj, options)
+                Contrib::Utils::Quantization::HashFormatter.format(obj, options)
               end
             end.join("\n")
           end
 
-          def merge_options(original, additional)
+          def self.merge_options(original, additional)
             {}.tap do |options|
               # Show
               # If either is :all, value becomes :all
@@ -63,7 +61,7 @@ module Datadog
           # Parses a JSON object from a string, passes its value
           # to the block provided, and dumps its result back to JSON.
           # If JSON parsing fails, it prints fail_value.
-          def reserialize_json(string, fail_value = PLACEHOLDER)
+          def self.reserialize_json(string, fail_value = PLACEHOLDER)
             return string unless block_given?
 
             begin
@@ -77,7 +75,7 @@ module Datadog
           # Sanitizes URL fragment by changing it to ? whenever a number is detected
           # This is meant as simple heuristic that attempts to detect if particular fragment
           # represents document Id. This is meant to reduce the cardinality in most frequent cases.
-          def sanitize_fragment_with_id(url)
+          def self.sanitize_fragment_with_id(url)
             url.gsub(%r{^(/?[^/]*/[^/]*/)(?:[^?/\d]*\d+[^?/]*)}, ID_PLACEHOLDER)
           end
         end

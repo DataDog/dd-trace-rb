@@ -1,0 +1,35 @@
+module Datadog
+  module OpenFeature
+    module Agentless
+      class Response
+        @status: Integer?
+
+        @etag: String?
+
+        @body: String?
+
+        @error: Exception?
+
+        @flag_selection_ignored: String?
+
+        attr_reader status: Integer?
+
+        attr_reader etag: String?
+
+        attr_reader body: String?
+
+        attr_reader error: Exception?
+
+        attr_reader flag_selection_ignored: String?
+
+        def initialize: (
+          ?status: Integer?,
+          ?etag: String?,
+          ?body: String?,
+          ?error: Exception?,
+          ?flag_selection_ignored: String?
+        ) -> void
+      end
+    end
+  end
+end

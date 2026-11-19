@@ -1,7 +1,7 @@
-require 'datadog/tracing/contrib/status_range_matcher'
+require "datadog/tracing/contrib/status_range_matcher"
 
 RSpec.describe Datadog::Tracing::Contrib::StatusRangeMatcher do
-  describe '#include?' do
+  describe "#include?" do
     it do
       matcher = described_class.new(400)
 

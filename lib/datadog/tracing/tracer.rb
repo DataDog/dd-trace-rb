@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-require_relative '../core/environment/ext'
-require_relative '../core/environment/socket'
+require_relative "../core/environment/ext"
+require_relative "../core/environment/socket"
 
-require_relative 'correlation'
-require_relative 'event'
-require_relative 'flush'
-require_relative 'context_provider'
-require_relative 'sampling/all_sampler'
-require_relative 'sampling/rule_sampler'
-require_relative 'sampling/priority_sampler'
-require_relative 'sampling/span/sampler'
-require_relative 'span_operation'
-require_relative 'trace_digest'
-require_relative 'trace_operation'
-require_relative 'writer'
+require_relative "correlation"
+require_relative "event"
+require_relative "flush"
+require_relative "context_provider"
+require_relative "sampling/all_sampler"
+require_relative "sampling/rule_sampler"
+require_relative "sampling/priority_sampler"
+require_relative "sampling/span/sampler"
+require_relative "span_operation"
+require_relative "trace_digest"
+require_relative "trace_operation"
+require_relative "writer"
 
 module Datadog
   module Tracing
@@ -52,13 +52,14 @@ module Datadog
         # rubocop:disable Style/KeywordParametersOrder
         # https://github.com/rubocop/rubocop/issues/13933
         trace_flush: Flush::Finished.new,
-        context_provider: DefaultContextProvider.new,
+        context_provider: nil,
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
         logger: Datadog.logger,
+        otel_thread_context: nil,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
-          post_sampler: Sampling::RuleSampler.new
+          post_sampler: Sampling::RuleSampler.new,
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
@@ -71,11 +72,17 @@ module Datadog
         @default_service = default_service
         @enabled = enabled
         @logger = logger
-        @provider = context_provider
         @sampler = sampler
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+        @profiling_enabled = nil
+
+        @otel_thread_context = otel_thread_context
+
+        @provider = context_provider || DefaultContextProvider.new(
+          otel_thread_context: otel_thread_context,
+        )
       end
 
       # Return a {Datadog::Tracing::SpanOperation span_op} and {Datadog::Tracing::TraceOperation trace_op}
@@ -153,7 +160,7 @@ module Datadog
             active_trace
           end
         rescue => e
-          logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e.class}: #{e.message}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)
@@ -189,7 +196,7 @@ module Datadog
             tags: tags,
             type: type,
             _trace: trace,
-            id: id
+            id: id,
           )
         end
       end
@@ -303,7 +310,20 @@ module Datadog
         @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
       rescue => e
         SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample trace: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
+        end
+      end
+
+      def reconsider_trace_sampling_on_resource(trace_op)
+        return unless trace_op.reconsider_resource_sample?
+        return unless @sampler.respond_to?(:reconsider_sample_resource!)
+
+        @sampler.reconsider_sample_resource!(trace_op)
+      rescue => e
+        RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+          logger.warn do
+            "Failed to reconsider trace sampling: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
+          end
         end
       end
 
@@ -328,6 +348,15 @@ module Datadog
         # rubocop:enable Lint/UselessMethodDefinition
       end
 
+      def after_fork
+        @otel_thread_context&.after_fork
+      end
+
+      # For when the profiler is replaced, as it can be enabled or disabled after the tracer is built.
+      def reset_profiling_enabled
+        @profiling_enabled = nil
+      end
+
       # Shorthand that calls the `shutdown!` method of a registered worker.
       # It's useful to ensure that the Trace Buffer is properly flushed before
       # shutting down the application.
@@ -339,6 +368,7 @@ module Datadog
       #
       #   tracer.shutdown!
       def shutdown!
+        @otel_thread_context&.clear
         return unless @enabled
 
         @writer&.stop
@@ -359,14 +389,12 @@ module Datadog
       end
 
       def build_trace(digest, auto_finish)
-        # Resolve hostname if configured
-        hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
-        hostname = (hostname && !hostname.empty?) ? hostname : nil
+        hostname = Core::Environment::Socket.resolved_hostname(Datadog.configuration)
 
         if digest
-          sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
-            digest.trace_sampling_priority
-          end
+          propagate_sampling = propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
+          sampling_priority = digest.trace_sampling_priority if propagate_sampling
+          trace_state = Distributed::TraceState.from_digest(digest, propagate_sampling: propagate_sampling)
           TraceOperation.new(
             logger: logger,
             hostname: hostname,
@@ -376,14 +404,15 @@ module Datadog
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
             sampling_priority: sampling_priority,
+            span_links: digest.span_links,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
-            trace_state: digest.trace_state,
-            trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            trace_state: trace_state,
             remote_parent: digest.span_remote,
+            distributed_sampling_priority: !!sampling_priority,
             tracer: self,
             baggage: digest.baggage,
-            auto_finish: auto_finish
+            auto_finish: auto_finish,
           )
         else
           TraceOperation.new(
@@ -393,7 +422,7 @@ module Datadog
             apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
             tracer: self,
-            auto_finish: auto_finish
+            auto_finish: auto_finish,
           )
         end
       end
@@ -406,6 +435,15 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
+        events.span_before_finish.subscribe do |event_span_op, _event_trace_op|
+          if event_span_op.service && event_span_op.service != @default_service
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, @default_service)
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Tracing::Metadata::Ext::SVC_SRC_MANUAL) unless event_span_op.get_tag(Tracing::Metadata::Ext::TAG_SVC_SRC)
+          else
+            event_span_op.send(:meta).delete(Tracing::Metadata::Ext::TAG_SVC_SRC)
+          end
+        end
+
         events.trace_propagated.subscribe do |event_trace_op|
           sample_trace(event_trace_op)
         end
@@ -415,6 +453,17 @@ module Datadog
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
+
+        # Conditionally subscribe to the less common sampling rules below, to avoid
+        # measurable unnecessary performance overhead when they are not present.
+
+        if @sampler.respond_to?(:resource_sampling?) && @sampler.resource_sampling?
+          events.trace_resource_change.subscribe do |event_trace_op|
+            reconsider_trace_sampling_on_resource(event_trace_op)
+          end
+        end
+
+        @otel_thread_context&.subscribe_to_tracer_events!(events)
       end
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
@@ -473,7 +522,7 @@ module Datadog
             start_time: start_time,
             tags: resolve_tags(tags, service),
             type: type,
-            id: id
+            id: id,
           )
 
           span.start(start_time)
@@ -534,11 +583,14 @@ module Datadog
       SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
+      RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
+      private_constant :RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE
+
       def sample_span(trace_op, span)
         @span_sampler.sample!(trace_op, span)
       rescue => e
         SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample span: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -551,7 +603,7 @@ module Datadog
         write(trace) if trace && !trace.empty?
       rescue => e
         FLUSH_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to flush trace: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -595,18 +647,28 @@ module Datadog
           appsec_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
             Datadog::AppSec::Ext::PRODUCT_BIT
           return appsec_enabled if appsec_bit != 0
+
+          ai_guard_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
+            Datadog::AIGuard::Ext::PRODUCT_BIT
+          return ai_guard_enabled if ai_guard_bit != 0
         end
 
         false
       end
 
       def profiling_enabled
-        @profiling_enabled ||=
+        return @profiling_enabled unless @profiling_enabled.nil?
+
+        @profiling_enabled =
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
       end
 
       def appsec_enabled
         @appsec_enabled ||= Datadog.configuration.appsec.enabled
+      end
+
+      def ai_guard_enabled
+        @ai_guard_enabled ||= Datadog.configuration.respond_to?(:ai_guard) && Datadog.configuration.ai_guard.enabled
       end
 
       # Due to APM Tracing (the product) and Tracing (the transport) being intertwined, we cannot completely disabled APM

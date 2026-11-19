@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "patcher"
 
 module Datadog
   module AppSec
@@ -11,19 +11,20 @@ module Datadog
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('2.0.19')
+          MINIMUM_VERSION = Gem::Version.new("2.0.19")
 
           AST_NODE_CLASS_NAMES = {
-            field: 'GraphQL::Language::Nodes::Field',
-            directive: 'GraphQL::Language::Nodes::Directive',
-            variable_identifier: 'GraphQL::Language::Nodes::VariableIdentifier',
-            input_object: 'GraphQL::Language::Nodes::InputObject',
+            field: "GraphQL::Language::Nodes::Field",
+            directive: "GraphQL::Language::Nodes::Directive",
+            fragment_spread: "GraphQL::Language::Nodes::FragmentSpread",
+            variable_identifier: "GraphQL::Language::Nodes::VariableIdentifier",
+            input_object: "GraphQL::Language::Nodes::InputObject",
           }.freeze
 
           register_as :graphql, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['graphql']&.version
+            Gem.loaded_specs["graphql"]&.version
           end
 
           def self.loaded?

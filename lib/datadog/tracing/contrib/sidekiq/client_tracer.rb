@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'distributed/propagation'
-require_relative 'ext'
-require_relative 'utils'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "distributed/propagation"
+require_relative "ext"
+require_relative "utils"
 
 module Datadog
   module Tracing
@@ -24,9 +24,10 @@ module Datadog
             resource = job_resource(job)
 
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
+              span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: configuration,
-                trace: trace_op
+                trace: trace_op,
               )
                 Sidekiq.inject(trace_op, job)
               end
@@ -40,16 +41,16 @@ module Datadog
 
               span.set_tag(
                 Datadog::Tracing::Metadata::Ext::TAG_KIND,
-                Datadog::Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER
+                Datadog::Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER,
               )
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
                 Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
               end
-              span.set_tag(Ext::TAG_JOB_ID, job['jid'])
-              span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
-              span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
+              span.set_tag(Ext::TAG_JOB_ID, job["jid"])
+              span.set_tag(Ext::TAG_JOB_QUEUE, job["queue"])
+              span.set_tag(Ext::TAG_JOB_WRAPPER, job["class"]) if job["wrapped"]
 
               yield
             end

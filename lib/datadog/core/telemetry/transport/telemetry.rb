@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../transport/parcel'
-require_relative '../../transport/transport'
-require_relative 'http/telemetry'
+require_relative "../../transport/parcel"
+require_relative "../../transport/transport"
+require_relative "http/telemetry"
 
 module Datadog
   module Core

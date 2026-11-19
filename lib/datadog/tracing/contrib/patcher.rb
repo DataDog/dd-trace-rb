@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/only_once'
-require_relative '../../core/telemetry/logger'
+require_relative "../../core/utils/only_once"
+require_relative "../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -57,7 +57,7 @@ module Datadog
             @patch_error_result = {
               type: e.class.name,
               message: e.message,
-              line: Array(e.backtrace).first
+              line: Array(e.backtrace).first,
             }
 
             # Emit a metric

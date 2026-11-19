@@ -6,26 +6,29 @@ module Datadog
       module Propagation
         module SqlComment
           module Ext
-            ENV_DBM_PROPAGATION_MODE = 'DD_DBM_PROPAGATION_MODE'
+            ENV_DBM_PROPAGATION_MODE = "DD_DBM_PROPAGATION_MODE"
 
             # Determines whether to inject the propagation hash into the SQL comment
             # TODO: BASEHASH is confusing as a name, so look into better names that can apply cross tracer in the future
-            ENV_DBM_INJECT_SQL_BASEHASH = 'DD_DBM_INJECT_SQL_BASEHASH'
+            ENV_DBM_INJECT_SQL_BASEHASH = "DD_DBM_INJECT_SQL_BASEHASH"
 
             # The default mode for sql comment propagation
-            DISABLED = 'disabled'
+            DISABLED = "disabled"
 
             # The `service` mode propagates service configuration
-            SERVICE = 'service'
+            SERVICE = "service"
+
+            # The `dynamic_service` mode propagates service configuration + DBM service hash
+            DYNAMIC_SERVICE = "dynamic_service"
 
             # The `full` mode propagates service configuration + trace context
-            FULL = 'full'
+            FULL = "full"
 
             # The value should be `true` when `full` mode
-            TAG_DBM_TRACE_INJECTED = '_dd.dbm_trace_injected'
+            TAG_DBM_TRACE_INJECTED = "_dd.dbm_trace_injected"
 
             # Checksum of the agent's container tags and this process' tags
-            TAG_PROPAGATED_HASH = '_dd.propagated_hash'
+            TAG_PROPAGATED_HASH = "_dd.propagated_hash"
 
             # Database service/sql span service (i.e. the service executing the actual query)
             #
@@ -36,33 +39,33 @@ module Datadog
             #   This value is NOT the same as the parent service
             #
             # This should NOT be overridden by peer.service.
-            KEY_DATABASE_SERVICE = 'dddbs'
+            KEY_DATABASE_SERVICE = "dddbs"
 
             # The global service environment (e.g. DD_ENV)
-            KEY_ENVIRONMENT = 'dde'
+            KEY_ENVIRONMENT = "dde"
 
             # The global service name (e.g. DD_SERVICE)
-            KEY_PARENT_SERVICE = 'ddps'
+            KEY_PARENT_SERVICE = "ddps"
 
             # The global service version (e.g. DD_VERSION)
-            KEY_VERSION = 'ddpv'
+            KEY_VERSION = "ddpv"
 
             # The hostname of the database server, as provided to the database client upon instantiation.
             # @see Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME
-            KEY_HOSTNAME = 'ddh'
+            KEY_HOSTNAME = "ddh"
 
             # @see Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE
-            KEY_DB_NAME = 'dddb'
+            KEY_DB_NAME = "dddb"
 
             # Users can use this attribute to specify the identity of the dependency/database they are connecting to.
             # We should grab this attribute only if the user is EXPLICITLY specifying it.
             # @see Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE
-            KEY_PEER_SERVICE = 'ddprs'
+            KEY_PEER_SERVICE = "ddprs"
 
             # DBM service hash (ddsh) for propagation
-            KEY_BASE_HASH = 'ddsh'
+            KEY_BASE_HASH = "ddsh"
 
-            KEY_TRACEPARENT = 'traceparent'
+            KEY_TRACEPARENT = "traceparent"
           end
         end
       end

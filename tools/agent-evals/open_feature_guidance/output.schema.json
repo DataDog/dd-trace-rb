@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OpenFeature agent guidance eval response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "instruction_files"
+  ],
+  "properties": {
+    "instruction_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

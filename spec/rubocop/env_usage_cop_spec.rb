@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-require 'rubocop'
-require 'rubocop/rspec/support'
-require 'rubocop/custom_cops/env_usage_cop'
+require "rubocop"
+require "rubocop/rspec/support"
+require "rubocop/custom_cops/env_usage_cop"
 
 RSpec.describe CustomCops::EnvUsageCop do
   subject(:cop) { described_class.new }
 
-  describe 'ENV usage detection' do
-    it 'registers an offense for ENV hash access' do
+  describe "ENV usage detection" do
+    it "registers an offense for ENV hash access" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV['DATADOG_API_KEY']
@@ -25,7 +25,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for deeply nested ENV hash access' do
+    it "registers an offense for deeply nested ENV hash access" do
       expect_offense(<<~RUBY)
         module Datadog
           module Core
@@ -52,7 +52,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV access outside of Datadog namespace' do
+    it "registers an offense for ENV access outside of Datadog namespace" do
       expect_offense(<<~RUBY)
         ENV['DATADOG_API_KEY']
         ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog::DATADOG_ENV to access environment variables. See docs/AccessEnvironmentVariables.md for details.
@@ -63,7 +63,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV access outside of Datadog namespace with a comment' do
+    it "registers an offense for ENV access outside of Datadog namespace with a comment" do
       expect_offense(<<~RUBY)
         # frozen_string_literal: true
         ENV['DATADOG_API_KEY']
@@ -76,7 +76,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV access outside of Datadog namespace within a file that contains Datadog namespace' do
+    it "registers an offense for ENV access outside of Datadog namespace within a file that contains Datadog namespace" do
       expect_offense(<<~RUBY)
         module Datadog
           KEY = 'DATADOG_API_KEY'
@@ -93,7 +93,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV access when top module is not Datadog' do
+    it "registers an offense for ENV access when top module is not Datadog" do
       expect_offense(<<~RUBY)
         module MyApp
           module Datadog
@@ -112,7 +112,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.[]' do
+    it "registers an offense for ENV.[]" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.[]('DATADOG_API_KEY')
@@ -127,7 +127,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.fetch' do
+    it "registers an offense for ENV.fetch" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.fetch('DATADOG_API_KEY')
@@ -142,7 +142,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.key?' do
+    it "registers an offense for ENV.key?" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.key?('DATADOG_API_KEY')
@@ -157,7 +157,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.has_key?' do
+    it "registers an offense for ENV.has_key?" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.has_key?('DATADOG_API_KEY')
@@ -172,7 +172,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.include?' do
+    it "registers an offense for ENV.include?" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.include?('DATADOG_API_KEY')
@@ -187,7 +187,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.member?' do
+    it "registers an offense for ENV.member?" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.member?('DATADOG_API_KEY')
@@ -202,7 +202,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.values_at' do
+    it "registers an offense for ENV.values_at" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV.values_at('KEY1', 'KEY2')
@@ -213,7 +213,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       expect_no_corrections
     end
 
-    it 'registers an offense for ENV' do
+    it "registers an offense for ENV" do
       expect_offense(<<~RUBY)
         module Datadog
           ENV

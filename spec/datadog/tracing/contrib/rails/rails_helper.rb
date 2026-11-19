@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'logger'
-require 'rails/all'
+require "logger"
+require "rails/all"
 
-require 'spec/datadog/tracing/contrib/rails/support/configuration'
-require 'spec/datadog/tracing/contrib/rails/support/database'
-require 'spec/datadog/tracing/contrib/rails/support/application'
+require "spec/datadog/tracing/contrib/rails/support/configuration"
+require "spec/datadog/tracing/contrib/rails/support/database"
+require "spec/datadog/tracing/contrib/rails/support/application"
 
 # logger
 logger = Logger.new($stdout)
@@ -13,8 +13,8 @@ logger.level = Logger::INFO
 
 # Rails settings
 adapter = Datadog::Tracing::Contrib::Rails::Test::Database.load_adapter!
-ENV['RAILS_ENV'] = 'test'
-ENV['DATABASE_URL'] = adapter
+ENV["RAILS_ENV"] = "test"
+ENV["DATABASE_URL"] = adapter
 
 # switch Rails import according to installed
 # version; this is controlled with Appraisals

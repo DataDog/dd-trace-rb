@@ -8,10 +8,10 @@ module Datadog
         class << self
           def call(value)
             [].tap do |array|
-              value.split(',').each do |e|
+              value.split(",").each do |e|
                 next unless e
 
-                v = e.split('-')
+                v = e.split("-")
 
                 case v.length
                 when 0 then next
@@ -19,7 +19,7 @@ module Datadog
                 when 2 then array << (Integer(v.first)..Integer(v.last))
                 else
                   Datadog.logger.debug(
-                    "Invalid error_status_codes configuration: Unable to parse #{value}, containing #{v}."
+                    "Invalid error_status_codes configuration: Unable to parse #{value}, containing #{v}.",
                   )
                   next
                 end

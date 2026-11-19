@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/lru_cache'
+require_relative "../../core/utils/lru_cache"
 
 module Datadog
   module OpenFeature

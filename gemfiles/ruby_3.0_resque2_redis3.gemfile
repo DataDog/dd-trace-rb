@@ -9,7 +9,7 @@ gem "concurrent-ruby"
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "zstd-ruby"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
-gem "json-schema", "< 3"
+gem "json-schema", "~> 6.2"
 gem "memory_profiler", "~> 0.9"
 gem "os", "~> 1.1"
 gem "byebug"
@@ -27,11 +27,11 @@ gem "webrick", ">= 1.7.0"
 gem "redis", "< 4.0"
 gem "resque", ">= 2.0"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

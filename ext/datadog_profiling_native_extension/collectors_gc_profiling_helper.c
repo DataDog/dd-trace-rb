@@ -53,8 +53,6 @@ void gc_profiling_init(void) {
   shady_sym     = ID2SYM(rb_intern_const("shady"));
   force_sym     = ID2SYM(rb_intern_const("force"));
   oldmalloc_sym = ID2SYM(rb_intern_const("oldmalloc"));
-  state_sym     = ID2SYM(rb_intern_const("state"));
-  none_sym      = ID2SYM(rb_intern_const("none"));
 }
 
 bool gc_profiling_has_major_gc_finished(void) {

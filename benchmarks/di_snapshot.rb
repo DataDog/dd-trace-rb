@@ -28,13 +28,13 @@
 #
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require 'benchmark/ips'
-require 'datadog'
-require 'webrick'
+require "benchmark/ips"
+require "datadog"
+require "webrick"
 
 class DISnapshotBenchmark
   # If we are validating the benchmark a single operation is sufficient.
@@ -69,13 +69,13 @@ class DISnapshotBenchmark
       server.start
     end
 
-    require_relative 'support/di_snapshot_target'
+    require_relative "support/di_snapshot_target"
   end
 
   def run_benchmark
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
-      type_name: 'DISnapshotTarget', method_name: 'test_method',
+      type_name: "DISnapshotTarget", method_name: "test_method",
       rate_limit: BASIC_RATE_LIMIT,
     )
 
@@ -92,14 +92,14 @@ class DISnapshotBenchmark
         **benchmark_time,
       )
 
-      x.report('method probe - basic') do
+      x.report("method probe - basic") do
         BASIC_RATE_LIMIT.times do
           DISnapshotTarget.new.test_method
         end
         Datadog::DI.component.probe_notifier_worker.flush
       end
 
-      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "di-snapshot-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -109,7 +109,7 @@ class DISnapshotBenchmark
 
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
-      type_name: 'DISnapshotTarget', method_name: 'test_method',
+      type_name: "DISnapshotTarget", method_name: "test_method",
       capture_snapshot: true,
       # Normally rate limit for enriched probes is 1.
       # To get a meaningful number of submissions, increase it to 20.
@@ -131,14 +131,14 @@ class DISnapshotBenchmark
         **benchmark_time,
       )
 
-      x.report('method probe - enriched') do
+      x.report("method probe - enriched") do
         ENRICHED_RATE_LIMIT.times do
           DISnapshotTarget.new.test_method
         end
         Datadog::DI.component.probe_notifier_worker.flush
       end
 
-      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "di-snapshot-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -148,7 +148,7 @@ class DISnapshotBenchmark
 
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
-      file: 'di_snapshot_target.rb', line_no: 30,
+      file: "di_snapshot_target.rb", line_no: 30,
       capture_snapshot: false,
       rate_limit: BASIC_RATE_LIMIT,
     )
@@ -166,14 +166,14 @@ class DISnapshotBenchmark
         **benchmark_time,
       )
 
-      x.report('line probe - basic') do
+      x.report("line probe - basic") do
         BASIC_RATE_LIMIT.times do
           DISnapshotTarget.new.test_method
         end
         Datadog::DI.component.probe_notifier_worker.flush
       end
 
-      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "di-snapshot-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -183,7 +183,7 @@ class DISnapshotBenchmark
 
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
-      file: 'di_snapshot_target.rb', line_no: 30,
+      file: "di_snapshot_target.rb", line_no: 30,
       capture_snapshot: true,
       rate_limit: ENRICHED_RATE_LIMIT,
     )
@@ -201,14 +201,14 @@ class DISnapshotBenchmark
         **benchmark_time,
       )
 
-      x.report('line probe - enriched') do
+      x.report("line probe - enriched") do
         ENRICHED_RATE_LIMIT.times do
           DISnapshotTarget.new.test_method
         end
         Datadog::DI.component.probe_notifier_worker.flush
       end
 
-      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "di-snapshot-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -230,11 +230,11 @@ class DISnapshotBenchmark
       @received_snapshot_count = 0
       @received_snapshot_bytes = 0
 
-      server.mount_proc('/debugger/v1/diagnostics') do |req, res|
+      server.mount_proc("/debugger/v1/diagnostics") do |req, res|
         # This request is a multipart form post
       end
 
-      server.mount_proc('/debugger/v1/input') do |req, res|
+      server.mount_proc("/debugger/v2/input") do |req, res|
         payload = JSON.parse(req.body)
         @received_snapshot_count += payload.length
         @received_snapshot_bytes += req.body.length

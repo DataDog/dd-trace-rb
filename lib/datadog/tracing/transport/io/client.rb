@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../statistics'
-require_relative 'response'
+require_relative "../statistics"
+require_relative "response"
 
 module Datadog
   module Tracing
@@ -44,7 +44,7 @@ module Datadog
             response
           rescue => e
             message =
-              "Internal error during IO transport request. Cause: #{e.class.name}: #{e.message} " \
+              "Internal error during IO transport request. Cause: #{e.class}: #{e.message} " \
                 "Location: #{Array(e.backtrace).first}"
 
             # Log error

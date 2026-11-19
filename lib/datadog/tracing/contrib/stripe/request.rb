@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../../analytics"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -10,16 +10,14 @@ module Datadog
       module Stripe
         # Defines instrumentation for Stripe requests
         module Request
-          module_function
-
-          def start_span(event)
+          def self.start_span(event)
             # Start a trace
             Tracing.trace(Ext::SPAN_REQUEST).tap do |span|
               event.user_data[:datadog_span] = span
             end
           end
 
-          def finish_span(event)
+          def self.finish_span(event)
             span = event.user_data[:datadog_span]
             # If no active span, return.
             return nil if span.nil?
@@ -32,7 +30,7 @@ module Datadog
             end
           end
 
-          def tag_span(span, event)
+          def self.tag_span(span, event)
             # dependent upon stripe/stripe-ruby#1168
             span.resource = "stripe.#{event.object_name}" if event.respond_to?(:object_name) && event.object_name
 
@@ -55,10 +53,10 @@ module Datadog
             span.set_tag(Ext::TAG_REQUEST_PATH, event.path)
             span.set_tag(Ext::TAG_REQUEST_NUM_RETRIES, event.num_retries.to_s)
           rescue => e
-            Datadog.logger.debug(e.message)
+            Datadog.logger.debug { "#{e.class}: #{e.message}" }
           end
 
-          def configuration
+          def self.configuration
             Datadog.configuration.tracing[:stripe]
           end
         end

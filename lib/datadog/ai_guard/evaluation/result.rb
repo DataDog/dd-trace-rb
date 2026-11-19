@@ -3,23 +3,22 @@
 module Datadog
   module AIGuard
     module Evaluation
-      # Wrapper class for evaluation API response
       class Result
         ALLOW_ACTION = "ALLOW"
         DENY_ACTION = "DENY"
         ABORT_ACTION = "ABORT"
 
-        attr_reader :action, :reason, :tags
+        attr_reader :messages, :action, :reason, :tags, :sds_findings,
+          :tag_probabilities, :redaction_replacements
 
-        def initialize(raw_response)
-          attributes = raw_response.fetch("data").fetch("attributes")
-
-          @action = attributes.fetch("action")
-          @reason = attributes.fetch("reason")
-          @tags = attributes.fetch("tags")
-          @is_blocking_enabled = attributes.fetch("is_blocking_enabled")
-        rescue KeyError => e
-          raise AIGuardClientError, "Missing key: \"#{e.key}\""
+        def initialize(messages, action:, reason:, tags:, sds_findings:, tag_probabilities:, redaction_replacements:)
+          @messages = messages
+          @action = action
+          @reason = reason
+          @tags = tags
+          @sds_findings = sds_findings
+          @tag_probabilities = tag_probabilities
+          @redaction_replacements = redaction_replacements
         end
 
         def allow?
@@ -32,10 +31,6 @@ module Datadog
 
         def abort?
           action == ABORT_ACTION
-        end
-
-        def blocking_enabled?
-          !!@is_blocking_enabled
         end
       end
     end

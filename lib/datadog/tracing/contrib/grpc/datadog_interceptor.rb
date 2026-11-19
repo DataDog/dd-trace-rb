@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
-require_relative 'ext'
-require_relative 'configuration/settings'
+require_relative "../analytics"
+require_relative "ext"
+require_relative "configuration/settings"
 
 module Datadog
   module Tracing
@@ -89,7 +89,7 @@ module Datadog
               end
 
               OPTIONS.each do |option|
-                if option.to_s[-1] == '='
+                if option.to_s[-1] == "="
                   add_setter!(option)
                 else
                   add_getter!(option)
@@ -98,8 +98,8 @@ module Datadog
             end
           end
 
-          require_relative 'datadog_interceptor/client'
-          require_relative 'datadog_interceptor/server'
+          require_relative "datadog_interceptor/client"
+          require_relative "datadog_interceptor/server"
         end
       end
     end

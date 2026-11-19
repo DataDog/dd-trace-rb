@@ -1,28 +1,28 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/worker'
-require 'datadog/core/workers/polling'
+require "datadog/core/worker"
+require "datadog/core/workers/polling"
 
 RSpec.describe Datadog::Core::Workers::Polling do
-  context 'when included into a worker' do
+  context "when included into a worker" do
     subject(:worker) { worker_class.new }
 
     let(:worker_class) do
       Class.new(Datadog::Core::Worker) { include Datadog::Core::Workers::Polling }
     end
 
-    describe '#perform' do
+    describe "#perform" do
       subject(:perform) { worker.perform }
 
       after { worker.stop(true, 5) }
 
       let(:worker) { worker_class.new(&task) }
       let(:task) { proc { |*args| worker_spy.perform(*args) } }
-      let(:worker_spy) { double('worker spy') }
+      let(:worker_spy) { double("worker spy") }
 
       before { allow(worker_spy).to receive(:perform) }
 
-      context 'when #enabled? is true' do
+      context "when #enabled? is true" do
         before { allow(worker).to receive(:enabled?).and_return(true) }
 
         it do
@@ -31,7 +31,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
         end
       end
 
-      context 'when #enabled? is false' do
+      context "when #enabled? is false" do
         before { allow(worker).to receive(:enabled?).and_return(false) }
 
         it do
@@ -41,10 +41,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
       end
     end
 
-    describe '#stop' do
+    describe "#stop" do
       subject(:stop) { worker.stop }
 
-      shared_context 'graceful stop' do
+      shared_context "graceful stop" do
         before do
           allow(worker).to receive(:join)
             .with(described_class::DEFAULT_SHUTDOWN_TIMEOUT)
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
         end
       end
 
-      context 'when the worker has not been started' do
+      context "when the worker has not been started" do
         before do
           allow(worker).to receive(:join)
             .with(described_class::DEFAULT_SHUTDOWN_TIMEOUT)
@@ -62,8 +62,12 @@ RSpec.describe Datadog::Core::Workers::Polling do
         it { is_expected.to be false }
       end
 
-      context 'when the worker has been started' do
-        include_context 'graceful stop'
+      context "when the worker has been started" do
+        include_context "graceful stop"
+
+        # +join+ is stubbed, so +stop+ returns before the background thread
+        # is reaped. Terminate it explicitly to avoid leaking the thread.
+        after { worker.terminate }
 
         before do
           worker.perform
@@ -73,7 +77,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
         it { is_expected.to be true }
       end
 
-      context 'when the worker has just been started' do
+      context "when the worker has just been started" do
         # Set to true to assert on the state of the worker between operations.
         # Whehther these assertions are satisfied depends on how VM
         # schedules the threads. They are only useful if you are running
@@ -85,7 +89,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
         # This is a regression test for a race condition, and as such
         # it may not always go through the same state sequence as the
         # original isssue.
-        it 'stops the worker' do
+        it "stops the worker" do
           # Make sure the worker is not running.
           expect(worker.running?).to be false
           expect(worker.run_loop?).to be false
@@ -108,7 +112,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
             # concurrent and will start the background thread running on
             # another core.
             expect(worker.run_loop?).to be false
-            expect(worker.instance_variable_get('@run_loop')).to be nil
+            expect(worker.instance_variable_get(:@run_loop)).to be nil
           end
 
           # Request the worker to stop.
@@ -147,7 +151,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
         # The test is not guaranteed to exercise the intended
         # sequence of states on any given run. Run it a bunch of times
         # until it satisfies our desired state sequence.
-        context 'when run several times' do
+        context "when run several times" do
           # JRuby rarely attans the desired sequence of states,
           # but in my local testing succeeded with as few as 10 iteratons.
           # About 20 is typical.
@@ -168,7 +172,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
             end
           end
 
-          it 'stops the worker on each iteration' do
+          it "stops the worker on each iteration" do
             expected_state_met = false
             iterations_performed = 0
 
@@ -185,7 +189,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
 
               worker.perform
               expect(worker.running?).to be true
-              if !worker.run_loop? && worker.instance_variable_get('@run_loop').nil?
+              if !worker.run_loop? && worker.instance_variable_get(:@run_loop).nil?
                 state_ok_1 = true
               end
 
@@ -211,13 +215,13 @@ RSpec.describe Datadog::Core::Workers::Polling do
             expect(expected_state_met).to be true
             # Uncomment to see how many iterations were necessary to
             # achieve the desired conditions.
-            #warn "took #{iterations_performed} iterations"
+            # warn "took #{iterations_performed} iterations"
           end
         end
       end
 
-      context 'called multiple times with graceful stop' do
-        include_context 'graceful stop'
+      context "called multiple times with graceful stop" do
+        include_context "graceful stop"
 
         before do
           worker.perform
@@ -231,17 +235,17 @@ RSpec.describe Datadog::Core::Workers::Polling do
         end
       end
 
-      context 'given force_stop: true' do
+      context "given force_stop: true" do
         subject(:stop) { worker.stop(true) }
 
-        context 'and the worker does not gracefully stop' do
+        context "and the worker does not gracefully stop" do
           before do
             # Make it ignore graceful stops
             allow(worker).to receive(:stop_loop).and_return(false)
             allow(worker).to receive(:join).and_return(nil)
           end
 
-          context 'after the worker has been started' do
+          context "after the worker has been started" do
             before { worker.perform }
 
             it do
@@ -257,9 +261,13 @@ RSpec.describe Datadog::Core::Workers::Polling do
         end
       end
 
-      context 'given shutdown timeout' do
+      context "given shutdown timeout" do
         subject(:stop) { worker.stop(false, 1000) }
-        include_context 'graceful stop'
+        include_context "graceful stop"
+
+        # +join+ is stubbed, so +stop+ returns before the background thread
+        # is reaped. Terminate it explicitly to avoid leaking the thread.
+        after { worker.terminate }
 
         before do
           expect(worker).to receive(:join)
@@ -274,16 +282,16 @@ RSpec.describe Datadog::Core::Workers::Polling do
       end
     end
 
-    describe '#enabled?' do
+    describe "#enabled?" do
       subject(:enabled?) { worker.enabled? }
 
       before { allow(worker).to receive(:perform) }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be true }
       end
 
-      context 'when enabled= is set to false' do
+      context "when enabled= is set to false" do
         it do
           expect { worker.enabled = false }
             .to change { worker.enabled? }
@@ -293,10 +301,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
       end
     end
 
-    describe '#enabled=' do
+    describe "#enabled=" do
       subject(:set_enabled_value) { worker.enabled = value }
 
-      context 'and given true' do
+      context "and given true" do
         let(:value) { true }
 
         it do
@@ -306,7 +314,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
         end
       end
 
-      context 'and given false' do
+      context "and given false" do
         let(:value) { false }
 
         it do
@@ -317,10 +325,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
         end
       end
 
-      context 'and given nil' do
+      context "and given nil" do
         let(:value) { nil }
 
-        it 'does nothing' do
+        it "does nothing" do
           expect { set_enabled_value }
             .to change { worker.enabled? }
             .from(true)

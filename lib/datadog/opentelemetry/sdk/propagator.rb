@@ -17,13 +17,16 @@ module Datadog
           unless setter == ::OpenTelemetry::Context::Propagation.text_map_setter
             # PENDING: Not to report telemetry logs for now
             Datadog.logger.error(
-              'Custom setter is not supported. Please inform the `datadog` team at ' \
-            ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
-            'OpenTelemetry::Context::Propagation.text_map_setter as a fallback setter.'
+              "Custom setter is not supported. Please inform the `datadog` team at " \
+            " https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default " \
+            "OpenTelemetry::Context::Propagation.text_map_setter as a fallback setter.",
             )
           end
 
-          @datadog_propagator.inject(context.trace.to_digest, carrier)
+          trace = context.trace
+          return unless trace
+
+          @datadog_propagator.inject(trace.to_digest, carrier)
         end
 
         def extract(
@@ -35,23 +38,32 @@ module Datadog
             # PENDING: Not to report telemetry logs for now
             Datadog.logger.error(
               "Custom getter #{getter} is not supported. Please inform the `datadog` team at " \
-            ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
-            'OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter.'
+            " https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default " \
+            "OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter.",
             )
           end
 
           digest = @datadog_propagator.extract(carrier)
           return context unless digest
 
+          # Always call continue_trace! so span links are created in restart mode
+          # (when digest.trace_id is nil) before we attempt to build the OTel SpanContext.
+          trace = Tracing.continue_trace!(digest)
+
+          # In restart mode DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT=restart, the extracted
+          # digest carries no trace_id (fresh start). continue_trace! has already recorded
+          # the span link; return the current context so the caller's span starts a new root.
+          return context unless digest.trace_id
+
           # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
           # 128-bit unsigned, big-endian integer
-          trace_id = [digest.trace_id >> 64, digest.trace_id & 0xFFFFFFFFFFFFFFFF].pack('Q>Q>')
+          trace_id = [digest.trace_id >> 64, digest.trace_id & 0xFFFFFFFFFFFFFFFF].pack("Q>Q>")
           # 64-bit unsigned, big-endian integer
-          span_id = [digest.span_id].pack('Q>')
+          span_id = [digest.span_id].pack("Q>")
 
           if digest.trace_state || digest.trace_flags
             trace_flags = ::OpenTelemetry::Trace::TraceFlags.from_byte(digest.trace_flags)
-            tracestate = Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_tracestate, digest)
+            tracestate = ::OpenTelemetry::Trace::Tracestate.from_string(Tracing::Distributed::TraceState.serialize_digest(digest).to_s)
           else
             trace_flags = if Tracing::Sampling::PrioritySampler.sampled?(digest.trace_sampling_priority)
               ::OpenTelemetry::Trace::TraceFlags::SAMPLED
@@ -66,13 +78,10 @@ module Datadog
             span_id: span_id,
             trace_flags: trace_flags,
             tracestate: tracestate,
-            remote: true
+            remote: true,
           )
 
           span = ::OpenTelemetry::Trace.non_recording_span(span_context)
-
-          trace = Tracing.continue_trace!(digest)
-
           span.datadog_trace = trace
 
           ::OpenTelemetry::Trace.context_with_span(span, parent_context: context)

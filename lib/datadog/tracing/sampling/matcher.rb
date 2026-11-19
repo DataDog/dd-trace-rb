@@ -7,7 +7,7 @@ module Datadog
       # @abstract
       class Matcher
         # Pattern that matches any string
-        MATCH_ALL_PATTERN = '*'
+        MATCH_ALL_PATTERN = "*"
 
         # Returns `true` if the trace should conforms to this rule, `false` otherwise
         #
@@ -35,8 +35,8 @@ module Datadog
 
           # Our valid special characters, `?` and `*`, were just escaped
           # by `Regexp.quote` above. We need to unescape them:
-          glob.gsub!('\?', '.') # Any single character
-          glob.gsub!('\*', '.*') # Any substring
+          glob.gsub!('\?', ".") # Any single character
+          glob.gsub!('\*', ".*") # Any substring
 
           # Patterns have to match the whole input string
           glob = "\\A#{glob}\\z"
@@ -108,7 +108,7 @@ module Datadog
             # Format metrics as strings, to allow for partial number matching (/4.*/ matching '400', '404', etc.).
             # Because metrics are floats, we use the '%g' format specifier to avoid trailing zeros, which
             # can affect exact string matching (e.g. '400' matching '400.0').
-            tag = format('%g', tag) if tag.is_a?(Numeric)
+            tag = format("%g", tag) if tag.is_a?(Numeric)
 
             matcher.match?(tag)
           end

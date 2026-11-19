@@ -6,9 +6,7 @@ module Datadog
       module EndpointCollection
         # This module serializes Grape routes.
         module GrapeRouteSerializer
-          module_function
-
-          def serialize(route, path_prefix: '')
+          def self.serialize(route, path_prefix: "")
             path = path_prefix + route.pattern.origin
 
             {
@@ -16,7 +14,7 @@ module Datadog
               resource_name: "#{route.request_method} #{path}",
               operation_name: "http.request",
               method: route.request_method,
-              path: path
+              path: path,
             }
           end
         end

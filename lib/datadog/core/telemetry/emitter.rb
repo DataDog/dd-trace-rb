@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'request'
-require_relative '../transport/response'
-require_relative '../utils/sequence'
-require_relative '../utils/forking'
+require_relative "request"
+require_relative "../transport/response"
+require_relative "../utils/sequence"
+require_relative "../utils/forking"
 
 module Datadog
   module Core
@@ -39,7 +39,7 @@ module Datadog
           res
         rescue => e
           logger.debug {
-            "Unable to send telemetry request for event `#{event.respond_to?(:type) ? event.type : event.to_s}`: #{e.class}: #{e}"
+            "Unable to send telemetry request for event `#{event.respond_to?(:type) ? event.type : event.to_s}`: #{e.class}: #{e.message}"
           }
           Core::Transport::InternalErrorResponse.new(e)
         end

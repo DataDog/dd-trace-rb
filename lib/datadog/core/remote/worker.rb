@@ -15,7 +15,7 @@ module Datadog
 
           @interval = interval
           @logger = logger
-          raise ArgumentError, 'can not initialize a worker without a block' unless block
+          raise ArgumentError, "can not initialize a worker without a block" unless block
 
           @block = block
         end
@@ -27,7 +27,7 @@ module Datadog
 
           @mutex.synchronize do
             if @stopped
-              logger.debug('remote worker: refusing to restart after previous stop')
+              logger.debug("remote worker: refusing to restart after previous stop")
               return
             end
 
@@ -44,7 +44,7 @@ module Datadog
             @starting = false
           end
 
-          logger.debug { 'remote worker started' }
+          logger.debug { "remote worker started" }
         end
 
         def stop
@@ -63,11 +63,19 @@ module Datadog
             @stopped = true
           end
 
-          logger.debug { 'remote worker stopped' }
+          logger.debug { "remote worker stopped" }
         end
 
         def started?
           @started
+        end
+
+        # Child-only: discard inherited synchronization without starting a thread.
+        def after_fork
+          @mutex = Mutex.new
+          @thr = nil
+          @starting = false
+          @started = false
         end
 
         private
@@ -83,7 +91,7 @@ module Datadog
         end
 
         def call
-          logger.debug { 'remote worker perform' }
+          logger.debug { "remote worker perform" }
 
           @block.call
         end

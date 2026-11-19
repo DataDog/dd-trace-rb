@@ -1,0 +1,5 @@
+extends: existence
+message: "Changelog message should not contain double spaces."
+level: error
+raw:
+  - '\x20\x20'

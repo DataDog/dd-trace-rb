@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/transport/http/api/map'
+require "datadog/core/transport/http/api/map"
 
 RSpec.describe Datadog::Core::Transport::HTTP::API::Map do
   subject(:map) { described_class.new }

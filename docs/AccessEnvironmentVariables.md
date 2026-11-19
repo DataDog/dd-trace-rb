@@ -4,7 +4,7 @@ This document explains how to properly access environment variables and manage c
 
 ## Overview
 
-The dd-trace-rb library implements **central configuration inversion** through the `ConfigHelper` module to ensure all environment variable access is centralized, documented, and validated. This approach prevents direct `ENV` access and enforces that all supported environment variables are properly registered.
+The dd-trace-rb library implements **central configuration inversion** through the `ConfigHelper` module to ensure all environment variable access is centralized, documented, and validated. This approach prevents direct `ENV` access and enforces that all supported environment variables are properly declared in this library's `supported-configurations.json` file.
 
 Central configuration inversion name means that there is a single, centralized source of truth for configuration, and libraries use that source to accept configurations or not. This inverts the previous process, where configurations were defined in each library and we attempted to create a source of truth from the existing code, often leading to incomplete documentation.
 
@@ -36,16 +36,23 @@ For rare cases where your code is outside of Datadog namespace, use `Datadog::DA
 
 This is enforced by the `CustomCops::EnvUsageCop` cop.
 
-### 2. Supported Configurations Registry
+### 2. Supported Configurations Declarations
 
-All environment variables that start with `DD_` or `OTEL_` must be registered in the `supported-configurations.json` file to be accessible through `DATADOG_ENV`.
+All environment variables that start with `DD_` or `OTEL_` must be declared in the `supported-configurations.json` file to be accessible through `DATADOG_ENV`.
+
+**Terminology used in this document.** "Declare" means to add the
+variable to this library's local `supported-configurations.json`
+(and the generated `lib/datadog/core/configuration/supported_configurations.rb`).
+"Register" is reserved for the cross-tracer central Configuration
+Registry described below. The two are distinct steps with distinct
+failure modes.
 
 ### 3. Automatic Code Enforcement
 
 Custom RuboCop cops automatically detect and prevent direct `ENV` usage:
 
 - `CustomCops::EnvUsageCop` - Prevents direct `ENV` access and auto-corrects to use `DATADOG_ENV`
-- `CustomCops::EnvStringValidationCop` - Validates that environment variable strings are registered in supported configurations
+- `CustomCops::EnvStringValidationCop` - Validates that environment variable strings are declared in supported configurations
 
 ## How It Works
 
@@ -195,12 +202,12 @@ This task will exit with an error if there's a mismatch between `supported-confi
 
 ### "Missing X env/configuration in supported-configurations.json file"
 
-This error indicates you're trying to access a `DD_` or `OTEL_` environment variable that's not registered. Add it to `supported-configurations.json` and regenerate assets.
+This error indicates you're trying to access a `DD_` or `OTEL_` environment variable that's not declared. Add it to `supported-configurations.json` and regenerate assets.
 
 ### RuboCop Cop Violations
 
 - `CustomCops/EnvUsageCop`: You're using direct `ENV` access. Replace with `DATADOG_ENV`
-- `CustomCops/EnvStringValidationCop`: You have a string that looks like an env var but isn't registered. Either add it to supported configurations or disable the cop if it's a false positive.
+- `CustomCops/EnvStringValidationCop`: You have a string that looks like an env var but isn't declared. Either add it to supported configurations or disable the cop if it's a false positive.
 
 ### Configuration Mismatch Warning
 

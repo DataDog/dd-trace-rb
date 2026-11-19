@@ -2,33 +2,50 @@ module Datadog
   module AppSec
     module Metrics
       class Collector
-        class Store < ::Struct[untyped]
-          attr_accessor evals: ::Integer
+        class Store < Struct[untyped]
+          attr_accessor evals: Integer
 
-          attr_accessor timeouts: ::Integer
+          attr_accessor timeouts: Integer
 
-          attr_accessor matches: ::Integer
+          attr_accessor matches: Integer
 
-          attr_accessor errors: ::Integer
+          attr_accessor errors: Integer
 
-          attr_accessor duration_ns: ::Integer
+          attr_accessor duration_ns: Integer
 
-          attr_accessor duration_ext_ns: ::Integer
+          attr_accessor duration_ext_ns: Integer
 
-          attr_accessor inputs_truncated: ::Integer
+          attr_accessor inputs_truncated: Integer
 
-          attr_accessor downstream_requests: ::Integer
+          attr_accessor downstream_requests: Integer
 
           def self.new: (
-            evals: ::Integer,
-            matches: ::Integer,
-            errors: ::Integer,
-            timeouts: ::Integer,
-            duration_ns: ::Integer,
-            duration_ext_ns: ::Integer,
-            inputs_truncated: ::Integer,
-            downstream_requests: ::Integer
+            evals: Integer,
+            matches: Integer,
+            errors: Integer,
+            timeouts: Integer,
+            duration_ns: Integer,
+            duration_ext_ns: Integer,
+            inputs_truncated: Integer,
+            downstream_requests: Integer
           ) -> Store
+        end
+
+        class DownstreamResponseStore < Struct[untyped]
+          attr_accessor content_type_invalid: Integer
+
+          attr_accessor content_length_missing: Integer
+
+          attr_accessor content_length_too_big: Integer
+
+          attr_accessor content_exceed_content_length: Integer
+
+          def self.new: (
+            ?content_type_invalid: Integer,
+            ?content_length_missing: Integer,
+            ?content_length_too_big: Integer,
+            ?content_exceed_content_length: Integer
+          ) -> DownstreamResponseStore
         end
 
         @mutex: Mutex
@@ -37,15 +54,21 @@ module Datadog
 
         @rasp: Store
 
+        @downstream_responses: DownstreamResponseStore
+
         attr_reader waf: Store
 
         attr_reader rasp: Store
+
+        attr_reader downstream_responses: DownstreamResponseStore
 
         def initialize: () -> void
 
         def record_waf: (SecurityEngine::result result) -> void
 
-        def record_rasp: (SecurityEngine::result result, type: Ext::rasp_rule_type, ?phase: ::String?) -> void
+        def record_rasp: (SecurityEngine::result result, type: Ext::rasp_rule_type, ?phase: String?) -> void
+
+        def record_ignored_downstream_response_body: (Symbol reason) -> void
       end
     end
   end

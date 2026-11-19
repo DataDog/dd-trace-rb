@@ -40,8 +40,3 @@ with:
 2. From inside of the libdatadog repo, follow the [instructions to build libdatadog](https://github.com/datadog/libdatadog?tab=readme-ov-file#builder-crate)
    and build libdatadog into the build folder you picked: `cargo run --bin release (...see libdatadog readme for details...) -- --out my-libdatadog-build/$DD_RUBY_PLATFORM`
 3. Jump to step 4 of "Using libdatadog builds from CI or GitHub"
-
-## Native development on macOS
-
-For profiling in particular, you'll need to set `export DD_PROFILING_MACOS_TESTING=true` and re-run `bundle exec rake clean compile`
-as we don't build/enable profiling on macOS by default.

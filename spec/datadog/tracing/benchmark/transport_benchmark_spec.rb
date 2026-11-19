@@ -1,12 +1,12 @@
-require 'spec_helper'
+require "spec_helper"
 
-require_relative 'support/benchmark_helper'
+require_relative "support/benchmark_helper"
 
-RSpec.describe 'Microbenchmark Transport' do
-  context 'with HTTP transport' do
-    include_context 'minimal agent'
+RSpec.describe "Microbenchmark Transport" do
+  context "with HTTP transport" do
+    include_context "minimal agent"
 
-    describe 'send_traces' do
+    describe "send_traces" do
       # Remove objects created during specs from memory results
       let(:ignore_files) { %r{(/spec/)} }
       let(:span) { {1 => span1, 10 => span10, 100 => span100, 1000 => span1000} }
@@ -21,7 +21,7 @@ RSpec.describe 'Microbenchmark Transport' do
       let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) }
       let(:logger) { logger_allowing_debug }
 
-      include_examples 'benchmark'
+      include_examples "benchmark"
 
       def subject(i)
         transport.send_traces(span[i])

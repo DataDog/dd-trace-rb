@@ -2,52 +2,73 @@ module Datadog
   module Core
     module Workers
       module IntervalLoop
-        BACK_OFF_RATIO: ::Float
+        BACK_OFF_RATIO: Float
 
         BACK_OFF_MAX: 5
 
         BASE_INTERVAL: 1
-        MUTEX_INIT: untyped
 
-        def self.included: (untyped base) -> untyped
-        module PrependedMethods
-          def perform: (*untyped args) -> untyped
+        MUTEX_INIT: Thread::Mutex
+
+        def self.included: (Module base) -> void
+
+        module PrependedMethods : IntervalLoop
+          @in_iteration: bool
+
+          def perform: (*untyped args) -> void
+
+          def in_iteration?: () -> bool?
         end
 
-        def stop_loop: () -> (false | true)
+        @run_loop: bool
 
-        def work_pending?: () -> untyped
+        @loop_base_interval: Integer | Float
 
-        def run_loop?: () -> (false | untyped)
+        @loop_back_off_ratio: Integer | Float
 
-        def loop_base_interval: () -> untyped
+        @loop_back_off_max: Integer | Float
 
-        def loop_back_off_ratio: () -> untyped
+        @loop_wait_time: Integer | Float
 
-        def loop_back_off_max: () -> untyped
+        @mutex: Thread::Mutex?
 
-        def loop_wait_time: () -> untyped
+        @shutdown: ConditionVariable?
 
-        def loop_wait_time=: (untyped value) -> untyped
+        def stop_loop: () -> true
 
-        def loop_back_off!: () -> untyped
-        def loop_wait_before_first_iteration?: () -> false
+        def work_pending?: () -> bool
 
-        attr_writer loop_back_off_max: untyped
+        def run_loop?: () -> bool
 
-        attr_writer loop_back_off_ratio: untyped
+        def loop_base_interval: () -> (Integer | Float)
 
-        attr_writer loop_base_interval: untyped
+        def loop_back_off_ratio: () -> (Integer | Float)
 
-        def mutex: () -> untyped
+        def loop_back_off_max: () -> (Integer | Float)
+
+        def loop_wait_time: () -> (Integer | Float)
+
+        def loop_wait_time=: ((Integer | Float) value) -> (Integer | Float)
+
+        def loop_back_off!: () -> (Integer | Float)
+
+        def loop_wait_before_first_iteration?: () -> bool
+
+        def in_iteration?: () -> bool?
+
+        attr_writer loop_back_off_max: (Integer | Float)
+
+        attr_writer loop_back_off_ratio: (Integer | Float)
+
+        attr_writer loop_base_interval: (Integer | Float)
+
+        def mutex: () -> Thread::Mutex
 
         private
 
-        def perform_loop: () { () -> untyped } -> (nil | untyped)
-	
-	def in_iteration?: () -> (true | false)
+        def perform_loop: () { () -> void } -> nil
 
-        def shutdown: () -> untyped
+        def shutdown: () -> ConditionVariable
       end
     end
   end

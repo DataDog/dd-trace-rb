@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/time'
+require_relative "../core/rate_limiter"
+require_relative "../core/utils/time"
+require_relative "../ruby_version"
+require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -66,12 +70,46 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      # Maximum number of non-capturing probe emissions admitted per second across
+      # the whole process.
+      GLOBAL_LOG_RATE_LIMIT = 5000
+
+      # Canonical guardrails skip reason recorded for each correlation sampler
+      # drop decision.
+      # @return [Hash{Symbol => String}]
+      CORRELATION_DROP_SKIP_REASONS = {
+        own_rate_limit: GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE,
+        global_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+        top_gate: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+        trace_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET,
+      }.freeze
+
+      # Initializes the instrumenter with its process-wide hard rate
+      # limiter and the coordination gate.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings
+      # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots
+      # @param logger [Datadog::DI::Logger] DI logger used for diagnostic output
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrail skip metrics
+      # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param correlation_sampler [Datadog::DI::CorrelationSampler] coordinated
+      #   sampling gate for capturing probes
+      # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
+      #   tracking is not active
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
+      #   when telemetry is disabled
+      # @return [void]
+      def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
+        correlation_sampler:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = guardrails_telemetry
+        @capture_expression_evaluator = capture_expression_evaluator
         @code_tracker = code_tracker
+        @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
+        @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
       end
@@ -80,7 +118,101 @@ module Datadog
       attr_reader :serializer
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+      # The capture expression evaluator.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      # @return [Datadog::DI::CorrelationSampler]
+      attr_reader :correlation_sampler
+
+      # The code tracker is a global singleton created lazily by
+      # DI.activate_tracking. When DI is enabled after boot via remote
+      # configuration this instrumenter was already built with a nil tracker;
+      # Component#start! assigns the now-current tracker here.
+      attr_writer :code_tracker
+
+      # Process-wide log rate limiter.
+      # @return [Datadog::Core::TokenBucket]
+      attr_reader :global_log_rate_limiter
+
+      # Decides whether a condition-evaluation-failure notification may
+      # emit, after the probe's own condition-error limiter admitted it. A
+      # capturing probe's notification inside an active trace takes the
+      # correlation sampler's coordinated decision, consuming the trace's
+      # per-trace budget; every other notification, one with no active
+      # trace or from a non-capturing probe, consumes one GLOBAL token.
+      # Denials record the canonical rate-limit skip metric. A gate error
+      # fails open; the probe's condition-error limiter is the remaining
+      # throttle.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose condition evaluation failed
+      # @return [Boolean] true when the notification may emit
+      def admit_condition_error_snapshot?(probe)
+        begin
+          trace = current_trace
+          if trace && probe.capturing?
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
+          else
+            admitted = correlation_sampler.admit_process_wide_snapshot?
+            drop_reason = :global_budget
+          end
+        rescue Exception => exc # standard:disable Lint/RescueException
+          reraise_per_policy(exc)
+
+          logger.debug { "[di-correlation] gate error, failing open to the probe's condition-error limiter: #{exc.class}: #{exc.message}" }
+          telemetry&.report(exc, description: "Error in DI correlation gate")
+          return true
+        end
+
+        unless admitted
+          # A denial always carries its drop decision; Steep cannot infer
+          # the pairing between the returned tuple's elements.
+          # @type var drop_reason: Symbol
+          record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+          return false
+        end
+
+        true
+      end
+
+      # Emits the canonical rate-limit skip metric for a probe.
+      #
+      # @param probe [Probe] the probe being skipped
+      # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
+      # @return [void]
+      def record_rate_limit_skip(reason, probe)
+        limit = rate_limit_skip_limit(reason)
+        logger.trace do
+          "di: #{probe.type} probe #{probe.id}: skipping due to #{limit}" \
+            " (#{reason})"
+        end
+        guardrails_telemetry.skipped(
+          reason: reason,
+          probe: probe,
+        )
+        nil
+      end
+
+      # Names the rejecting limit each rate-limit skip reason reports.
+      #
+      # @param reason [String] a GuardrailsTelemetry::Reason rate-limit constant
+      # @return [String] the limit the reason names
+      # @raise [ArgumentError] when the reason is no known rate-limit constant
+      private def rate_limit_skip_limit(reason)
+        case reason
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE
+          "per-probe rate limit"
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL
+          "global rate limit"
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET
+          "per-trace snapshot budget"
+        else
+          raise ArgumentError, "Unknown rate limit skip reason: #{reason}"
+        end
+      end
 
       # This is a substitute for Thread::Backtrace::Location
       # which does not have a public constructor.
@@ -89,7 +221,24 @@ module Datadog
       # from the method but from outside of the method).
       Location = Struct.new(:path, :lineno, :label)
 
+      # Method probes can only target instance methods. The implementation uses
+      # Module#prepend with a module that defines an instance method matching the
+      # probe's target — class/singleton methods (def self.foo, module_function)
+      # are not reachable via prepend on the class itself. Line probes are
+      # unaffected since they install via TracePoint, not method dispatch.
       def hook_method(probe, responder)
+        # Reject method probes targeting any class or module in the Datadog
+        # namespace. The tracer uses these classes internally while building
+        # and dispatching probe snapshots; allowing a method probe on them
+        # would let DI's own code paths re-enter the probe wrapper. Line
+        # probes are unaffected (TracePoint is self-disabling during its
+        # callback) and are not rejected here.
+        type_name = probe.type_name
+        if type_name && datadog_namespace_type_name?(type_name)
+          raise Error::ProbeTargetForbidden,
+            "Method probes on the Datadog namespace are not permitted: #{type_name}##{probe.method_name}"
+        end
+
         lock.synchronize do
           if probe.instrumentation_module
             # Already instrumented, warn?
@@ -98,10 +247,9 @@ module Datadog
         end
 
         cls = symbolize_class_name(probe.type_name)
-        serializer = self.serializer
-        method_name = probe.method_name
-        loc = begin
-          cls.instance_method(method_name).source_location
+        method_name = probe.method_name!
+        target_method = begin
+          cls.instance_method(method_name)
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -109,169 +257,98 @@ module Datadog
           # or the method is virtual (provided by a method_missing handler).
           # In these cases we do not have a source location for the
           # target method here.
+          nil
         end
-        rate_limiter = probe.rate_limiter
-        settings = self.settings
+
+        # Reject method probes whose target method resolves to Kernel#lambda,
+        # including inherited targets. Every class inherits Kernel#lambda, so a
+        # probe naming any type that does not override lambda (Object#lambda,
+        # String#lambda, a plain user class, ...) prepends the wrapper ahead of
+        # Kernel#lambda and reaches the wrapper's super(&block) path. On
+        # Ruby 3.3+ that path raises ArgumentError for every lambda { ... }
+        # call site passing a captured block, breaking lambda creation
+        # process-wide. Resolving the method owner catches the inherited case
+        # that a textual "Kernel" name match misses; a type that defines its
+        # own lambda has a different owner and is left alone. Probing lambda
+        # creation has no legitimate customer use case. See #5560.
+        if method_name == "lambda" && target_method&.owner == ::Kernel
+          raise Error::ProbeTargetForbidden,
+            "Method probes on Kernel#lambda are not permitted: #{probe.type_name}##{method_name}"
+        end
+
+        loc = target_method&.source_location
+        # @type var instrumenter: Instrumenter
         instrumenter = self
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
-            # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
-            # @type var kwargs: ::Hash[::Symbol, untyped]
-            di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+          # Argument delegation follows docs/Delegation.md: on Ruby 3+
+          # positional and keyword arguments are captured and forwarded
+          # separately; on Ruby < 3 everything is captured into a single
+          # splat that ruby2_keywords flags, which is the only way to forward
+          # a trailing hash while preserving its positional-vs-keyword
+          # identity. The pre-3 branch is what lets an empty trailing hash
+          # (e.g. foo('x', {})) reach the original method intact.
+          #
+          # Re-entrancy guard: if we are already inside a DI method-probe
+          # callback, skip DI processing and call the original method
+          # directly. This prevents SystemStackError when a method probe is
+          # set on a stdlib method that DI itself calls during method-probe
+          # snapshot building (e.g., String#length, Hash#each). Line probes
+          # do not enter the guard — they rely on Ruby's TracePoint, which
+          # self-disables during its own callback. Nested invocations during
+          # DI processing also bypass the rate limiter: they are not
+          # user-observable probe firings, just internal calls that happen to
+          # land on a probed method. Guard storage is fiber-local;
+          # DI.in_probe?/enter_probe/leave_probe are implemented in C and
+          # access it directly, bypassing Thread#[]/Thread#[]= method dispatch
+          # so user probes on those cannot recurse.
+          #
+          # The original method is invoked via super. That super call lives
+          # in a block passed to #run_method_probe and captures its binding
+          # from inside this define_method block — the only place super
+          # resolves to the prepended-on class's method. #run_method_probe
+          # invokes it with yield, which does not dispatch Proc#call, so a
+          # user probe on Proc#call cannot intercept the trampoline, and no
+          # Proc is allocated for the block.
+          if RubyVersion.is?(">= 3")
+            define_method(method_name) do |*args, **kwargs, &target_block|
+              # steep:ignore FallbackAny below: Steep cannot narrow the
+              # **kwargs parameter inside this define_method block, so it
+              # falls back to untyped at the super and run_method_probe sites.
+              if DI.in_probe?
+                return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
+              end
 
-            if continue = probe.enabled?
-              if condition = probe.condition
-                begin
-                  # This context will be recreated later, unlike for line probes.
-                  #
-                  # We do not need the stack for condition evaluation, therefore
-                  # stack is not passed to Context here.
-                  context = Context.new(
-                    locals: serializer.combine_args(args, kwargs, self),
-                    target_self: self,
-                    probe: probe, settings: settings, serializer: serializer,
-                  )
-                  continue = condition.satisfied?(context)
-                rescue => exc
-                  # Evaluation error exception can be raised for "expected"
-                  # errors, we probably need another setting to control whether
-                  # these exceptions are propagated.
-                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
-
-                  if context
-                    # We want to report evaluation errors for conditions
-                    # as probe snapshots. However, if we failed to create
-                    # the context, we won't be able to report anything as
-                    # the probe notifier builder requires a context.
-                    begin
-                      responder.probe_condition_evaluation_failed_callback(context, exc)
-                    rescue => nested_exc
-                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
-                      instrumenter.telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-                    end
-                  else
-                    _ = 42 # stop standard from wrecking this code
-
-                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
-                    instrumenter.telemetry&.report(exc, description: "Error evaluating condition without context")
-                    # If execution gets here, there is probably a bug in the tracer.
-                  end
-
-                  continue = false
-                end
+              instrumenter.run_method_probe(
+                args, kwargs, target_block, # steep:ignore FallbackAny
+                self,
+                probe, responder,
+                loc, method_name,
+              ) do
+                super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
             end
-
-            if continue and rate_limiter.nil? || rate_limiter.allow?
-              # Arguments may be mutated by the method, therefore
-              # they need to be serialized prior to method invocation.
-              serialized_entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs, self,
-                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
-              end
-              # We intentionally do not use Core::Utils::Time.get_time
-              # here because the time provider may be overridden by the
-              # customer, and DI is not allowed to invoke customer code.
-              start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-              di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
-
-              rv = nil
-              begin
-                # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
-                # for methods defined via method_missing.
-                rv = if args.any?
-                  if kwargs.any?
-                    super(*args, **kwargs, &target_block)
-                  else
-                    super(*args, &target_block)
-                  end
-                elsif kwargs.any?
-                  super(**kwargs, &target_block)
-                else
-                  super(&target_block)
-                end
-              rescue NoMemoryError, Interrupt, SystemExit
-                raise
-              rescue Exception => exc # standard:disable Lint/RescueException
-                # We will raise the exception captured here later, after
-                # the instrumentation callback runs.
+          else
+            define_method(method_name) do |*args, &target_block|
+              if DI.in_probe?
+                return super(*args, &target_block)
               end
 
-              end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-              duration = end_time - start_time
-
-              # Restart DI timer.
-              # The DI execution duration covers time spent in DI code before
-              # the customer method is invoked and time spent in DI code
-              # after the customer method finishes.
-              di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
-
-              # The method itself is not part of the stack trace because
-              # we are getting the stack trace from outside of the method.
-              # Add the method in manually as the top frame.
-              method_frame = if loc
-                [Location.new(loc.first, loc.last, method_name)]
-              else
-                # For virtual and lazily-defined methods, we do not have
-                # the original source location here, and they won't be
-                # included in the stack trace currently.
-                # TODO when begin/end trace points are added for local
-                # variable capture in method probes, we should be able
-                # to obtain actual method execution location and use
-                # that location here.
-                []
-              end
-              # Steep: https://github.com/ruby/rbs/pull/2745
-              caller_locs = method_frame + caller_locations # steep:ignore ArgumentTypeMismatch
-              # TODO capture arguments at exit
-
-              context = Context.new(locals: nil, target_self: self,
-                probe: probe, settings: settings, serializer: serializer,
-                serialized_entry_args: serialized_entry_args,
-                caller_locations: caller_locs,
-                return_value: rv, duration: duration, exception: exc,)
-
-              responder.probe_executed_callback(context)
-
-              instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
-
-              if exc
-                raise exc
-              else
-                rv
-              end
-            else
-              # stop standard from trying to mess up my code
-              _ = 42
-
-              # The necessity to invoke super in each of these specific
-              # ways is very difficult to test.
-              # Existing tests, even though I wrote many, still don't
-              # cause a failure if I replace all of the below with a
-              # simple super(*args, **kwargs, &target_block).
-              # But, let's be safe and go through the motions in case
-              # there is actually a legitimate need for the breakdown.
-              # TODO figure out how to test this properly.
-              if args.any?
-                if kwargs.any?
-                  super(*args, **kwargs, &target_block)
-                else
-                  super(*args, &target_block)
-                end
-              elsif kwargs.any?
-                super(**kwargs, &target_block)
-              else
-                super(&target_block)
+              # The super block replays the original *args (closed over here)
+              # so the ruby2_keywords-flagged trailing hash keeps its
+              # identity. run_method_probe receives the serialization-split
+              # arguments separately; forwarding does not use them.
+              pos_args, kwargs = instrumenter.kwargs_from_splat(args)
+              instrumenter.run_method_probe(
+                pos_args, kwargs, target_block,
+                self,
+                probe, responder,
+                loc, method_name,
+              ) do
+                super(*args, &target_block)
               end
             end
+            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
           end
         end
 
@@ -331,7 +408,11 @@ module Datadog
           # Steep: Complex type narrowing (before calling hook_line,
           # we check that probe.line? is true which itself checks that probe.file is not nil)
           # Annotation do not work here as `file` is a method on probe, not a local variable.
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          ret = if code_tracker.respond_to?(:iseq_for_line)
+            code_tracker.iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
+          else
+            code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          end
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
@@ -349,16 +430,16 @@ module Datadog
               # to instrument and install the hook when the file in
               # question is loaded (and hopefully, by then code tracking
               # is active, otherwise the line will never be instrumented.)
-              raise_if_probe_in_loaded_features(probe)
-              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+              raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
+              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
             end
           end
         elsif !permit_untargeted_trace_points
           # Same as previous comment, if untargeted trace points are not
           # explicitly defined, and we do not have code tracking, do not
           # instrument the method.
-          raise_if_probe_in_loaded_features(probe)
-          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+          raise_if_probe_in_loaded_features(probe, line_no, nil)
+          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
         end
 
         if ret
@@ -475,6 +556,432 @@ module Datadog
 
       attr_reader :lock
 
+      # Decides whether a probe hit is admitted for emission. A capturing
+      # hit delegates the whole decision to the correlation sampler, and
+      # every denial is recorded as the canonical rate-limit skip metric.
+      # A gate error fails open to the probe's own rate limiter. A
+      # non-capturing hit consults the probe's own rate limiter and then
+      # the process-wide log rate limiter.
+      #
+      # An admitted hit yields the active trace for the snapshot envelope:
+      # the gate's own resolution for a capturing hit, reused by the
+      # envelope capture, and a fresh resolution for a non-capturing hit or
+      # for a gate error that failed open.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @yieldparam trace [Datadog::Tracing::TraceOperation, nil] the trace
+      #   active when the hit was admitted
+      # @return [Boolean]
+      def emit?(probe)
+        if probe.capturing?
+          begin
+            trace = current_trace
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
+          rescue Exception => exc # standard:disable Lint/RescueException
+            reraise_per_policy(exc)
+
+            logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error in DI correlation gate")
+            unless probe.own_rate_limit_allows?
+              record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+              return false
+            end
+
+            yield(active_trace_at_admission) if block_given?
+            return true
+          end
+
+          unless admitted
+            # A denial always carries its drop decision; Steep cannot infer
+            # the pairing between the returned tuple's elements.
+            # @type var drop_reason: Symbol
+            record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+            return false
+          end
+
+          yield(trace) if block_given?
+        else
+          unless probe.own_rate_limit_allows?
+            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+            return false
+          end
+
+          return false unless global_rate_limit_allows?(probe)
+
+          yield(active_trace_at_admission) if block_given?
+        end
+        true
+      end
+
+      # The active APM trace, or nil when no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def current_trace
+        Datadog::DI.active_trace
+      end
+
+      # Returns the trace active when the gate admitted a hit, for the
+      # snapshot envelope, or nil when resolution fails.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace_at_admission
+        current_trace
+      rescue Exception => exc # standard:disable Lint/RescueException
+        reraise_per_policy(exc)
+
+        logger.debug { "[di-correlation] admission trace capture failed: #{exc.class}: #{exc.message}" }
+        nil
+      end
+
+      # Returns the span active when the gate admitted a hit, for the
+      # snapshot envelope, or nil when resolution fails.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def active_span_at_admission
+        Datadog::DI.active_span
+      rescue Exception => exc # standard:disable Lint/RescueException
+        reraise_per_policy(exc)
+
+        logger.debug { "[di-correlation] admission span capture failed: #{exc.class}: #{exc.message}" }
+        nil
+      end
+
+      # Re-raises a gate error: fatal exceptions always, every exception
+      # when the customer opted into propagation. Called from rescue blocks
+      # only.
+      #
+      # @param exc [Exception] the in-flight exception
+      # @return [void]
+      def reraise_per_policy(exc)
+        Datadog::DI.reraise_if_fatal(exc)
+        raise exc if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+      end
+
+      # Consults the process-wide hard rate limiter bounding non-capturing
+      # hits. Capturing hits draw their process-wide bound from the
+      # correlation sampler's GLOBAL budget, which traced and untraced
+      # traffic share; a hard cap at the same rate would drop the snapshots
+      # already admitted under a trace's GLOBAL deficit.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the hard limiter admits the hit
+      def global_rate_limit_allows?(probe)
+        unless global_log_rate_limiter.allow?
+          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
+          return false
+        end
+
+        true
+      end
+
+      # Body of the method probe wrapper. Extracted from the define_method
+      # block in #hook_method so the begin/ensure structure can use normal
+      # indentation. The original method is invoked with yield, calling the
+      # block passed by #hook_method; that block captures super's binding
+      # from inside the define_method block, the only place super resolves
+      # to the prepended-on class's method.
+      #
+      # Performance: this method takes eight positional parameters, not
+      # keyword parameters, deliberately. Every probed method invocation
+      # passes through here on the firing/disabled/rate-limited paths.
+      # Keyword-argument calls in Ruby allocate a fresh Hash on every call
+      # to materialize the keyword bindings; with eight keyword arguments
+      # (~300-1000 ns of allocation per invocation), that hash dominated
+      # the wrapper's per-call overhead. Positional parameters skip the
+      # allocation entirely. The cost is a long unlabeled signature and
+      # an unlabeled call site in #hook_method — both small price for
+      # eliminating per-call allocation on the hot path. The argument
+      # order matches #hook_method's call site exactly; do not reorder
+      # without updating both sides.
+      #
+      # @param args [Array] positional arguments passed to the probed method
+      # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
+      # @param target_block [Proc, nil] block argument passed to the probed method
+      # @param target_self [any] the receiver of the probed method invocation
+      # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
+      # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
+      # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
+      # @yield invokes the original method via super and returns its value
+      # @return [Object] the original method's return value, or re-raises its exception
+      def run_method_probe(args, kwargs, target_block, target_self,
+        probe, responder, loc, method_name)
+        # Disabled probe: skip DI processing entirely. enter_probe is not
+        # called on this path so the guard is never set — there is no DI
+        # work to guard, and any nested probed methods invoked by the
+        # original method should fire normally without short-circuit.
+        return yield unless probe.enabled?
+
+        DI.enter_probe
+        # The trace is captured at admission, before the customer method
+        # runs: a method that finishes the active trace or starts a new one
+        # must not relabel the snapshot away from the trace whose budget the
+        # gate consumed, nor pair that trace with a span of the replacement
+        # trace. The gate passes its own resolution to the block, so an
+        # admitted capturing hit resolves the trace once. The declaration sits
+        # above the begin/ensure body: steep drops @type var annotations
+        # inside a body that has an ensure clause.
+        # @type var admission_trace: Datadog::Tracing::TraceOperation?
+        admission_trace = nil
+        begin
+          di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
+          continue = true
+          if condition = probe.condition
+            begin
+              # This context will be recreated later, unlike for line probes.
+              #
+              # We do not need the stack for condition evaluation, therefore
+              # stack is not passed to Context here.
+              context = Context.new(
+                locals: serializer.combine_args(args, kwargs, target_self),
+                target_self: target_self,
+                probe: probe, settings: settings, serializer: serializer,
+              )
+              continue = condition.satisfied?(context,
+                evaluation_deadline: serializer.evaluation_deadline)
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Evaluation error exception can be raised for "expected"
+              # errors, we probably need another setting to control whether
+              # these exceptions are propagated.
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              # An evaluation timeout is an internal budget abort, so it
+              # stays contained even under propagate_all_exceptions.
+              record_condition_evaluation_timeout(probe, exc)
+
+              if context
+                # We want to report evaluation errors for conditions
+                # as probe snapshots. However, if we failed to create
+                # the context, we won't be able to report anything as
+                # the probe notifier builder requires a context.
+                begin
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(nested_exc)
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                end
+              else
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating condition without context")
+                # If execution gets here, there is probably a bug in the tracer.
+              end
+
+              continue = false
+            end
+          end
+
+          admitted = continue && emit?(probe) { |trace| admission_trace = trace }
+          admission_span = active_span_at_admission if admitted
+          if admitted
+            # Arguments may be mutated by the method, therefore
+            # they need to be serialized prior to method invocation.
+            serialized_entry_args = if probe.capture_snapshot?
+              serializer.serialize_args(args, kwargs, target_self,
+                deadline: serializer.serialization_deadline,
+                **probe.snapshot_serializer_limits(settings))
+            end
+
+            entry_capture_expressions = nil
+            entry_capture_evaluation_errors = nil
+            if probe.capture_entry_expressions?
+              begin
+                entry_context = Context.new(
+                  probe: probe, settings: settings, serializer: serializer,
+                  target_self: target_self,
+                  locals: serializer.combine_args(args, kwargs, target_self),
+                )
+                entry_capture_result = capture_expression_evaluator.evaluate(probe, entry_context)
+                entry_capture_expressions = entry_capture_result.serialized_values
+                entry_capture_evaluation_errors = entry_capture_result.errors
+              rescue Exception => exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(exc)
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating entry-time capture expressions: #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating entry-time capture expressions")
+              end
+            end
+            # We intentionally do not use Core::Utils::Time.get_time
+            # here because the time provider may be overridden by the
+            # customer, and DI is not allowed to invoke customer code.
+            start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+            di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
+
+            # Release re-entrancy guard for the original method so that
+            # probes on other methods (or recursive calls) fire normally
+            # during user code execution.
+            DI.leave_probe
+
+            rv = nil
+            begin
+              # yield invokes the super block without dispatching Proc#call,
+              # so a user probe on Proc#call cannot intercept the trampoline.
+              # The guard was just released above so nested probes on the
+              # customer method body fire normally — but Proc#call must
+              # remain bypassed regardless, because the disabled-probe early
+              # return at the top of this method also invokes the block.
+              rv = yield
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # We will raise the (non-fatal) exception captured here later,
+              # after the instrumentation callback runs.
+            end
+
+            # Re-acquire re-entrancy guard for DI post-processing
+            # (building context, notification callback).
+            DI.enter_probe
+
+            end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            duration = end_time - start_time
+
+            # Restart DI timer.
+            # The DI execution duration covers time spent in DI code before
+            # the customer method is invoked and time spent in DI code
+            # after the customer method finishes.
+            di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
+            # The method itself is not part of the stack trace because
+            # we are getting the stack trace from outside of the method.
+            # Add the method in manually as the top frame.
+            method_frame = if loc
+              [Location.new(loc.first, loc.last, method_name)]
+            else
+              # For virtual and lazily-defined methods, we do not have
+              # the original source location here, and they won't be
+              # included in the stack trace currently.
+              # TODO when begin/end trace points are added for local
+              # variable capture in method probes, we should be able
+              # to obtain actual method execution location and use
+              # that location here.
+              []
+            end
+            # depth 2 skips run_method_probe and the wrapper define_method
+            # block, leaving the user's call site as the first returned frame.
+            # caller_locations is RBS-nilable but never nil at this depth.
+            caller_locs = method_frame + (caller_locations(2) || [])
+            # TODO capture arguments at exit
+
+            capture_expression_locals = if probe.capture_expressions_only?
+              serializer.combine_args(args, kwargs, target_self)
+            end
+            context = Context.new(locals: capture_expression_locals, target_self: target_self,
+              probe: probe, settings: settings, serializer: serializer,
+              serialized_entry_args: serialized_entry_args,
+              entry_capture_expressions: entry_capture_expressions,
+              entry_capture_evaluation_errors: entry_capture_evaluation_errors,
+              caller_locations: caller_locs,
+              admission_trace: admission_trace,
+              admission_span: admission_span,
+              return_value: rv, duration: duration, exception: exc)
+
+            begin
+              responder.probe_executed_callback(context)
+
+              check_and_disable_if_exceeded(probe, responder, di_start_time, di_duration)
+            rescue Exception => di_exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(di_exc)
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+              logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
+              telemetry&.report(di_exc, description: "Unhandled exception in method probe")
+            end
+
+            if exc
+              raise exc
+            else
+              rv
+            end
+          else
+            # Condition not satisfied or rate-limited: skip DI processing
+            # and call super. (The disabled-probe case is handled by the
+            # early return at the top of this method, so it never reaches
+            # this branch.)
+            #
+            # The guard must be released here (not relied on the ensure)
+            # because the super block invokes the customer's method, which
+            # may call other probed methods. Those nested probes should fire
+            # normally — they would not if the guard were still set,
+            # because the wrapper's early-return short-circuits when
+            # DI.in_probe? is true.
+            #
+            # No post-processing in this branch, so we don't re-acquire
+            # the guard after super. The ensure's leave_probe below is
+            # a no-op here (guard already cleared) and serves the
+            # firing branch above, where post-processing re-enters.
+            DI.leave_probe
+            # yield bypasses Proc#call dispatch — see the firing branch
+            # above for the same rationale.
+            yield
+          end
+        ensure
+          DI.leave_probe
+        end
+      end
+      # `run_method_probe` is documentation-private (`# @api private`) but must
+      # be lexically public so that the prepended wrapper can call it without
+      # `.send`. The wrapper hot path is reached when a probed customer method
+      # is invoked, and a customer probe on `Object#send` / `Kernel#send`
+      # would intercept any `.send` call before the wrapper had a chance to
+      # set the re-entrancy guard, causing infinite recursion. Calling the
+      # method directly avoids `Object#send` dispatch entirely.
+      public :run_method_probe
+
+      # Splits a Ruby < 3 splat-captured argument list into positional
+      # arguments and the trailing keyword-argument hash, for argument
+      # serialization only. Returns `[positional_args, kwargs]`. Forwarding
+      # does not use this — the wrapper's do_super replays the original
+      # splat so the trailing hash keeps its keyword identity.
+      #
+      # A trailing hash is treated as keyword arguments regardless of how it
+      # was passed at the call site, matching the previous `**kwargs`
+      # capture (which, on Ruby 2.x, absorbed a trailing hash into kwargs).
+      # The ruby2_keywords flag is intentionally not consulted here: callers
+      # that pass a hash positionally (e.g. `m(opts)`) still expect it shown
+      # as a keyword argument, consistent with Ruby 2.x serialization.
+      #
+      # The trailing-element test goes through DI.hash? (a C type check)
+      # rather than `last.is_a?(Hash)`: kwargs_from_splat runs before the
+      # re-entrancy guard is set, so a customer method probe on Kernel#is_a?
+      # would otherwise re-enter the wrapper and recurse. DI.hash? is a
+      # singleton method and cannot be targeted by a method probe.
+      #
+      # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
+      # arguments directly and never calls this.
+      if RubyVersion.is?("< 3")
+        def kwargs_from_splat(args)
+          last = args.last
+          if DI.hash?(last)
+            [args[0...-1] || [], last]
+          else
+            [args, {}]
+          end
+        end
+        # Lexically public for the same reason as #run_method_probe: the
+        # prepended wrapper must call it without `.send`, which a customer
+        # probe on Object#send could intercept.
+        public :kwargs_from_splat
+      end
+
+      # Trace point callback for a line probe hit. Evaluates the probe's
+      # condition, applies the emission admission gate, then invokes the
+      # responder with the built context.
+      #
+      # @param probe [Probe] the probe the trace point was installed for.
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
+      #   the probe's target file, when the trace point is targeted.
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback, #probe_disabled_callback]
+      #   callback target for the probe hit.
+      # @param tp [TracePoint] the trace point event that fired.
+      # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -492,79 +999,119 @@ module Datadog
           )
         end
 
-        # We set the trace point on :return to be able to instrument
-        # 'end' lines. This also causes the trace point to be invoked on
-        # non-'end' lines when a line raises an exception, since the
-        # exception causes the method to stop executing and stack unwends.
-        # We do not want two invocations of the trace point.
-        # Therefore, if a trace point is invoked with a :line event,
-        # mark it as such and ignore subsequent :return events.
-        if probe.executed_on_line?
-          return unless tp.event == :line
-        else
-          _ = 42 # stop standard from changing this code
+        # Re-entrancy guard, mirroring the method-probe wrapper: the
+        # processing below dispatches interceptable stdlib methods
+        # (Kernel#send, Mutex#synchronize, WeakRef methods), and a nested
+        # method-probe firing during this callback must short-circuit
+        # instead of consuming rate-limit tokens and snapshotting
+        # DI-internal arguments. The prior guard state is restored so a
+        # hit nested inside other DI processing does not clear the outer
+        # guard. The guard starts after the untargeted match check above:
+        # an untargeted trace point invokes this callback for every line
+        # executed in the process, so the unmatched-line return would
+        # otherwise run the fiber-local guard round trip on each of them.
+        was_in_probe = DI.in_probe?
+        DI.enter_probe unless was_in_probe
+        begin
+          # We set the trace point on :return to be able to instrument
+          # 'end' lines. This also causes the trace point to be invoked on
+          # non-'end' lines when a line raises an exception, since the
+          # exception causes the method to stop executing and stack unwends.
+          # We do not want two invocations of the trace point.
+          # Therefore, if a trace point is invoked with a :line event,
+          # mark it as such and ignore subsequent :return events.
+          if probe.executed_on_line?
+            return unless tp.event == :line
+          else
+            _ = 42 # stop standard from changing this code
 
-          if tp.event == :line
-            probe.executed_on_line!
-          end
-        end
-
-        if condition = probe.condition
-          begin
-            context = build_trace_point_context(probe, tp)
-            return unless condition.satisfied?(context)
-          rescue => exc
-            # Evaluation error exception can be raised for "expected"
-            # errors, we probably need another setting to control whether
-            # these exceptions are propagated.
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-              !exc.is_a?(DI::Error::ExpressionEvaluationError)
-
-            if context
-              # We want to report evaluation errors for conditions
-              # as probe snapshots. However, if we failed to create
-              # the context, we won't be able to report anything as
-              # the probe notifier builder requires a context.
-              begin
-                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-              rescue => nested_exc
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
-                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-              end
-
-              return
-            else
-              _ = 42 # stop standard from wrecking this code
-
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
-              telemetry&.report(exc, description: "Error evaluating condition without context")
-              # If execution gets here, there is probably a bug in the tracer.
+            if tp.event == :line
+              probe.executed_on_line!
             end
           end
+
+          if condition = probe.condition
+            begin
+              context = build_trace_point_context(probe, tp)
+              return unless condition.satisfied?(context,
+                evaluation_deadline: serializer.evaluation_deadline)
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Evaluation error exception can be raised for "expected"
+              # errors, we probably need another setting to control whether
+              # these exceptions are propagated.
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              # An evaluation timeout is an internal budget abort, so it
+              # stays contained even under propagate_all_exceptions.
+              record_condition_evaluation_timeout(probe, exc)
+
+              if context
+                # We want to report evaluation errors for conditions
+                # as probe snapshots. However, if we failed to create
+                # the context, we won't be able to report anything as
+                # the probe notifier builder requires a context.
+                begin
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(nested_exc)
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                end
+
+                return
+              else
+                _ = 42 # stop standard from wrecking this code
+
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating condition without context")
+                # If execution gets here, there is probably a bug in the tracer.
+              end
+            end
+          end
+
+          return unless emit?(probe)
+
+          # The context creation is relatively expensive and we don't
+          # want to run it if the callback won't be executed due to the
+          # rate limit.
+          # Thus the copy-paste of the creation call here.
+          context ||= build_trace_point_context(probe, tp)
+
+          responder.probe_executed_callback(context)
+
+          check_and_disable_if_exceeded(probe, responder, di_start_time)
+          nil
+        ensure
+          DI.leave_probe unless was_in_probe
         end
-
-        # In practice we should always have a rate limiter, but be safe
-        # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
-
-        # The context creation is relatively expensive and we don't
-        # want to run it if the callback won't be executed due to the
-        # rate limit.
-        # Thus the copy-paste of the creation call here.
-        context ||= build_trace_point_context(probe, tp)
-
-        responder.probe_executed_callback(context)
-
-        check_and_disable_if_exceeded(probe, responder, di_start_time)
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
+        nil
+      end
+
+      # Records a condition evaluation timeout for +probe+ through the
+      # shared evaluation-timeout reporter. Does nothing when +exc+ is not
+      # an evaluation timeout.
+      #
+      # @param probe [Probe] the probe whose condition evaluation timed out.
+      # @param exc [Exception] the exception raised by the evaluation.
+      # @return [void]
+      def record_condition_evaluation_timeout(probe, exc)
+        DI.report_evaluation_timeout(
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+          probe: probe, kind: "condition", exc: exc,
+        )
+        nil
       end
 
       def build_trace_point_context(probe, tp)
@@ -597,34 +1144,95 @@ module Datadog
           # avoid a dependency on ProbeManager from Instrumenter.
           probe.disable!
           responder.probe_disabled_callback(probe, di_duration)
+          nil
         end
       end
 
-      def raise_if_probe_in_loaded_features(probe)
+      def raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
         return unless probe.file
 
-        # If the probe file is in the list of loaded files
-        # (as per $LOADED_FEATURES, using either exact or suffix match),
-        # raise an error indicating that
-        # code tracker is missing the loaded file because the file
-        # won't be loaded again (DI only works in production environments
-        # that do not normally reload code).
-        if $LOADED_FEATURES.include?(probe.file)
-          raise Error::DITargetNotInRegistry, "File loaded but is not in code tracker registry: #{probe.file}"
-        end
-        # Ths is an expensive check
-        $LOADED_FEATURES.each do |path|
-          if Utils.path_matches_suffix?(path, probe.file)
-            raise Error::DITargetNotInRegistry, "File matching probe path (#{probe.file}) was loaded and is not in code tracker registry: #{path}"
+        # Find the loaded path matching the probe file. Case-sensitive
+        # matching is attempted first, with case-insensitive matching as a
+        # fallback (see the design comment in utils.rb, steps 5-8). Leading
+        # directory components are stripped so probes whose sourceFile carries
+        # a source-repo prefix that does not exist on disk still resolve to
+        # the loaded file — matching the behavior of
+        # CodeTracker#iseqs_for_path_suffix.
+        loaded_path = if $LOADED_FEATURES.include?(probe.file)
+          probe.file
+        else
+          # Expensive suffix check.
+          suffix = Utils.normalize_windows_separators(probe.file)
+          found = nil #: String?
+          [false, true].each do |case_insensitive|
+            working_suffix = suffix.dup
+            loop do
+              found = $LOADED_FEATURES.find do |path|
+                Utils.path_matches_suffix?(path, working_suffix, case_insensitive: case_insensitive)
+              end
+              break if found
+              break unless working_suffix.include?("/")
+              working_suffix.sub!(%r{.*/+}, "")
+            end
+            break if found
           end
+          found
+        end
+
+        return unless loaded_path
+
+        # Distinguish between "no iseqs at all" and "has per-method iseqs
+        # but none cover this line".
+        has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
+          code_tracker.send(:per_method_registry).key?(loaded_path)
+
+        if code_tracker.nil?
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but code tracking is not active; " \
+            "line probes cannot be targeted."
+        elsif has_per_method
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded and has per-method iseqs, " \
+            "but none cover line #{line_no}. " \
+            "The line may be in file-level setup code outside any method."
+        else
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but has no surviving iseqs " \
+            "(whole-file iseq was garbage collected and no per-method iseqs remain). " \
+            "Line probes cannot target this file."
         end
       end
 
       # TODO test that this resolves qualified names e.g. A::B
       def symbolize_class_name(cls_name)
-        Object.const_get(cls_name)
+        Object.const_get(cls_name) # steep:ignore ArgumentTypeMismatch
       rescue NameError => exc
-        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc}"
+        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
+      end
+
+      # Matches a class name in the Datadog namespace, tolerating the alias
+      # forms that Object.const_get resolves to the same top-level constants.
+      # Two such forms exist: an optional leading "::" (Ruby's root-namespace
+      # prefix), and any number of leading "Object::" segments. Top-level
+      # constants are constants of Object, so "Object::Datadog::DI::Instrumenter"
+      # resolves to Datadog::DI::Instrumenter; without stripping "Object::" a
+      # probe could name a tracer-internal class through an Object:: alias and
+      # bypass the rejection, then get prepended onto tracer internals. These
+      # are the only alias paths to the top-level Datadog: "Foo::Datadog" does
+      # not resolve through const_get for an arbitrary Foo. Anchored at \A so
+      # the match decides in O(prefix length) without scanning.
+      DATADOG_NAMESPACE_TYPE_NAME = /\A(?:::)?(?:Object::)*Datadog(?:::|\z)/
+      private_constant :DATADOG_NAMESPACE_TYPE_NAME
+
+      # Returns true when +cls_name+ names the +Datadog+ module itself or
+      # any class/module under it (e.g. +Datadog::Tracing::SpanOperation+).
+      # The check is purely textual on the probe's declared type name; it
+      # does not require the class to be loaded. A leading +::+ and any
+      # number of leading +Object::+ segments are treated the same as the
+      # bare form, since Object.const_get resolves those aliases to the same
+      # top-level constants.
+      def datadog_namespace_type_name?(cls_name)
+        DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
       end
     end
   end

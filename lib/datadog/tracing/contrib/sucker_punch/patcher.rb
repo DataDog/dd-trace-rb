@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
+require_relative "../patcher"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -11,21 +11,19 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'exception_handler'
-            require_relative 'instrumentation'
+          def self.patch
+            require_relative "exception_handler"
+            require_relative "instrumentation"
 
             ExceptionHandler.patch!
             Instrumentation.patch!
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:sucker_punch].get_option(option)
           end
         end

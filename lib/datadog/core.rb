@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'core/deprecations'
-require_relative 'core/configuration/config_helper'
-require_relative 'core/extensions'
+# Keep this at the top, this is needed at require-time by some files
+require_relative "ruby_version"
+
+require_relative "core/deprecations"
+require_relative "core/configuration/config_helper"
+require_relative "core/extensions"
 
 # We must load core extensions to make certain global APIs
 # accessible: both for Datadog features and the core itself.
@@ -18,11 +21,10 @@ module Datadog
         require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
         nil
       rescue LoadError => e
-        e.message
+        "#{e.class}: #{e.message}"
       end
   end
 
-  DATADOG_ENV = Core::Configuration::ConfigHelper.new
   extend Core::Extensions
 
   # Add shutdown hook:

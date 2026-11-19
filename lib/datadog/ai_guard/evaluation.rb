@@ -6,40 +6,83 @@ module Datadog
     # and creating `ai_guard` span with required tags
     module Evaluation
       class << self
-        def perform(messages, allow_raise: false)
+        def perform(messages, allow_raise: true)
           raise ArgumentError, "Messages must not be empty" if messages&.empty?
 
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
+            trace.keep!
+            trace.set_tag(
+              Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+              Tracing::Sampling::Ext::Decision::AI_GUARD,
+            )
+            trace.set_distributed_source(Ext::PRODUCT_BIT)
+            trace.set_tag(Ext::EVENT_TAG, true)
+            trace.set_tag(Ext::TRACE_EXECUTED_TAG, "1")
+
+            Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              value = trace.get_tag(tag)
+              span.set_tag(tag, value) if value
+            end
+
             if (last_message = messages.last)
-              if last_message.tool_call
+              if (tool_call = last_message.tool_calls.first)
                 span.set_tag(Ext::TARGET_TAG, "tool")
-                span.set_tag(Ext::TOOL_NAME_TAG, last_message.tool_call.tool_name)
+                span.set_tag(Ext::TOOL_NAME_TAG, tool_call.tool_name)
               elsif last_message.tool_call_id
                 span.set_tag(Ext::TARGET_TAG, "tool")
 
-                if (tool_call_message = messages.find { |m| m.tool_call&.id == last_message.tool_call_id })
-                  span.set_tag(Ext::TOOL_NAME_TAG, tool_call_message.tool_call.tool_name) # steep:ignore
+                messages.reverse_each do |message|
+                  # @type var tool_call: ToolCall?
+                  tool_call = message.tool_calls.find { |call| call.id == last_message.tool_call_id }
+                  break span.set_tag(Ext::TOOL_NAME_TAG, tool_call.tool_name) if tool_call
                 end
               else
                 span.set_tag(Ext::TARGET_TAG, "prompt")
               end
             end
 
-            request = Request.new(messages)
-            result = request.perform
+            outcome =
+              begin
+                Client.evaluate(messages)
+              rescue
+                Metrics::Telemetry.report_error
+                raise
+              end
+
+            result = outcome.result
+            redaction = outcome.redaction
 
             span.set_tag(Ext::ACTION_TAG, result.action)
             span.set_tag(Ext::REASON_TAG, result.reason)
+            span.set_tag(Ext::REDACTED_TAG, redaction.redacted?) if redaction.performed?
 
-            span.set_metastruct_tag(
-              Ext::METASTRUCT_TAG,
-              {
-                messages: truncate_content(request.serialized_messages),
-                attack_categories: result.tags
-              }
-            )
+            outcome.extra_tags.each do |key, value|
+              next if Ext::RESERVED_EXTRA_SPAN_TAGS.include?(key)
+              next if key.start_with?("_dd")
 
-            if allow_raise && (result.deny? || result.abort?) && result.blocking_enabled?
+              span.set_tag(key, value)
+            end
+
+            # @type var metastruct: span_metadata
+            metastruct = {
+              messages: truncate_content(truncate_messages(result.messages).map(&:to_h)),
+              attack_categories: result.tags,
+              sds: result.sds_findings,
+              tag_probs: result.tag_probabilities,
+            }
+
+            outcome.extra_metastruct.each do |key, value|
+              next if Ext::RESERVED_EXTRA_METASTRUCT_KEYS.include?(key)
+
+              metastruct[key] = value
+            end
+
+            span.set_metastruct_tag(Ext::METASTRUCT_TAG, metastruct)
+
+            blocked = allow_raise && outcome.block?
+            Metrics::Telemetry.report_evaluation(outcome, blocked: blocked)
+
+            if blocked
               span.set_tag(Ext::BLOCKED_TAG, true)
               raise AIGuardAbortError.new(action: result.action, reason: result.reason, tags: result.tags)
             end
@@ -48,23 +91,51 @@ module Datadog
           end
         end
 
-        def perform_no_op
+        def perform_no_op(messages)
           AIGuard.logger&.warn("AI Guard is disabled, messages were not evaluated")
 
-          NoOpResult.new
+          NoOpResult.new(messages)
         end
 
         private
 
+        def truncate_messages(serialized_messages)
+          max_length = Datadog.configuration.ai_guard.max_messages_length
+          serialized_messages.first(max_length)
+        end
+
+        # Truncates content in serialized messages to stay within the configured byte limit.
+        # For multi-modal messages, only text parts are truncated; image URLs are left intact.
         def truncate_content(serialized_messages)
-          serialized_messages.map do |message| # steep:ignore
+          max_bytes = Datadog.configuration.ai_guard.max_content_size_bytes
+
+          serialized_messages.map do |message|
             next message unless message[:content]
 
-            {
-              **message,
-              content: message[:content].byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
-            }
+            if message[:content].is_a?(::Array)
+              serialized_content = message[:content].map do |part|
+                if part[:text]
+                  {**part, text: truncate_content_value(part[:text].to_s, max_bytes)}
+                else
+                  part
+                end
+              end
+
+              {**message, content: serialized_content}
+            else
+              {
+                **message,
+                content: truncate_content_value(message[:content], max_bytes),
+              }
+            end
           end
+        end
+
+        def truncate_content_value(content, max_bytes)
+          truncated = content.byteslice(0, max_bytes).to_s
+          return truncated if truncated.valid_encoding?
+
+          truncated.scrub("")
         end
       end
     end

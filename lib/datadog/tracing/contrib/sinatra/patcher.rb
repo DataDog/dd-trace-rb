@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/utils/only_once'
-require_relative '../patcher'
-require_relative '../rack/middlewares'
-require_relative 'framework'
+require_relative "../../../core/utils/only_once"
+require_relative "../patcher"
+require_relative "../rack/middlewares"
+require_relative "framework"
 
 module Datadog
   module Tracing
@@ -42,30 +42,28 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'tracer'
+          def self.patch
+            require_relative "tracer"
             register_tracer
 
             patch_default_middlewares
             setup_tracer
           end
 
-          def register_tracer
+          def self.register_tracer
             ::Sinatra::Base.register(Contrib::Sinatra::Tracer)
             ::Sinatra::Base.prepend(Sinatra::Tracer::Base)
           end
 
-          def setup_tracer
+          def self.setup_tracer
             ::Sinatra::Base.singleton_class.prepend(TracerSetupPatch)
           end
 
-          def patch_default_middlewares
+          def self.patch_default_middlewares
             ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
           end
         end

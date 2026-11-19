@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module ActiveRecord
         module Utils
-          EMPTY_CONFIG: ::Hash[untyped, untyped]
+          EMPTY_CONFIG: Hash[untyped, untyped]
 
           def self.adapter_name: () -> untyped
 

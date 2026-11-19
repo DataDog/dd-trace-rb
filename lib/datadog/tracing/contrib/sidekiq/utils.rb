@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'yaml'
+require "yaml"
 
-require_relative '../../../core'
-require_relative 'ext'
+require_relative "../../../core"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -17,21 +17,21 @@ module Datadog
           # is the underlying, wrapped class, and not the wrapper. This is
           # primarily to support `ActiveJob`.
           def job_resource(job)
-            if job['wrapped']
-              job['wrapped'].to_s
-            elsif job['class'] == 'Sidekiq::Extensions::DelayedClass'
+            if job["wrapped"]
+              job["wrapped"].to_s
+            elsif job["class"] == "Sidekiq::Extensions::DelayedClass"
               delay_extension_class(job).to_s
             else
-              job['class'].to_s
+              job["class"].to_s
             end
           rescue => e
-            Datadog.logger.debug { "Error retrieving Sidekiq job class name (jid:#{job["jid"]}): #{e}" }
+            Datadog.logger.debug { "Error retrieving Sidekiq job class name (jid:#{job["jid"]}): #{e.class}: #{e.message}" }
 
-            job['class'].to_s
+            job["class"].to_s
           end
 
           def delay_extension_class(job)
-            clazz, method = YAML.parse(job['args'].first).children.first.children
+            clazz, method = YAML.parse(job["args"].first).children.first.children
 
             method = method.value[1..-1] # Remove leading `:` from method symbol
 

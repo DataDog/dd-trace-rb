@@ -1,0 +1,23 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module RubyLLM
+        class MessageAdapter
+          @ruby_llm_messages: Array[::RubyLLM::Message]
+
+          @ai_guard_messages: Array[Evaluation::Message]?
+
+          def initialize: (Array[::RubyLLM::Message] messages) -> void
+
+          def to_ai_guard: () -> Array[Evaluation::Message]
+
+          def apply_redactions: (Array[Evaluation::Message] redacted_messages) -> Array[::RubyLLM::Message]
+
+          private
+
+          def build_ai_guard_message: (::RubyLLM::Message message) -> Evaluation::Message
+        end
+      end
+    end
+  end
+end

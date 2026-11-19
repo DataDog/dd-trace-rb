@@ -1,24 +1,24 @@
-require 'spec_helper'
+require "spec_helper"
 
-require_relative 'support/benchmark_helper'
+require_relative "support/benchmark_helper"
 
-RSpec.describe 'Microbenchmark' do
+RSpec.describe "Microbenchmark" do
   # Empty benchmark to assess the overhead benchmarking tools
   # and stability of underlying hardware.
-  describe 'baseline' do
-    include_examples 'benchmark'
+  describe "baseline" do
+    include_examples "benchmark"
 
     def subject(_)
     end
   end
 
   describe Datadog::Tracing::Tracer do
-    describe 'nested traces' do
-      let(:name) { 'span'.freeze }
+    describe "nested traces" do
+      let(:name) { "span".freeze }
       let(:tracer) { new_tracer(writer: FauxWriter.new(call_original: false)) }
       let(:steps) { [1, 10, 100] }
 
-      include_examples 'benchmark'
+      include_examples "benchmark"
 
       def trace(i, total)
         tracer.trace(name) { trace(i + 1, total) unless i == total }
@@ -31,7 +31,7 @@ RSpec.describe 'Microbenchmark' do
   end
 
   describe Datadog::Tracing::Writer do
-    describe '#write' do
+    describe "#write" do
       let(:steps) { [1, 100] }
       let(:memory_iterations) { 100 }
 
@@ -54,20 +54,20 @@ RSpec.describe 'Microbenchmark' do
         writer.worker.trace_buffer.instance_variable_set(:@traces, [])
       end
 
-      context 'with space in buffer' do
+      context "with space in buffer" do
         let(:buffer_size) { -1 }
 
-        include_examples 'benchmark'
+        include_examples "benchmark"
       end
 
-      context 'with buffer full' do
+      context "with buffer full" do
         let(:buffer_size) { Datadog::Tracing::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE }
 
         before do
           buffer_size.times { writer.write(span1) } # fill up buffer
         end
 
-        include_examples 'benchmark'
+        include_examples "benchmark"
 
         def reset_buffer
           # No need to reset, we actually want the buffer always full
@@ -76,11 +76,11 @@ RSpec.describe 'Microbenchmark' do
     end
   end
 
-  describe 'end-to-end' do
-    include_context 'minimal agent'
+  describe "end-to-end" do
+    include_context "minimal agent"
 
-    describe 'nested traces' do
-      let(:name) { 'span'.freeze }
+    describe "nested traces" do
+      let(:name) { "span".freeze }
       let(:writer) { Datadog::Tracing::Writer.new(buffer_size: 1000, flush_interval: 0) }
       let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
       let(:steps) { [1, 10, 100] }
@@ -89,7 +89,7 @@ RSpec.describe 'Microbenchmark' do
 
       after { tracer.shutdown! }
 
-      include_examples 'benchmark'
+      include_examples "benchmark"
 
       def trace(i, total)
         tracer.trace(name) { trace(i + 1, total) unless i == total }
@@ -101,14 +101,14 @@ RSpec.describe 'Microbenchmark' do
     end
   end
 
-  describe 'single span sampling' do
+  describe "single span sampling" do
     before do
       Datadog.configure do |c|
         c.tracing.writer = FauxWriter.new(call_original: false)
       end
     end
 
-    let(:name) { 'span'.freeze }
+    let(:name) { "span".freeze }
     let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:steps) { [1, 10, 100] }
 
@@ -116,8 +116,8 @@ RSpec.describe 'Microbenchmark' do
       trace(1, i)
     end
 
-    describe 'kept traces' do
-      include_examples 'benchmark'
+    describe "kept traces" do
+      include_examples "benchmark"
 
       def trace(i, total)
         tracer.trace(name) do |_, trace|
@@ -127,8 +127,8 @@ RSpec.describe 'Microbenchmark' do
       end
     end
 
-    describe 'rejected traces' do
-      include_examples 'benchmark'
+    describe "rejected traces" do
+      include_examples "benchmark"
 
       def trace(i, total)
         tracer.trace(name) do |_, trace|
@@ -137,7 +137,7 @@ RSpec.describe 'Microbenchmark' do
         end
       end
 
-      describe 'with spans kept by single span sampling' do
+      describe "with spans kept by single span sampling" do
         before do
           Datadog.configure do |c|
             c.tracing.sampling.span_rules = json_rules
@@ -152,10 +152,10 @@ RSpec.describe 'Microbenchmark' do
           }
         end
 
-        include_examples 'benchmark'
+        include_examples "benchmark"
       end
 
-      describe 'with spans also rejected by single span sampling' do
+      describe "with spans also rejected by single span sampling" do
         before do
           Datadog.configure do |c|
             c.tracing.sampling.span_rules = json_rules
@@ -170,7 +170,7 @@ RSpec.describe 'Microbenchmark' do
           }
         end
 
-        include_examples 'benchmark'
+        include_examples "benchmark"
       end
     end
   end

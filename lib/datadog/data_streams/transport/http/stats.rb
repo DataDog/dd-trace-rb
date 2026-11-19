@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../stats'
-require_relative '../../../core/transport/http/api/endpoint'
-require_relative '../../../core/transport/http/response'
+require_relative "../stats"
+require_relative "../../../core/transport/http/api/endpoint"
+require_relative "../../../core/transport/http/response"
 
 module Datadog
   module DataStreams
@@ -32,10 +32,10 @@ module Datadog
                 env.path = path
                 env.body = env.request.parcel.data
                 if (content_type = env.request.parcel.content_type)
-                  env.headers['content-type'] = content_type
+                  env.headers["content-type"] = content_type
                 end
                 if (content_encoding = env.request.parcel.content_encoding)
-                  env.headers['content-encoding'] = content_encoding
+                  env.headers["content-encoding"] = content_encoding
                 end
 
                 # Send request

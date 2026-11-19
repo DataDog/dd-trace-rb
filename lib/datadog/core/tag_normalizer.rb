@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'utils'
+require_relative "utils"
 
 module Datadog
   module Core
@@ -9,8 +9,6 @@ module Datadog
       # Normalization logic used for tag keys and values that the Trace Agent has for traces
       # Useful for ensuring that tag keys and values are normalized consistently
       # An use case for now is Process Tags which need to be sent across various intakes (profiling, tracing, etc.) consistently
-
-      module_function
 
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
@@ -35,7 +33,7 @@ module Datadog
       def self.normalize(original_value, remove_digit_start_char: false)
         # DEV-3.0: Ideally this encode call should be replaced with Datadog::Core::Utils.utf8_encode once it
         #          is safe to modify the default behavior.
-        value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace)
+        value = original_value.to_s.encode("UTF-8", invalid: :replace, undef: :replace)
         value.strip!
         return "" if value.empty?
 
@@ -48,14 +46,14 @@ module Datadog
         end
 
         value.downcase!
-        value.gsub!(INVALID_TAG_CHARACTERS, '_')
+        value.gsub!(INVALID_TAG_CHARACTERS, "_")
 
         # The Trace Agent allows tag values to start with a number so this logic is here too
         leading_invalid_regex = remove_digit_start_char ? LEADING_INVALID_CHARS_NO_DIGITS : LEADING_INVALID_CHARS_WITH_DIGITS
         value.sub!(leading_invalid_regex, "")
 
-        value.squeeze!('_') if value.include?('__')
-        value.delete_suffix!('_')
+        value.squeeze!("_") if value.include?("__")
+        value.delete_suffix!("_")
 
         value
       end
@@ -69,8 +67,8 @@ module Datadog
         value = normalize(value)
         return value if value.empty?
 
-        value.tr!(':', '_')
-        value.squeeze!('_') if value.include?('__')
+        value.tr!(":", "_")
+        value.squeeze!("_") if value.include?("__")
 
         if value.bytesize > MAX_PROCESS_VALUE_BYTE_SIZE
           value = value.byteslice(0, MAX_PROCESS_VALUE_BYTE_SIZE) || value

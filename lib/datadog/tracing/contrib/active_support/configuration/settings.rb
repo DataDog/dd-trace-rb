@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -34,8 +34,8 @@ module Datadog
               o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
-                  '',
-                  Ext::SERVICE_CACHE
+                  "",
+                  Ext::SERVICE_CACHE,
                 )
               end
             end

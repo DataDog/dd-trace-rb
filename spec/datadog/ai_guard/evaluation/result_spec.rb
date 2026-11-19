@@ -3,120 +3,117 @@
 require "datadog/ai_guard/evaluation/result"
 
 RSpec.describe Datadog::AIGuard::Evaluation::Result do
-  describe ".new" do
-    it "raises Datadog::AIGuard::AIGuardClientError when some key is missing" do
-      expect { described_class.new({}) }.to raise_error(
-        Datadog::AIGuard::AIGuardClientError,
-        "Missing key: \"data\""
-      )
-    end
+  subject(:result) do
+    described_class.new(
+      messages,
+      action: "ALLOW",
+      reason: "Some reason",
+      tags: ["some", "tags"],
+      sds_findings: [{"rule_tag" => "credit_card"}],
+      redaction_replacements: [{"path" => "messages[0].content", "replacement" => "Hello <REDACTED>"}],
+      tag_probabilities: {"some" => 0.95, "tags" => 0.1},
+    )
   end
 
-  let(:raw_response) do
-    {
-      "data" => {
-        "attributes" => {
-          "action" => action,
-          "reason" => "Some reason",
-          "tags" => ["some", "tags"],
-          "is_blocking_enabled" => is_blocking_enabled
-        }
-      }
-    }
+  let(:messages) do
+    [Datadog::AIGuard::Evaluation::Message.new(role: :user, content: "Hello there")]
   end
 
-  let(:action) { "DENY" }
-  let(:is_blocking_enabled) { false }
+  describe "#messages" do
+    it { expect(result.messages).to equal(messages) }
+  end
 
   describe "#action" do
-    it "returns the action from the response body" do
-      expect(described_class.new(raw_response).action).to eq(raw_response.dig("data", "attributes", "action"))
-    end
+    it { expect(result.action).to eq("ALLOW") }
   end
 
   describe "#reason" do
-    it "returns the reason from the response body" do
-      expect(described_class.new(raw_response).reason).to eq(raw_response.dig("data", "attributes", "reason"))
-    end
+    it { expect(result.reason).to eq("Some reason") }
   end
 
   describe "#tags" do
-    it "returns the tags from the response body" do
-      expect(described_class.new(raw_response).tags).to eq(raw_response.dig("data", "attributes", "tags"))
-    end
+    it { expect(result.tags).to eq(["some", "tags"]) }
   end
 
-  describe "#blocking_enabled?" do
-    it "returns a boolean is_blocking_enabled from the response body" do
-      expect(described_class.new(raw_response).blocking_enabled?).to eq(
-        raw_response.dig("data", "attributes", "is_blocking_enabled")
-      )
+  describe "#sds_findings" do
+    it { expect(result.sds_findings).to eq([{"rule_tag" => "credit_card"}]) }
+  end
+
+  describe "#tag_probabilities" do
+    it { expect(result.tag_probabilities).to eq("some" => 0.95, "tags" => 0.1) }
+  end
+
+  describe "#redaction_replacements" do
+    it "exposes raw response replacements" do
+      expect(result.redaction_replacements).to eq([
+        {"path" => "messages[0].content", "replacement" => "Hello <REDACTED>"},
+      ])
     end
   end
 
   context "when action is ALLOW" do
-    let(:action) { "ALLOW" }
-
     describe "#allow?" do
-      it "returns true" do
-        expect(described_class.new(raw_response)).to be_allow
-      end
+      it { expect(result).to be_allow }
     end
 
     describe "#deny?" do
-      it "returns false" do
-        expect(described_class.new(raw_response)).not_to be_deny
-      end
+      it { expect(result).not_to be_deny }
     end
 
     describe "#abort?" do
-      it "returns false" do
-        expect(described_class.new(raw_response)).not_to be_abort
-      end
+      it { expect(result).not_to be_abort }
     end
   end
 
   context "when action is DENY" do
-    let(:action) { "DENY" }
+    subject(:result) do
+      described_class.new(
+        messages,
+        action: "DENY",
+        reason: "Some reason",
+        tags: ["some", "tags"],
+        sds_findings: [{"rule_tag" => "credit_card"}],
+        redaction_replacements: [],
+        tag_probabilities: {"some" => 0.95, "tags" => 0.1},
+      )
+    end
 
     describe "#allow?" do
-      it "returns false" do
-        expect(described_class.new(raw_response)).not_to be_allow
-      end
+      it { expect(result).not_to be_allow }
     end
 
     describe "#deny?" do
-      it "returns true" do
-        expect(described_class.new(raw_response)).to be_deny
-      end
+      it { expect(result).to be_deny }
     end
 
     describe "#abort?" do
-      it "returns false" do
-        expect(described_class.new(raw_response)).not_to be_abort
-      end
+      it { expect(result).not_to be_abort }
     end
   end
 
   context "when action is ABORT" do
-    let(:action) { "ABORT" }
+    subject(:result) do
+      described_class.new(
+        messages,
+        action: "ABORT",
+        reason: "Some reason",
+        tags: ["some", "tags"],
+        sds_findings: [{"rule_tag" => "credit_card"}],
+        redaction_replacements: [],
+        tag_probabilities: {"some" => 0.95, "tags" => 0.1},
+      )
+    end
 
     describe "#allow?" do
-      it "returns false" do
-        expect(described_class.new(raw_response)).not_to be_allow
-      end
+      it { expect(result).not_to be_allow }
     end
 
     describe "#deny?" do
-      it "returns false" do
-        expect(described_class.new(raw_response)).not_to be_deny
-      end
+      it { expect(result).not_to be_deny }
     end
 
     describe "#abort?" do
-      it "returns true" do
-        expect(described_class.new(raw_response)).to be_abort
-      end
+      it { expect(result).to be_abort }
     end
   end
 end

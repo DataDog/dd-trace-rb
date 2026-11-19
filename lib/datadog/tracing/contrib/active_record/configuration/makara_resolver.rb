@@ -23,7 +23,7 @@ module Datadog
               hash = super
 
               if active_record_config[:name].is_a?(String)
-                hash[:makara_role] = active_record_config[:name].split('/')[0].to_s
+                hash[:makara_role] = active_record_config[:name].split("/")[0].to_s
               end
 
               hash

@@ -32,7 +32,9 @@ module Datadog
         @knuth_factor = knuth_factor
 
         rate = rate.to_f
-        unless rate >= 0.0 && rate <= 1.0
+        # Not using `between?` here: it raises on NaN instead of falling back to 1.0 below.
+        # No current caller passes NaN, but this guards against it defensively for future ones.
+        unless rate >= 0.0 && rate <= 1.0 # rubocop:disable Style/ComparableBetween
           Datadog.logger.warn("Sample rate #{rate} is not between 0.0 and 1.0, falling back to 1.0")
           rate = 1.0
         end

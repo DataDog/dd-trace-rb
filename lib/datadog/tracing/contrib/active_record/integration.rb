@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative 'configuration/resolver'
-require_relative 'configuration/settings'
-require_relative 'events'
-require_relative 'patcher'
-require_relative '../component'
-require_relative '../integration'
-require_relative '../rails/ext'
-require_relative '../../../core/contrib/rails/utils'
+require_relative "configuration/resolver"
+require_relative "configuration/settings"
+require_relative "events"
+require_relative "patcher"
+require_relative "../component"
+require_relative "../integration"
+require_relative "../rails/ext"
+require_relative "../../../core/contrib/rails/utils"
 
 module Datadog
   module Tracing
@@ -18,16 +18,17 @@ module Datadog
           include Contrib::Integration
 
           MINIMUM_VERSION = Contrib::Rails::Ext::MINIMUM_VERSION
+          MAKARA_MINIMUM_VERSION = Gem::Version.new("0.3.5")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_record, auto_patch: false
 
           def self.gem_name
-            'activerecord'
+            "activerecord"
           end
 
           def self.version
-            Gem.loaded_specs['activerecord']&.version
+            Gem.loaded_specs["activerecord"]&.version
           end
 
           def self.loaded?
@@ -60,7 +61,7 @@ module Datadog
             @resolver&.reset_cache if defined?(@resolver)
           end
 
-          Contrib::Component.register('activerecord') do |_config|
+          Contrib::Component.register("activerecord") do |_config|
             # Ensure resolver cache is reset on configuration change
             Datadog.configuration.tracing.fetch_integration(:active_record).reset_resolver_cache
           end

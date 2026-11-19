@@ -1,0 +1,68 @@
+module Datadog
+  module SymbolDatabase
+    class Uploader
+      MAX_PAYLOAD_SIZE: Integer
+
+      @settings: Datadog::Core::Configuration::Settings
+
+      @agent_settings: Datadog::Core::Configuration::AgentSettings
+
+      @logger: SymbolDatabase::Logger
+
+      @telemetry: Datadog::Core::Telemetry::Component?
+
+      @transport: Datadog::SymbolDatabase::Transport::Symbols::Transport
+
+      @metadata_mutex: Thread::Mutex
+
+      @upload_pid: Integer?
+
+      @upload_id: String?
+
+      @batch_num: Integer?
+
+      def initialize: (
+        settings: Datadog::Core::Configuration::Settings,
+        agent_settings: Datadog::Core::Configuration::AgentSettings,
+        logger: SymbolDatabase::Logger,
+        ?telemetry: Datadog::Core::Telemetry::Component?
+      ) -> void
+
+      def upload_scopes: (Array[Scope] scopes) -> void
+
+      private
+
+      def build_symbol_payload: (
+        Array[Scope] scopes,
+        upload_id: String,
+        batch_num: Integer
+      ) -> String
+
+      def perform_http_upload: (
+        String compressed_data,
+        Integer scope_count,
+        upload_id: String,
+        batch_num: Integer
+      ) -> void
+
+      def build_event_metadata: (
+        Integer attachment_size,
+        upload_id: String,
+        batch_num: Integer
+      ) -> String
+
+      def build_multipart_form: (
+        String compressed_data,
+        upload_id: String,
+        batch_num: Integer
+      ) -> Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO]
+
+      def next_upload_metadata: () -> [String, Integer]
+
+      def handle_response: (
+        Datadog::Core::Transport::HTTP::Response | Datadog::Core::Transport::InternalErrorResponse response,
+        Integer scope_count
+      ) -> bool
+    end
+  end
+end

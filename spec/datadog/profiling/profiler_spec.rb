@@ -13,22 +13,6 @@ RSpec.describe Datadog::Profiling::Profiler do
   let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker) }
   let(:scheduler) { instance_double(Datadog::Profiling::Scheduler) }
 
-  describe '.enabled?' do
-    subject(:enabled?) { profiler.enabled? }
-
-    let(:scheduler) { instance_double('Datadog::Profiling::Scheduler', running?: running) }
-
-    context 'when the profiler is running' do
-      let(:running) { true }
-      it { is_expected.to be(true) }
-    end
-
-    context 'when the profiler is not running' do
-      let(:running) { false }
-      it { is_expected.to be(false) }
-    end
-  end
-
   describe "#start" do
     subject(:start) { profiler.start }
 
@@ -55,6 +39,15 @@ RSpec.describe Datadog::Profiling::Profiler do
           start
         end
       end
+    end
+  end
+
+  describe "#wait_for_start_or_failure" do
+    it "returns the worker's start failure" do
+      error = RuntimeError.new("test error")
+      expect(worker).to receive(:wait_for_start_or_failure).with(timeout_seconds: 3).and_return(error)
+
+      expect(profiler.wait_for_start_or_failure(timeout_seconds: 3)).to be(error)
     end
   end
 

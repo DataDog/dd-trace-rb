@@ -1,16 +1,18 @@
 module Datadog
   module Core
     module Workers
-      module Polling
+      module Polling : IntervalLoop, Async::Thread
         DEFAULT_SHUTDOWN_TIMEOUT: 1
 
-        def self.included: (Class | Module base) -> void
+        def self.included: (Module base) -> void
 
-        module PrependedMethods
+        module PrependedMethods : Polling
           def perform: (*untyped args) -> untyped
         end
 
-        def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> untyped
+        @enabled: bool
+
+        def stop: (?bool force_stop, ?Numeric timeout) -> bool
 
         def enabled?: () -> bool
 

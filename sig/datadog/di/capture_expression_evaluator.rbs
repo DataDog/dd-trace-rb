@@ -1,0 +1,27 @@
+module Datadog
+  module DI
+    class CaptureExpressionEvaluator
+      @settings: Datadog::Core::Configuration::Settings
+      @serializer: Datadog::DI::Serializer
+      @logger: DI::Logger
+      @guardrails_telemetry: GuardrailsTelemetry
+      @telemetry: Core::Telemetry::Component?
+
+      def initialize: (settings: Datadog::Core::Configuration::Settings, serializer: Datadog::DI::Serializer, logger: DI::Logger, guardrails_telemetry: GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
+
+      attr_reader settings: Datadog::Core::Configuration::Settings
+      attr_reader serializer: Datadog::DI::Serializer
+      attr_reader logger: DI::Logger
+      attr_reader guardrails_telemetry: GuardrailsTelemetry
+      attr_reader telemetry: Core::Telemetry::Component?
+
+      def evaluate: (Probe probe, Context context) -> Result
+
+      private
+
+      def capture_deadline_passed?: (Float capture_deadline) -> bool
+
+      def record_capture_timeout: (Hash[String, untyped] output, String name, Probe probe) -> void
+    end
+  end
+end

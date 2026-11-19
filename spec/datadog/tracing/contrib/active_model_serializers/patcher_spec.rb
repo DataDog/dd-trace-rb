@@ -1,18 +1,18 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
-require 'spec/datadog/tracing/contrib/active_model_serializers/helpers'
-require 'spec/datadog/tracing/contrib/rails/support/deprecation'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "spec/datadog/tracing/contrib/active_model_serializers/helpers"
+require "spec/datadog/tracing/contrib/rails/support/deprecation"
 
-require 'active_support/all'
-require 'active_model_serializers'
+require "active_support/all"
+require "active_model_serializers"
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog'
-require 'datadog/tracing/contrib/active_model_serializers/patcher'
+require "datadog/tracing"
+require "datadog/tracing/metadata/ext"
+require "datadog"
+require "datadog/tracing/contrib/active_model_serializers/patcher"
 
-RSpec.describe 'ActiveModelSerializers patcher' do
-  include_context 'AMS serializer'
+RSpec.describe "ActiveModelSerializers patcher" do
+  include_context "AMS serializer"
 
   let(:configuration_options) { {} }
 
@@ -34,10 +34,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     Datadog.registry[:active_model_serializers].reset_configuration!
   end
 
-  describe 'on render' do
-    let(:test_obj) { TestModel.new(name: 'test object') }
-    let(:serializer) { 'TestModelSerializer' }
-    let(:adapter) { 'ActiveModelSerializers::Adapter::Attributes' }
+  describe "on render" do
+    let(:test_obj) { TestModel.new(name: "test object") }
+    let(:serializer) { "TestModelSerializer" }
+    let(:adapter) { "ActiveModelSerializers::Adapter::Attributes" }
     let(:event) { Datadog::Tracing::Contrib::ActiveModelSerializers::Patcher.send(:event_name) }
     let(:name) do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
@@ -59,10 +59,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     end
 
     if ActiveModelSerializersHelpers.ams_0_10_or_newer?
-      context 'when adapter is set' do
+      context "when adapter is set" do
         subject(:render) { ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash }
 
-        it_behaves_like 'analytics for integration' do
+        it_behaves_like "analytics for integration" do
           let(:analytics_enabled_var) do
             Datadog::Tracing::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_ENABLED
           end
@@ -77,14 +77,14 @@ RSpec.describe 'ActiveModelSerializers patcher' do
           end
         end
 
-        it_behaves_like 'measured span for integration', true do
+        it_behaves_like "measured span for integration", true do
           let(:span) do
             render
             active_model_serializers_span
           end
         end
 
-        it 'is expected to send a span' do
+        it "is expected to send a span" do
           render
 
           active_model_serializers_span.tap do |span|
@@ -93,9 +93,9 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.resource).to eq(serializer)
             expect(span.service).to eq(tracer.default_service)
             expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE)
-            expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
-            expect(span.get_tag('active_model_serializers.adapter')).to eq(adapter)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_model_serializers')
+            expect(span.get_tag("active_model_serializers.serializer")).to eq(serializer)
+            expect(span.get_tag("active_model_serializers.adapter")).to eq(adapter)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("active_model_serializers")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(operation_name)
           end
@@ -103,11 +103,11 @@ RSpec.describe 'ActiveModelSerializers patcher' do
       end
     end
 
-    context 'when adapter is nil' do
+    context "when adapter is nil" do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
         let(:render) { ActiveModelSerializers::SerializableResource.new(test_obj, adapter: nil).serializable_hash }
 
-        it 'is expected to send a span with adapter tag equal to the model name' do
+        it "is expected to send a span with adapter tag equal to the model name" do
           render
 
           active_model_serializers_span.tap do |span|
@@ -116,9 +116,9 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.resource).to eq(serializer)
             expect(span.service).to eq(tracer.default_service)
             expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE)
-            expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
-            expect(span.get_tag('active_model_serializers.adapter')).to eq(test_obj.class.to_s)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_model_serializers')
+            expect(span.get_tag("active_model_serializers.serializer")).to eq(serializer)
+            expect(span.get_tag("active_model_serializers.adapter")).to eq(test_obj.class.to_s)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("active_model_serializers")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(operation_name)
           end
@@ -126,7 +126,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
       else
         subject(:render) { TestModelSerializer.new(test_obj).as_json }
 
-        it 'is expected to send a span with no adapter tag' do
+        it "is expected to send a span with no adapter tag" do
           render
 
           active_model_serializers_span.tap do |span|
@@ -135,9 +135,9 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.resource).to eq(serializer)
             expect(span.service).to eq(tracer.default_service)
             expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE)
-            expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
-            expect(span.get_tag('active_model_serializers.adapter')).to be_nil
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_model_serializers')
+            expect(span.get_tag("active_model_serializers.serializer")).to eq(serializer)
+            expect(span.get_tag("active_model_serializers.adapter")).to be_nil
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("active_model_serializers")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(operation_name)
           end

@@ -28,10 +28,8 @@ long monotonic_to_system_epoch_ns(monotonic_to_system_epoch_state *state, long m
     (state->delta_to_epoch_ns + monotonic_wall_time_ns > state->system_epoch_ns_reference + SECONDS_AS_NS(60));
 
   if (reference_needs_update) {
-    state->system_epoch_ns_reference = system_epoch_time_now_ns(RAISE_ON_FAILURE);
-    long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-
-    state->delta_to_epoch_ns = state->system_epoch_ns_reference - current_monotonic_wall_time_ns;
+    state->system_epoch_ns_reference = system_epoch_time_now_ns();
+    state->delta_to_epoch_ns = state->system_epoch_ns_reference - monotonic_wall_time_now_ns();
   }
 
   return state->delta_to_epoch_ns + monotonic_wall_time_ns;

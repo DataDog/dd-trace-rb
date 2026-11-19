@@ -1,0 +1,16 @@
+issuer: https://token.actions.githubusercontent.com
+
+# Caller: datadog-ruby_core_source's notify-consumers job in publish.yml.
+# Publishing a GitHub release (vX.Y.Z tag) starts publish.yml, and its
+# publish job gates the notify job. The run's ref is the tag and the workflow
+# file is resolved from the tag, so both patterns must match it. Do not relax
+# the tag pattern.
+subject_pattern: "repo:DataDog/datadog-ruby_core_source:ref:refs/tags/v[0-9][0-9.]*"
+
+claim_pattern:
+  event_name: release
+  repository: DataDog/datadog-ruby_core_source
+  job_workflow_ref: DataDog/datadog-ruby_core_source/\.github/workflows/publish\.yml@refs/tags/v[0-9][0-9.]*
+
+permissions:
+  contents: write

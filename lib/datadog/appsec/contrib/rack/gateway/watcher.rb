@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../ext'
-require_relative '../../../event'
-require_relative '../../../trace_keeper'
-require_relative '../../../security_event'
-require_relative '../../../instrumentation/gateway'
+require_relative "../ext"
+require_relative "../../../event"
+require_relative "../../../trace_keeper"
+require_relative "../../../security_event"
+require_relative "../../../instrumentation/gateway"
 
 module Datadog
   module AppSec
@@ -24,24 +24,24 @@ module Datadog
               end
 
               def watch_request(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request') do |stack, gateway_request|
+                gateway.watch("rack.request") do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
-                    'server.request.cookies' => gateway_request.cookies,
-                    'server.request.query' => gateway_request.query,
-                    'server.request.uri.raw' => gateway_request.fullpath,
-                    'server.request.headers' => gateway_request.headers,
-                    'server.request.headers.no_cookies' => gateway_request.headers.dup.tap { |h| h.delete('cookie') },
-                    'http.client_ip' => gateway_request.client_ip,
-                    'server.request.method' => gateway_request.method
+                    "server.request.cookies" => gateway_request.cookies,
+                    "server.request.query" => gateway_request.query,
+                    "server.request.uri.raw" => gateway_request.fullpath,
+                    "server.request.headers" => gateway_request.headers,
+                    "server.request.headers.no_cookies" => gateway_request.headers.dup.tap { |h| h.delete("cookie") },
+                    "http.client_ip" => gateway_request.client_ip,
+                    "server.request.method" => gateway_request.method,
                   }
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                   if result.match? || !result.attributes.empty?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
                   end
 
@@ -57,13 +57,13 @@ module Datadog
               end
 
               def watch_response(gateway = Instrumentation.gateway)
-                gateway.watch('rack.response') do |stack, gateway_response|
+                gateway.watch("rack.response") do |stack, gateway_response|
                   context = gateway_response.context
 
                   persistent_data = {
-                    'server.response.status' => gateway_response.status.to_s,
-                    'server.response.headers' => gateway_response.headers,
-                    'server.response.headers.no_cookies' => gateway_response.headers.dup.tap { |h| h.delete('set-cookie') }
+                    "server.response.status" => gateway_response.status.to_s,
+                    "server.response.headers" => gateway_response.headers,
+                    "server.response.headers.no_cookies" => gateway_response.headers.dup.tap { |h| h.delete("set-cookie") },
                   }
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
@@ -73,7 +73,7 @@ module Datadog
                     TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::ActionsHandler.handle(result.actions)
@@ -84,12 +84,33 @@ module Datadog
               end
 
               def watch_request_body(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.body') do |stack, gateway_request|
+                gateway.watch("rack.request.body") do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                  persistent_data = {
-                    'server.request.body' => gateway_request.form_hash
-                  }
+                  request = gateway_request.request
+                  next stack.call(request) unless gateway_request.collectable_body?
+
+                  # NOTE: A limit of 0 disables request body collection entirely.
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+                  next stack.call(request) if limit.zero?
+
+                  persistent_data = {}
+                  byte_length = gateway_request.body_bytesize(limit)
+
+                  if byte_length
+                    persistent_data["server.request.body.byte_length"] = byte_length
+
+                    if byte_length <= limit
+                      body = gateway_request.form_hash
+                      persistent_data["server.request.body"] = body if body
+                    end
+                  # NOTE: Body was parsed before measurement, keep byte_length unset
+                  elsif gateway_request.env.key?("rack.request.form_hash")
+                    body = gateway_request.env["rack.request.form_hash"]
+                    persistent_data["server.request.body"] = body if body
+                  end
+
+                  next stack.call(request) if persistent_data.empty?
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
@@ -98,7 +119,7 @@ module Datadog
                     TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::ActionsHandler.handle(result.actions)
@@ -113,16 +134,12 @@ module Datadog
               #       somewhere closer to identity related monitor.
               # WARNING: The Gateway is a subject of refactoring
               def watch_request_finish(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.finish') do |stack, gateway_request|
+                gateway.watch("rack.request.finish") do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   next stack.call(gateway_request.request) if context.span.nil?
 
                   gateway_request.headers.each do |name, value|
-                    if Ext::COLLECTABLE_REQUEST_HEADERS.include?(name)
-                      context.span["http.request.headers.#{name}"] ||= value
-                    end
-
                     if context.state[:has_identity_event] && Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
                       context.span["http.request.headers.#{name}"] ||= value
                     end

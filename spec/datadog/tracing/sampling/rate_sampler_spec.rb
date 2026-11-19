@@ -1,11 +1,11 @@
-require 'spec_helper'
-require 'datadog/tracing/sampling/shared_examples'
+require "spec_helper"
+require "datadog/tracing/sampling/shared_examples"
 
-require 'logger'
+require "logger"
 
-require 'datadog/core'
-require 'datadog/tracing/sampling/rate_sampler'
-require 'datadog/tracing/trace_operation'
+require "datadog/core"
+require "datadog/tracing/sampling/rate_sampler"
+require "datadog/tracing/trace_operation"
 
 RSpec.describe Datadog::Tracing::Sampling::RateSampler do
   subject(:sampler) { described_class.new(sample_rate) }
@@ -14,47 +14,47 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
 
   after { Datadog.logger.level = Logger::WARN }
 
-  describe '#initialize' do
-    context 'given a sample rate' do
-      context 'that is negative' do
+  describe "#initialize" do
+    context "given a sample rate" do
+      context "that is negative" do
         let(:sample_rate) { -1.0 }
 
-        it_behaves_like 'sampler with sample rate', 1.0 do
+        it_behaves_like "sampler with sample rate", 1.0 do
           let(:trace) { nil }
         end
 
         it do
-          expect(Datadog.logger).to receive(:warn).with('Sample rate -1.0 is not between 0.0 and 1.0, falling back to 1.0')
+          expect(Datadog.logger).to receive(:warn).with("Sample rate -1.0 is not between 0.0 and 1.0, falling back to 1.0")
 
           sampler
         end
       end
 
-      context 'that is 0' do
+      context "that is 0" do
         let(:sample_rate) { 0.0 }
 
-        it_behaves_like 'sampler with sample rate', 0.0
+        it_behaves_like "sampler with sample rate", 0.0
       end
 
-      context 'that is 1' do
+      context "that is 1" do
         let(:sample_rate) { 1.0 }
 
-        it_behaves_like 'sampler with sample rate', 1.0
+        it_behaves_like "sampler with sample rate", 1.0
       end
 
-      context 'that is between 0 and 1.0' do
+      context "that is between 0 and 1.0" do
         let(:sample_rate) { 0.5 }
 
-        it_behaves_like 'sampler with sample rate', 0.5
+        it_behaves_like "sampler with sample rate", 0.5
       end
 
-      context 'that is greater than 1.0' do
+      context "that is greater than 1.0" do
         let(:sample_rate) { 1.5 }
 
-        it_behaves_like 'sampler with sample rate', 1.0
+        it_behaves_like "sampler with sample rate", 1.0
 
         it do
-          expect(Datadog.logger).to receive(:warn).with('Sample rate 1.5 is not between 0.0 and 1.0, falling back to 1.0')
+          expect(Datadog.logger).to receive(:warn).with("Sample rate 1.5 is not between 0.0 and 1.0, falling back to 1.0")
 
           sampler
         end
@@ -62,20 +62,20 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
     end
   end
 
-  describe '#sample!' do
+  describe "#sample!" do
     subject(:sample!) { sampler.sample!(trace) }
 
     let(:traces) { Array.new(3) { |i| Datadog::Tracing::TraceOperation.new(id: i) } }
     let(:trace) { traces[0] }
 
-    shared_examples_for 'rate sampling' do
+    shared_examples_for "rate sampling" do
       let(:trace_count) { 1000 }
       let(:rng) { Random.new(123) }
 
       let(:traces) { Array.new(trace_count) { |i| Datadog::Tracing::TraceOperation.new(id: i) } }
       let(:expected_num_of_sampled_traces) { trace_count * sample_rate }
 
-      it 'samples an appropriate proportion of span operations' do
+      it "samples an appropriate proportion of span operations" do
         sample = traces.map do |trace|
           sampled = sampler.sample!(trace)
           expect(trace.sample_rate).to eq(sample_rate) if sampled
@@ -87,15 +87,15 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
       end
     end
 
-    it_behaves_like('rate sampling') { let(:sample_rate) { 0.1 } }
-    it_behaves_like('rate sampling') { let(:sample_rate) { 0.25 } }
-    it_behaves_like('rate sampling') { let(:sample_rate) { 0.5 } }
-    it_behaves_like('rate sampling') { let(:sample_rate) { 0.9 } }
+    it_behaves_like("rate sampling") { let(:sample_rate) { 0.1 } }
+    it_behaves_like("rate sampling") { let(:sample_rate) { 0.25 } }
+    it_behaves_like("rate sampling") { let(:sample_rate) { 0.5 } }
+    it_behaves_like("rate sampling") { let(:sample_rate) { 0.9 } }
 
-    context 'when a sample rate of 1.0 is set' do
+    context "when a sample rate of 1.0 is set" do
       let(:sample_rate) { 1.0 }
 
-      it 'samples all span operations' do
+      it "samples all span operations" do
         traces.each do |trace|
           expect(sampler.sample!(trace)).to be true
           expect(trace.sampled?).to be true
@@ -103,27 +103,27 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         end
       end
 
-      context 'and decision is set' do
+      context "and decision is set" do
         subject(:sampler) { described_class.new(sample_rate, decision: decision) }
-        let(:decision) { 'test decision' }
+        let(:decision) { "test decision" }
 
-        it 'sets trace decision' do
+        it "sets trace decision" do
           sample!
-          expect(trace.get_tag('_dd.p.dm')).to eq(decision)
+          expect(trace.get_tag("_dd.p.dm")).to eq(decision)
         end
       end
     end
 
-    context 'when a sample rate of 0.0 is set' do
+    context "when a sample rate of 0.0 is set" do
       let(:sample_rate) { Float::MIN } # Can't set to exactly zero because of safeguard
 
-      it 'does not trace decision' do
+      it "does not trace decision" do
         sample!
-        expect(trace.get_tag('_dd.p.dm')).to be_nil
+        expect(trace.get_tag("_dd.p.dm")).to be_nil
       end
     end
 
-    context 'with specific trace IDs and 0.5 sample rate' do
+    context "with specific trace IDs and 0.5 sample rate" do
       let(:sample_rate) { 0.5 }
       let(:trace_expectations) do
         {
@@ -139,7 +139,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         }
       end
 
-      it 'produces deterministic sampling results' do
+      it "produces deterministic sampling results" do
         trace_expectations.each do |id, expected|
           trace = Datadog::Tracing::TraceOperation.new(id: id)
           expect(sampler.sample!(trace)).to eq(expected),

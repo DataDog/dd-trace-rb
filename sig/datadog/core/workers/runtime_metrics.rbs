@@ -3,18 +3,26 @@ module Datadog
     module Workers
       class RuntimeMetrics < Worker
         include Workers::Polling
+
+        include Workers::IntervalLoop
+
+        include Workers::Async::Thread
+
         DEFAULT_FLUSH_INTERVAL: 10
 
         DEFAULT_BACK_OFF_MAX: 30
 
-        attr_reader metrics: untyped
+        @metrics: Core::Runtime::Metrics
 
-        def initialize: (?::Hash[untyped, untyped] options) -> void
+        attr_reader metrics: Core::Runtime::Metrics
+
+        def initialize: (telemetry: Core::Telemetry::Component, **untyped options) -> void
 
         def perform: () -> true
 
-        def register_service: (untyped service) -> untyped
-        def stop: (*untyped args, ?close_metrics: bool) -> untyped
+        def register_service: (String? service) -> Array[String]?
+
+        def stop: (*untyped args, ?close_metrics: bool) -> bool
       end
     end
   end
