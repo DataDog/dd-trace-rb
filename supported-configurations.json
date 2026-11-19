@@ -1924,7 +1924,7 @@
     ],
     "DD_TRACE_PARTIAL_FLUSH_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
         "default": "true"
       }
