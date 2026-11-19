@@ -12,10 +12,7 @@ require "tmpdir"
 # the one Ruby executes (so targeted TracePoints on it fire correctly).
 #
 # This test uses the real Bootsnap gem — not a simulation.
-RSpec.describe "DI CodeTracker with Bootsnap" do
-  # Bootsnap serialises bytecode even when its ISeq module is first required.
-  metadata[:skip] = "Bootsnap cannot cache bytecode with coverage enabled" if defined?(Coverage) && Coverage.state != :idle
-
+RSpec.describe "DI CodeTracker with Bootsnap", execute_in_fork: true do
   di_test
 
   let(:diagnostics_transport) do
@@ -68,6 +65,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
     let(:test_file) { File.join(__dir__, "bootsnap_test_class.rb") }
 
     before do
+      Coverage.result(stop: true, clear: true) if defined?(Coverage) && Coverage.state != :idle
       require "bootsnap"
       require "bootsnap/compile_cache/iseq"
 
