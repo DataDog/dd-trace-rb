@@ -29,7 +29,7 @@ module Datadog
             waf_timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SQLI, evaluation_data, waf_timeout)
 
-            if result.match? || result.keep? || result.attributes.any?
+            if SecurityEvent.record?(result)
               context.events.push(
                 AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
               )
