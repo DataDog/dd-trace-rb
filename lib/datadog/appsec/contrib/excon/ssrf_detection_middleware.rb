@@ -49,9 +49,7 @@ module Datadog
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
 
             if SecurityEvent.record?(result)
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-              )
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
@@ -88,9 +86,7 @@ module Datadog
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             if SecurityEvent.record?(result)
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-              )
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
