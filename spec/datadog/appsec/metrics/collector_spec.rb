@@ -6,7 +6,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
   subject(:collector) { described_class.new }
 
   describe "#record_waf" do
-    it "does not count attribute-only matches as triggered rules" do
+    it "counts attribute-only WAF matches" do
       result = Datadog::AppSec::SecurityEngine::Result::Match.new(
         events: [], actions: {}, attributes: {"_dd.appsec.fp.http.endpoint" => "fingerprint"},
         keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
@@ -15,14 +15,28 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       collector.record_waf(result)
 
       expect(collector.waf.evals).to eq(1)
-      expect(collector.waf.matches).to eq(0)
+      expect(collector.waf.matches).to eq(1)
+      expect(collector.waf.rule_triggers).to eq(0)
       expect(collector.waf.duration_ns).to eq(100)
+    end
+
+    it "counts matches with actions and no events as rule triggers" do
+      result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+        events: [], actions: {"block_request" => {"status_code" => 403, "type" => "auto"}}, attributes: {},
+        keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
+      )
+
+      collector.record_waf(result)
+
+      expect(collector.waf.matches).to eq(1)
+      expect(collector.waf.rule_triggers).to eq(1)
     end
 
     context "when no results were recorded" do
       it "contains all metrics in initial state" do
         expect(collector.waf.evals).to eq(0)
         expect(collector.waf.matches).to eq(0)
+        expect(collector.waf.rule_triggers).to eq(0)
         expect(collector.waf.errors).to eq(0)
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(0)
@@ -44,6 +58,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       it "contains metrics of a single result" do
         expect(collector.waf.evals).to eq(1)
         expect(collector.waf.matches).to eq(0)
+        expect(collector.waf.rule_triggers).to eq(0)
         expect(collector.waf.errors).to eq(0)
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(100)
@@ -76,6 +91,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       it "contains cumulative metrics of both results" do
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.rule_triggers).to eq(1)
         expect(collector.waf.errors).to eq(0)
         expect(collector.waf.duration_ns).to eq(1100)
         expect(collector.waf.duration_ext_ns).to eq(1400)
@@ -112,6 +128,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       it "accumulates timeouts in addition to other metics" do
         expect(collector.waf.evals).to eq(3)
         expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.rule_triggers).to eq(1)
         expect(collector.waf.errors).to eq(1)
         expect(collector.waf.timeouts).to eq(2)
         expect(collector.waf.duration_ns).to eq(500)
@@ -122,7 +139,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
   end
 
   describe "#record_rasp" do
-    it "does not count attribute-only matches as triggered rules" do
+    it "counts attribute-only RASP matches" do
       result = Datadog::AppSec::SecurityEngine::Result::Match.new(
         events: [], actions: {}, attributes: {"appsec.api.redirection.move_target" => "/redirect"},
         keep: true, timeout: false, duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
@@ -131,13 +148,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       collector.record_rasp(result, type: "ssrf", phase: "response")
 
       expect(collector.rasp.evals).to eq(1)
-      expect(collector.waf.matches).to eq(0)
+      expect(collector.waf.matches).to eq(1)
       expect(collector.rasp.duration_ns).to eq(100)
     end
 
     context "when no results were recorded" do
       it "contains all metrics in initial state" do
         expect(collector.rasp.evals).to eq(0)
+        expect(collector.rasp.rule_triggers).to eq(0)
         expect(collector.waf.matches).to eq(0)
         expect(collector.waf.errors).to eq(0)
         expect(collector.rasp.timeouts).to eq(0)

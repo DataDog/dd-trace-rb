@@ -9,6 +9,8 @@ module Datadog
 
           attr_accessor matches: Integer
 
+          attr_accessor rule_triggers: Integer
+
           attr_accessor errors: Integer
 
           attr_accessor duration_ns: Integer
@@ -22,6 +24,7 @@ module Datadog
           def self.new: (
             evals: Integer,
             matches: Integer,
+            rule_triggers: Integer,
             errors: Integer,
             timeouts: Integer,
             duration_ns: Integer,

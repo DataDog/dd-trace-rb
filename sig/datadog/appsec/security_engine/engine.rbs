@@ -40,7 +40,7 @@ module Datadog
 
         def load_default_config: (telemetry: Core::Telemetry::Component) -> WAF::ConfigurationResult
 
-        def restore_default_config: (?rejected_path: String?) -> bool
+        def restore_default_config: (?rejected_path: String?) -> void
 
         def report_configuration_diagnostics: (WAF::diagnostics diagnostics, action: String, telemetry: Core::Telemetry::Component) -> void
 
