@@ -1,0 +1,38 @@
+name: Probe macOS stack guards
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/macos-stack-guard.yml'
+      - '.github/scripts/macos-stack-guard/**'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        with:
+          ruby-version: '3.4'
+      - name: Probe MRI stack guards with MADV_WILLNEED
+        working-directory: .github/scripts/macos-stack-guard
+        run: |
+          sw_vers
+          uname -m
+          ruby --version
+          ruby -rmkmf -e 'create_makefile("stack_guard")'
+          make
+          ruby -r./stack_guard -e '
+            check_stack_guard("main thread")
+            Thread.new { check_stack_guard("new thread") }.join
+            Fiber.new { check_stack_guard("fiber") }.resume
+          '
