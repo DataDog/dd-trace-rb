@@ -41,8 +41,7 @@ module Datadog
 
       private
 
-      # Sets the shared bucket state: the balance starts at +max_tokens+ and
-      # refills at +rate+ tokens per second.
+      # Sets the shared bucket state, starting with a full balance.
       #
       # @param rate [Numeric] refill rate, in tokens per second
       # @param max_tokens [Numeric] ceiling the balance refills toward
