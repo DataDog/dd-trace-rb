@@ -16,6 +16,7 @@ gem 'webrick'
 gem 'pry-byebug'
 
 gem *Datadog::DemoEnv.gem_datadog_auto_instrument
+gem 'libdatadog', Datadog::DemoEnv.locked_libdatadog_version if Datadog::DemoEnv.local_gem('datadog')
 gem 'google-protobuf', '~> 3.0'
 
 group :development do
