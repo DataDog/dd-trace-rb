@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6510",
+  "message": "Use resolved AWS resource names for `peer.service` when SDK requests carry DynamoDB, Kinesis, SNS, or Step Functions ARNs. Lambda `peer.service` remains unchanged."
+}

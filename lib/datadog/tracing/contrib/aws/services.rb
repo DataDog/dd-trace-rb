@@ -5,6 +5,7 @@ require_relative "service/sns"
 require_relative "service/dynamodb"
 require_relative "service/kinesis"
 require_relative "service/eventbridge"
+require_relative "service/lambda"
 require_relative "service/states"
 require_relative "service/s3"
 
@@ -130,6 +131,7 @@ module Datadog
           "dynamodb" => Service::DynamoDB.new,
           "kinesis" => Service::Kinesis.new,
           "eventbridge" => Service::EventBridge.new,
+          "lambda" => Service::Lambda.new,
           "states" => Service::States.new,
           "s3" => Service::S3.new,
         }.freeze
