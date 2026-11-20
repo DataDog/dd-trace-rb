@@ -15,6 +15,8 @@ module Datadog
 
         module Metrics
           ENV_DEFAULT_PORT = "DD_METRIC_AGENT_PORT"
+          ENV_DOGSTATSD_URL = "DD_DOGSTATSD_URL"
+          ENV_DOGSTATSD_SOCKET = "DD_DOGSTATSD_SOCKET"
         end
 
         module APM
