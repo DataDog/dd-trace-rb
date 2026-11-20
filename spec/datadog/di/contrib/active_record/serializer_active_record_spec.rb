@@ -71,7 +71,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   let(:serializer) do
-    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
+    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
   end
 
   describe "#serialize_value" do
