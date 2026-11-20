@@ -19,6 +19,22 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
       dynamodb.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TABLE_NAME, table_name)
     end
+
+    it "does not set the table arn tag" do
+      dynamodb.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TABLE_ARN, anything)
+    end
+  end
+
+  context "with a table ARN provided as table_name" do
+    let(:table_name) { "arn:aws:dynamodb:us-east-1:123456789012:table/example-table" }
+    let(:params) { {table_name: table_name} }
+
+    it "sets the table_name and table arn tags" do
+      dynamodb.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TABLE_NAME, table_name)
+      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TABLE_ARN, table_name)
+    end
   end
 
   context "with no table_name provided" do

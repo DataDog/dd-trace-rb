@@ -100,4 +100,35 @@ RSpec.describe "Waterdrop monitor" do
       )
     end
   end
+
+  describe "span kind and bootstrap servers" do
+    it "sets span.kind to producer" do
+      producer.produce_sync(topic: "some_topic", payload: "hello")
+
+      expect(span.get_tag("span.kind")).to eq("producer")
+    end
+
+    context "when the producer has no bootstrap.servers configured" do
+      it "does not set the bootstrap servers tag" do
+        producer.produce_sync(topic: "some_topic", payload: "hello")
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to be_nil
+      end
+    end
+
+    context "when the producer has bootstrap.servers configured" do
+      let(:producer) do
+        WaterDrop::Producer.new do |config|
+          config.client_class = WaterDrop::Clients::Buffered
+          config.kafka = {"bootstrap.servers": "kafka-1:9092,kafka-2:9092"}
+        end
+      end
+
+      it "sets the bootstrap servers tag" do
+        producer.produce_sync(topic: "some_topic", payload: "hello")
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to eq("kafka-1:9092,kafka-2:9092")
+      end
+    end
+  end
 end

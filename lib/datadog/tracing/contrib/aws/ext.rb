@@ -33,6 +33,12 @@ module Datadog
           TAG_RULE_NAME = "rulename"
           TAG_STATE_MACHINE_NAME = "statemachinename"
           TAG_BUCKET_NAME = "bucketname"
+          TAG_QUEUE_URL = "aws.queue.url"
+          TAG_TOPIC_ARN = "aws.sns.topic_arn"
+          TAG_STREAM_ARN = "aws.stream.arn"
+          TAG_STATE_MACHINE_ARN = "aws.state_machine.arn"
+          TAG_TABLE_ARN = "aws.table.arn"
+          TAG_FUNCTION_ARN = "aws.function.arn"
           PEER_SERVICE_SOURCES = [TAG_QUEUE_NAME,
             TAG_TOPIC_NAME,
             TAG_STREAM_NAME,

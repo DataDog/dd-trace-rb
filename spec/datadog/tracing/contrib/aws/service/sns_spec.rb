@@ -20,6 +20,23 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TOPIC_NAME, "my-topic-name")
     end
+
+    it "sets the topic arn tag" do
+      sns.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TOPIC_ARN, topic_arn)
+    end
+  end
+
+  context "with topic_arn provided for PublishBatch" do
+    let(:topic_arn) { "arn:aws:sns:us-west-2:123456789012:my-topic-name" }
+    let(:params) do
+      {topic_arn: topic_arn, publish_batch_request_entries: [{id: "1", message: "hello"}]}
+    end
+
+    it "sets the topic arn tag" do
+      sns.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TOPIC_ARN, topic_arn)
+    end
   end
 
   context "with name provided" do
@@ -28,6 +45,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
     it "sets the topic_name based on the provided name" do
       sns.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TOPIC_NAME, "my-topic-name")
+    end
+
+    it "does not set the topic arn tag" do
+      sns.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TOPIC_ARN, anything)
     end
   end
 

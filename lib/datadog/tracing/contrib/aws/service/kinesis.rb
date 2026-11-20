@@ -20,6 +20,7 @@ module Datadog
                 stream_name = parts[-1].split("/")[-1]
                 aws_account = parts[-2]
                 span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
+                span.set_tag(Aws::Ext::TAG_STREAM_ARN, stream_arn)
               end
 
               span.set_tag(Aws::Ext::TAG_STREAM_NAME, stream_name)

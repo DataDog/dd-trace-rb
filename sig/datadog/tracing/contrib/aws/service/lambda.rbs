@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        module Service
+          class Lambda < Base
+            def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
+
+            private
+
+            def function_arn: (Object? function_name) -> String?
+          end
+        end
+      end
+    end
+  end
+end
