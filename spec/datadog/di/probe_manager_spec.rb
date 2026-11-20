@@ -418,6 +418,21 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe "#install_pending_method_probes" do
+    # The after hook calls manager.close, which calls instrumenter.unhook
+    # for each installed probe. RSpec stubs a method by running
+    # `class << instrumenter`, and the definition trace point reports the
+    # end of that class body to #install_pending_method_probes. This before
+    # hook creates the stub ahead of manager.reopen, which enables the trace
+    # point, so the trace point reports only the classes that the examples
+    # define.
+    before do
+      allow(instrumenter).to receive(:unhook)
+    end
+
+    after do
+      manager.close
+    end
+
     context "when a class with the same name as target type is defined" do
       let(:probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "bar")
@@ -431,6 +446,32 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.reopen
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+      end
+    end
+
+    context "when two pending probes target the class being defined" do
+      let(:first_probe) do
+        Datadog::DI::Probe.new(id: "first", type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "foo")
+      end
+
+      let(:second_probe) do
+        Datadog::DI::Probe.new(id: "second", type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "bar")
+      end
+
+      before do
+        probe_repository.add_pending(first_probe)
+        probe_repository.add_pending(second_probe)
+      end
+
+      it "installs both probes when the class body ends" do
+        expect(instrumenter).to receive(:hook).with(first_probe, manager)
+        expect(instrumenter).to receive(:hook).with(second_probe, manager)
+
+        manager.reopen
+        class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+
+        expect(probe_repository.installed_probes).to eq("first" => first_probe, "second" => second_probe)
+        expect(probe_repository.pending_probes).to be_empty
       end
     end
   end
