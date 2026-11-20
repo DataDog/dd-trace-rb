@@ -4,13 +4,6 @@ require "datadog/di/spec_helper"
 require "datadog/di"
 require "tmpdir"
 
-# Load bootsnap at file load time. `require "bootsnap"` alone does not load
-# Bootsnap::CompileCache::ISeq — that submodule requires an explicit require.
-# If these requires fail, the file fails to load — no skip guard needed
-# because bootsnap is in the gemfile for the di:bootsnap CI task.
-require "bootsnap"
-require "bootsnap/compile_cache/iseq"
-
 # End-to-end test: DI code tracking works correctly when Bootsnap's iseq
 # cache is active. Bootsnap hooks RubyVM::InstructionSequence.load_iseq
 # to serve pre-compiled iseqs from a binary cache on disk instead of
@@ -19,7 +12,7 @@ require "bootsnap/compile_cache/iseq"
 # the one Ruby executes (so targeted TracePoints on it fire correctly).
 #
 # This test uses the real Bootsnap gem — not a simulation.
-RSpec.describe "DI CodeTracker with Bootsnap" do
+RSpec.describe "DI CodeTracker with Bootsnap", execute_in_fork: true do
   di_test
 
   let(:diagnostics_transport) do
@@ -72,16 +65,9 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
     let(:test_file) { File.join(__dir__, "bootsnap_test_class.rb") }
 
     before do
-      # Bootsnap's load_iseq returns nil when Coverage is running (SimpleCov),
-      # disabling iseq caching entirely. Suspend Coverage so Bootsnap's cache
-      # works normally — both for the priming load (writes cache) and the
-      # test loads (reads cache via load_iseq).
-      # Coverage.suspend requires Ruby 3.2+; di:bootsnap runs on 3.2+ only.
-      @coverage_was_suspended = false
-      if defined?(Coverage) && Coverage.respond_to?(:suspend) && Coverage.running?
-        Coverage.suspend
-        @coverage_was_suspended = true
-      end
+      Coverage.result(stop: true, clear: true) if defined?(Coverage) && Coverage.state != :idle
+      require "bootsnap"
+      require "bootsnap/compile_cache/iseq"
 
       # Install Bootsnap's iseq cache with a fresh temp directory.
       # install! sets cache_dir to "#{cache_dir}-iseq" internally but does
@@ -104,7 +90,6 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
     end
 
     after do
-      Coverage.resume if @coverage_was_suspended
       iseq_cache_dir = Bootsnap::CompileCache::ISeq.cache_dir
       FileUtils.remove_entry(iseq_cache_dir) if iseq_cache_dir && File.exist?(iseq_cache_dir)
       FileUtils.remove_entry(cache_dir)
