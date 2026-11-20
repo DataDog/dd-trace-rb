@@ -1,0 +1,7 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6502",
+  "message": "Reduce `Net::HTTP` tracing overhead by skipping span creation when tracing or the `http` integration is disabled.",
+  "author": "@hippi345"
+}
