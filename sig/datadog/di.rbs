@@ -30,6 +30,8 @@ module Datadog
     # args and return are untyped: variadic forwarding to a customer-supplied
     # Proc whose signature and return value are unknown to this primitive.
 
+    def self.current_thread_generation: () -> Integer
+
     def self.component: () -> Component
 
     def self.report_evaluation_timeout: (telemetry: Core::Telemetry::Component?, guardrails_telemetry: GuardrailsTelemetry, logger: DI::Logger, probe: Probe, kind: String, exc: Exception) -> bool

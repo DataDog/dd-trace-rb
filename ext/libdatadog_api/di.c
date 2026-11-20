@@ -39,6 +39,62 @@ static ID id_mesg;
 // method probes on Thread#[] / Thread#[]= cannot intercept guard reads/writes.
 static ID id_datadog_di_in_probe;
 
+// ID for the ivar on each Thread object that holds that thread's snapshot
+// generation token.
+static ID id_datadog_di_thread_generation;
+
+#ifdef HAVE_PRUNING_WEAKMAP
+// Method IDs for the ObjectSpace::WeakMap lookups and assignments that
+// store frozen threads' generation tokens.
+static ID id_weakmap_aref;
+static ID id_weakmap_aset;
+#endif
+
+// Process-wide source of snapshot generation tokens. Incremented only inside
+// current_thread_generation, which runs with the GVL held and never releases
+// it, so the counter and the accompanying ivar write need no lock.
+static unsigned long long generation_counter;
+
+// Snapshot generation tokens for Thread objects frozen before their first
+// snapshot. rb_ivar_set raises FrozenError on a frozen Thread, so those
+// tokens are keyed by the Thread object here instead.
+//
+// On releases where HAVE_PRUNING_WEAKMAP is defined the store is an
+// ObjectSpace::WeakMap keyed by the Thread, which prunes an entry when
+// its Thread is collected, so a Thread allocated later does not receive
+// a collected thread's token. The map is kept in a static VALUE
+// registered with the GC, so it outlives every entry.
+//
+// On every other release the store is a plain C st_table keyed by the
+// Thread VALUE. The table is invisible to the GC and holds no reference
+// to the Thread, so an entry outlives its thread: a Thread allocated
+// later at the same address reuses the dead thread's token. No
+// collection-observing API of these releases can back this store: the
+// WeakMaps of Ruby 2.5 and 2.6 define a finalizer on both the key and
+// the value, which a frozen Thread and an Integer token cannot take,
+// the WeakMaps of Ruby 2.7 through 3.1.3 and 3.2.0 through 3.2.2
+// observe collection but corrupt their internal tables during GC
+// compaction (https://bugs.ruby-lang.org/issues/19529), and
+// ObjectSpace.define_finalizer raises FrozenError on frozen objects,
+// so the table cannot prune its entries; instead the table holds at
+// most FROZEN_THREAD_GENERATION_CAP entries: an insert that would
+// exceed the cap clears the table first, and a still-live frozen
+// thread therefore receives a fresh token on its next snapshot, which
+// keeps the table's memory bounded. Guarded by the GVL like the
+// counter above.
+#ifdef HAVE_PRUNING_WEAKMAP
+static VALUE frozen_thread_generations;
+#else
+// Cap on the entries the C-table frozen-thread store can hold, bounding
+// the memory the store uses in an application that churns frozen threads
+// under active probes.
+#define FROZEN_THREAD_GENERATION_CAP 1024
+static st_table *frozen_thread_generations;
+// Entries currently in the C-table store, tracked because st_table
+// exposes no entry count.
+static unsigned long long frozen_thread_generation_entries;
+#endif
+
 // Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
 // The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
 static inline int ddtrace_imemo_type(VALUE imemo) {
@@ -152,6 +208,81 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
 }
 
 /*
+ * Returns the snapshot generation token of a frozen Thread, assigning
+ * one from the process-wide counter on the first call for the thread.
+ * Only called for a Thread whose ivar write would raise FrozenError.
+ */
+static VALUE frozen_thread_generation(VALUE thread) {
+#ifdef HAVE_PRUNING_WEAKMAP
+  VALUE generation = rb_funcall(frozen_thread_generations, id_weakmap_aref, 1, thread);
+  if (!NIL_P(generation)) {
+    return generation;
+  }
+  generation = ULL2NUM(++generation_counter);
+  rb_funcall(frozen_thread_generations, id_weakmap_aset, 2, thread, generation);
+  return generation;
+#else
+  st_data_t token;
+  if (st_lookup(frozen_thread_generations, (st_data_t)thread, &token)) {
+    return ULL2NUM((unsigned long long)token);
+  }
+  if (frozen_thread_generation_entries == FROZEN_THREAD_GENERATION_CAP) {
+    st_clear(frozen_thread_generations);
+    frozen_thread_generation_entries = 0;
+  }
+  token = (st_data_t)++generation_counter;
+  st_insert(frozen_thread_generations, (st_data_t)thread, token);
+  frozen_thread_generation_entries++;
+  return ULL2NUM((unsigned long long)token);
+#endif
+}
+
+/*
+ * call-seq:
+ *   DI.current_thread_generation -> Integer
+ *
+ * Returns the snapshot generation token for the current thread, assigning
+ * one on the first call for the thread. Snapshots captured by the same
+ * thread share a token, and snapshots captured by different threads carry
+ * different tokens, so a consumer can tell which thread captured each
+ * snapshot; on the releases that store frozen threads' tokens in the
+ * C table, a Thread allocated at a collected frozen thread's address
+ * receives that thread's token, and a cap-triggered clear changes a
+ * still-live frozen thread's token. All fibers of a thread share that
+ * thread's token. Distinct Thread objects get distinct tokens, even when
+ * native thread ids are reused, with the same C-table release exception.
+ * Tokens are unique only within a runtime id.
+ *
+ * The token is a value of the process-wide counter above, stored in an
+ * ivar on the Thread object. The ivar is read via rb_attr_get, which
+ * returns nil for an unset ivar and, unlike rb_ivar_get, emits no
+ * verbose-mode warning on Ruby 2.6 and 2.7; it is written via rb_ivar_set.
+ * A Thread frozen before its first snapshot, where writing the ivar would
+ * raise FrozenError, keeps its token in process-wide storage keyed by the
+ * Thread object: an ObjectSpace::WeakMap on releases whose WeakMap
+ * survives GC compaction, and a C table on the remaining releases.
+ * Both accesses bypass
+ * Thread#thread_variable_get and Thread#thread_variable_set method dispatch,
+ * so a user-installed method probe on those methods cannot fire during DI
+ * snapshot building.
+ *
+ * @return [Integer] the generation token of the current thread
+ * @api private
+ */
+static VALUE current_thread_generation(DDTRACE_UNUSED VALUE _self) {
+  VALUE thread = rb_thread_current();
+  VALUE generation = rb_attr_get(thread, id_datadog_di_thread_generation);
+  if (NIL_P(generation)) {
+    if (OBJ_FROZEN(thread)) {
+      return frozen_thread_generation(thread);
+    }
+    generation = ULL2NUM(++generation_counter);
+    rb_ivar_set(thread, id_datadog_di_thread_generation, generation);
+  }
+  return generation;
+}
+
+/*
  * call-seq:
  *   DI.hash?(obj) -> true | false
  *
@@ -208,6 +339,25 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 }
 #endif
 
+/*
+ * call-seq:
+ *   DI::Testing._native_frozen_thread_generation_store -> Symbol
+ *
+ * Returns the store this extension uses for frozen-thread generation
+ * tokens, as selected at compile time: :weakmap (ObjectSpace::WeakMap) or
+ * :table (C table).
+ *
+ * @return [Symbol] the store used for frozen-thread generation tokens, `:weakmap` or `:table`
+ * @api private
+ */
+static VALUE _native_frozen_thread_generation_store(DDTRACE_UNUSED VALUE _self) {
+#ifdef HAVE_PRUNING_WEAKMAP
+  return ID2SYM(rb_intern("weakmap"));
+#else
+  return ID2SYM(rb_intern("table"));
+#endif
+}
+
 static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
   return INT2NUM(IMEMO_MASK);
 }
@@ -224,6 +374,17 @@ void di_init(VALUE datadog_module) {
 
   id_mesg = rb_intern("mesg");
   id_datadog_di_in_probe = rb_intern("datadog_di_in_probe");
+  id_datadog_di_thread_generation = rb_intern("@datadog_di_thread_generation");
+#ifdef HAVE_PRUNING_WEAKMAP
+  id_weakmap_aref = rb_intern("[]");
+  id_weakmap_aset = rb_intern("[]=");
+  VALUE object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
+  VALUE weakmap_class = rb_const_get(object_space, rb_intern("WeakMap"));
+  frozen_thread_generations = rb_funcall(weakmap_class, rb_intern("new"), 0);
+  rb_gc_register_mark_object(frozen_thread_generations);
+#else
+  frozen_thread_generations = st_init_numtable();
+#endif
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
@@ -232,12 +393,15 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
+  rb_define_singleton_method(di_module, "current_thread_generation", current_thread_generation, 0);
   #ifdef HAVE_RB_ISEQ_TYPE
     rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
   #endif
 
   VALUE testing_module = rb_define_module_under(di_module, "Testing");
   rb_define_singleton_method(testing_module, "_native_imemo_mask", _native_imemo_mask, 0);
+  rb_define_singleton_method(
+    testing_module, "_native_frozen_thread_generation_store", _native_frozen_thread_generation_store, 0);
 }
 
 #endif // TRUFFLERUBY

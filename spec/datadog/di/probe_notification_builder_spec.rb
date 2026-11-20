@@ -279,6 +279,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       expect(payload[:runtime_id]).to eq(Datadog::Core::Environment::Identity.id)
     end
 
+    it "includes the thread generation token in the logger object" do
+      expect(payload[:logger][:generation]).to be_an(Integer)
+      expect(payload[:logger][:generation]).to eq(Datadog::DI.current_thread_generation)
+    end
+
     context "with template" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
@@ -316,6 +321,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             method_name: nil,
             name: "X",
             thread_id: nil,
+            generation: Integer,
             thread_name: "Thread.main",
           },
           duration: 0,
@@ -394,6 +400,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             method_name: nil,
             name: "X",
             thread_id: nil,
+            generation: Integer,
             thread_name: "Thread.main",
           },
           duration: 0,
@@ -470,6 +477,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             method_name: nil,
             name: "X",
             thread_id: nil,
+            generation: Integer,
             thread_name: "Thread.main",
           },
           duration: 0,
@@ -523,8 +531,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       expect(payload[:logger]).not_to have_key(:method)
     end
 
-    it "reports name, method_name, thread_name and thread_id in logger" do
-      expect(payload[:logger].keys).to contain_exactly(:name, :method_name, :thread_name, :thread_id)
+    it "reports name, method_name, thread_name, thread_id and generation in logger" do
+      expect(payload[:logger].keys).to contain_exactly(
+        :name, :method_name, :thread_name, :thread_id, :generation,
+      )
     end
 
     context "when the capture time budget is exhausted" do
