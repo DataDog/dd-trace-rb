@@ -70,7 +70,8 @@ module Datadog
           @started
         end
 
-        # Child-only: discard inherited synchronization without starting a thread.
+        # Child-only: copied flags do not imply a live thread; the mutex may have lost its owner.
+        # Keep @stopped intact: allow lazy startup after fork, not revival after shutdown.
         def after_fork
           @mutex = Mutex.new
           @thr = nil
