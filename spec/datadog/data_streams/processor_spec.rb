@@ -568,6 +568,30 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
     end
 
+    context "when a consume without a valid pathway header follows one with a header on the same thread" do
+      before do
+        processor.set_consume_checkpoint(type: "kafka", source: "upstream") { upstream_header }
+      end
+
+      it "starts a new pathway when the header is missing" do
+        processor.set_consume_checkpoint(type: "kafka", source: "orders") { nil }
+
+        expect(checkpoint_events.last).to include(parent_hash: 0, full_pathway_latency_sec: 0.0)
+      end
+
+      it "starts a new pathway when the header cannot be decoded" do
+        processor.set_consume_checkpoint(type: "kafka", source: "orders") { "not-base64!" }
+
+        expect(checkpoint_events.last).to include(parent_hash: 0, full_pathway_latency_sec: 0.0)
+      end
+
+      it "starts a new pathway when no carrier is given" do
+        processor.set_consume_checkpoint(type: "kafka", source: "orders")
+
+        expect(checkpoint_events.last).to include(parent_hash: 0, full_pathway_latency_sec: 0.0)
+      end
+    end
+
     context "when the process forks" do
       before do
         skip "Fork not supported on current platform" unless Process.respond_to?(:fork)

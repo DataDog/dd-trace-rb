@@ -165,6 +165,9 @@ module Datadog
       # @yield [key] Block to extract context from carrier
       # @return [String] Base64 encoded pathway context
       def set_consume_checkpoint(type:, source:, manual_checkpoint: true, tags: {}, &block)
+        # A message without a valid pathway header would otherwise chain onto this thread's last checkpoint.
+        self.pathway_context = nil
+
         if block
           pathway_ctx = yield(PROPAGATION_KEY)
           if pathway_ctx
