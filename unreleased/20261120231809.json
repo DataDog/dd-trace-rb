@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6733",
+  "message": "Add `exposures_enabled:` to `Datadog::OpenFeature::Provider.new` and `DD_FEATURE_FLAGS_EXPOSURES_ENABLED` (default `true`); `false` stops a provider's evaluations from counting as exposures. Flag values are unchanged."
+}
