@@ -2698,7 +2698,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         it "fails open through the probe's own rate limit and reports telemetry" do
           allow(logger).to receive(:debug)
-          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+          expect(instrumenter.correlation_sampler).to receive(:decide).and_raise(StandardError, "gate boom")
 
           expect(probe.rate_limiter).to receive(:allow?).and_return(true)
           expect(telemetry).to receive(:report) do |exc, description:|
@@ -2710,7 +2710,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "re-raises fatal exceptions" do
-          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(SystemExit)
+          expect(instrumenter.correlation_sampler).to receive(:decide).and_raise(SystemExit)
 
           expect { instrumenter.send(:emit?, probe) }.to raise_error(SystemExit)
         end
@@ -2730,7 +2730,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         it "records the per-probe skip metric when the fail-open limiter denies" do
           allow(logger).to receive(:debug)
           allow(telemetry).to receive(:report)
-          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+          expect(instrumenter.correlation_sampler).to receive(:decide).and_raise(StandardError, "gate boom")
           expect(probe.rate_limiter).to receive(:allow?).and_return(false)
 
           expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
@@ -3290,7 +3290,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context "when the admission gate raises" do
           it "fails open, emits the condition error and reports the gate error" do
             allow(logger).to receive(:debug)
-            expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+            expect(instrumenter.correlation_sampler).to receive(:decide).and_raise(StandardError, "gate boom")
             expect(telemetry).to receive(:report) do |exc, description:|
               expect(exc).to be_a(StandardError)
               expect(exc.message).to eq("gate boom")
@@ -3304,7 +3304,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           it "re-raises fatal gate exceptions out of the probed method" do
-            expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(SystemExit)
+            expect(instrumenter.correlation_sampler).to receive(:decide).and_raise(SystemExit)
 
             instrumenter.hook_method(probe, manager)
 

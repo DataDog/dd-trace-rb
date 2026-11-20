@@ -1,6 +1,10 @@
 module Datadog
   module DI
     class CorrelationSampler
+      type denial = :own_rate_limit | :global_budget | :top_gate | :trace_budget
+
+      type decision = :admitted | denial
+
       DEFAULT_SWEEP_THRESHOLD: Integer
 
       TOP_RATE: Integer
@@ -31,9 +35,7 @@ module Datadog
 
       def initialize: (?sweep_threshold: Integer, ?top_rate: (Float | Integer), ?global_rate: (Float | Integer), ?per_probe_budget: Integer, ?all_budget: Integer) -> void
 
-      def emit_with_reason?: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> [bool, Symbol?]
-
-      def emit?: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> bool
+      def decide: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> decision
 
       def admit_process_wide_snapshot?: () -> bool
 
@@ -61,11 +63,11 @@ module Datadog
 
       def rebuild_state: () -> void
 
-      def emit_uncorrelated?: (Probe probe) -> [bool, Symbol?]
+      def decide_uncorrelated: (Probe probe) -> decision
 
-      def emit_first_probe?: (Probe probe, Datadog::Tracing::TraceOperation trace) -> [bool, Symbol?]
+      def decide_first_probe: (Probe probe, Datadog::Tracing::TraceOperation trace) -> decision
 
-      def emit_correlated?: (TraceBudget budget, Probe probe) -> [bool, Symbol?]
+      def decide_correlated: (TraceBudget budget, Probe probe) -> decision
 
       def store: (Datadog::Tracing::TraceOperation trace, TraceBudget budget) -> void
     end
