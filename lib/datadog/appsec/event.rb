@@ -87,26 +87,30 @@ module Datadog
 
         def waf_tags(security_events)
           triggers = []
+          derivatives = {}
 
-          tags = security_events.each_with_object({}) do |security_event, memo|
+          security_events.each do |security_event|
             triggers.concat(security_event.waf_result.events)
 
-            security_event.waf_result.attributes.each do |key, value|
-              unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
-                memo[key] = value unless memo.key?(key)
-                next
-              end
+            # Independent subcontexts can repeat derivatives; retain the request's first observations.
+            derivatives.merge!(security_event.waf_result.attributes) { |_key, first_value, _new_value| first_value }
+          end
 
-              value = CompressedJson.dump(value)
-              next if value.nil?
-
-              if value.size >= ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE
-                Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
-                next
-              end
-
+          tags = derivatives.each_with_object({}) do |(key, value), memo|
+            unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
               memo[key] = value
+              next
             end
+
+            value = CompressedJson.dump(value)
+            next if value.nil?
+
+            if value.size >= ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE
+              Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
+              next
+            end
+
+            memo[key] = value
           end
 
           tags["_dd.appsec.json"] = json_parse({triggers: triggers}) unless triggers.empty?

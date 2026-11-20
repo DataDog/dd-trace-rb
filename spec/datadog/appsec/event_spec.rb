@@ -104,19 +104,24 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
-    it "keeps the first redirect target and collects distinct attributes from later results" do
+    it "keeps the first WAF derivatives and collects distinct keys from later results" do
       trace = Datadog::Tracing::TraceOperation.new
       trace.measure("request") do |span|
+        span.set_tag("_dd.appsec.trace.req_headers", "previous request headers")
         context = Datadog::AppSec::Context.new(trace, span, waf_runner)
 
         [
           {
             "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
             "_dd.appsec.trace.req_headers" => "request headers",
+            "_dd.appsec.fp.http.endpoint" => "first fingerprint",
+            "_dd.appsec.s.req.body" => [{"first" => [8]}],
           },
           {
             "appsec.api.redirection.move_target" => "/mirror/200",
             "_dd.appsec.trace.res_headers" => "response headers",
+            "_dd.appsec.fp.http.endpoint" => "second fingerprint",
+            "_dd.appsec.s.req.body" => [{"second" => [8]}],
           },
         ].each do |attributes|
           result = Datadog::AppSec::SecurityEngine::Result::Match.new(
@@ -139,6 +144,8 @@ RSpec.describe Datadog::AppSec::Event do
         "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
         "_dd.appsec.trace.req_headers" => "request headers",
         "_dd.appsec.trace.res_headers" => "response headers",
+        "_dd.appsec.fp.http.endpoint" => "first fingerprint",
+        "_dd.appsec.s.req.body" => '[{"first":[8]}]',
       )
     end
 
