@@ -1786,6 +1786,39 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
       end
     end
+
+    context "when a prepared signal handler sample existed" do
+      it "attributes the allocation to the current stack" do
+        thread_context_collector # trigger context reset
+        prepare_sample_inside_signal_handler
+
+        expect { sample_allocation(weight: 123) }
+          .to change { per_thread_context.fetch(Thread.current).fetch(:"sampling_buffer.pending_sample") }.from(true).to(false)
+
+        expect(single_sample.locations.first).to have_attributes(
+          label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_allocation",
+        )
+        expect(single_sample.values).to include("alloc-samples": 123, "alloc-samples-unscaled": 1)
+      end
+    end
+
+    context "when a prepared gvl sample existed" do
+      it "attributes the allocation to the current stack" do
+        skip_if_gvl_profiling_not_supported(self)
+
+        thread_context_collector # trigger context reset
+        on_gvl_waiting(Thread.current)
+        on_gvl_running(Thread.current, 0)
+
+        expect { sample_allocation(weight: 123) }
+          .to change { per_thread_context.fetch(Thread.current).fetch(:"sampling_buffer.pending_sample") }.from(true).to(false)
+
+        expect(single_sample.locations.first).to have_attributes(
+          label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_allocation",
+        )
+        expect(single_sample.values).to include("alloc-samples": 123, "alloc-samples-unscaled": 1)
+      end
+    end
   end
 
   describe "#sample_skipped_allocation_samples" do
@@ -2521,6 +2554,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       global_reset_per_thread_context
 
       expect(per_thread_context.fetch(t1)).to match(
+        "sampling_buffer.pending_sample": false,
         cpu_time_at_previous_sample_ns: be > 0,
         wall_time_at_previous_sample_ns: be > 0,
         "gc_tracking.cpu_time_at_start_ns": invalid_time,

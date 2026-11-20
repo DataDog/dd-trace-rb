@@ -348,8 +348,12 @@ void sample_thread(
     );
   }
 
-  // If we already prepared a sample, we use it below; if not, we prepare it now.
-  if (!buffer->pending_sample) {
+  // Prepared stacks belong to CPU/wall-time samples; other sample types need the stack at their event site.
+  // We deliberately discard any pending stack (including GVL-wait captures) to reuse this buffer;
+  // the later CPU/wall-time sample will capture a fresh stack.
+  // In practice it should be very rare that we didn't get the chance to flush a cpu/wall-time sample
+  // before the next allocation happened.
+  if (values.cpu_or_wall_samples == 0 || !buffer->pending_sample) {
     prepare_sample_thread(thread, buffer);
   }
 
