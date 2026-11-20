@@ -48,7 +48,7 @@ jobs:
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g63fa2083a2632159fdfccba0106614dd88a4f742
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -144,7 +144,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g63fa2083a2632159fdfccba0106614dd88a4f742
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -233,7 +233,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g63fa2083a2632159fdfccba0106614dd88a4f742
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
