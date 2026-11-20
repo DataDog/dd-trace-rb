@@ -115,7 +115,7 @@ RSpec.describe "Method probe dispatch semantics" do
   let(:redactor) { Datadog::DI::Redactor.new(settings) }
   let(:serializer) { Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry) }
   let(:logger) { instance_double(Logger, debug: nil) }
-  let(:guardrails_telemetry) { Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil) }
+  let(:guardrails_telemetry) { Datadog::DI::GuardrailsTelemetry.new(telemetry: nil) }
 
   let(:capture_expression_evaluator) do
     Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,

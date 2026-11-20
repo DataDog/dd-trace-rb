@@ -90,7 +90,7 @@ module Datadog
         logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
-        @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+        @guardrails_telemetry = GuardrailsTelemetry.new(telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, logger: logger,

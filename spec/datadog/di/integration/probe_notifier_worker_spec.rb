@@ -20,7 +20,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   end
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: nil)
   end
 
   let(:worker) do

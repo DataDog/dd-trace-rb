@@ -40,7 +40,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   let(:telemetry) { nil }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
   end
 
   let(:default_probe_repository) do
@@ -175,41 +175,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         context "when emitting the queueFull drop metric raises" do
           let(:telemetry) { telemetry_double_raising_on_inc }
 
-          it "keeps the drop contained and logs the telemetry failure" do
-            expect(telemetry).to receive(:report).with(instance_of(StandardError),
-              description: "Error emitting debugger.events.dropped metric")
-            expect_lazy_log_many(logger, :debug,
-              /dropping snapshot event because queue is full \(queueFull\)/,
-              /error emitting debugger.events.dropped metric.*StandardError.*telemetry down/)
-
-            expect { worker.add_snapshot(snapshot) }.not_to raise_error
-
-            expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
-          end
-        end
-
-        context "when emitting the queueFull drop metric raises and all exceptions propagate" do
-          let(:propagate_all_exceptions) { true }
-          let(:telemetry) { telemetry_double_raising_on_inc }
-
           it "raises the telemetry failure out of the enqueueing call" do
             expect_lazy_log(logger, :debug,
               "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
 
             expect { worker.add_snapshot(snapshot) }.to raise_error(StandardError, "telemetry down")
-
-            expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
-          end
-        end
-
-        context "when emitting the queueFull drop metric raises a fatal exception" do
-          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
-
-          it "re-raises the fatal exception out of the enqueueing call" do
-            expect_lazy_log(logger, :debug,
-              "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
-
-            expect { worker.add_snapshot(snapshot) }.to raise_error(SystemExit)
 
             expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
           end
@@ -589,9 +559,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker_settings, logger,
         agent_settings: agent_settings,
         telemetry: telemetry,
-        guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
-          settings: worker_settings, logger: logger, telemetry: telemetry,
-        ),
+        guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry),
         probe_repository: default_probe_repository,
         probe_notification_builder: default_probe_notification_builder,
       )
