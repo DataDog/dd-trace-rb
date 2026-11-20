@@ -2894,8 +2894,6 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | Setting | Environment variable | Type | Description | Default |
 |---|---|---|---|---|
 | `c.feature_flags.enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. `false` takes precedence over every configuration source. | `true` |
-| `c.feature_flags.evaluation_telemetry_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED` | `Boolean` | Produces evaluation telemetry: flag evaluation events, the `feature_flag.evaluations` metric, and span enrichment. A provider option overrides it. See [Evaluation telemetry and exposures](#evaluation-telemetry-and-exposures). | `true` |
-| `c.feature_flags.exposures_enabled` | `DD_FEATURE_FLAGS_EXPOSURES_ENABLED` | `Boolean` | Treats evaluations as exposures. A provider option overrides it. See [Evaluation telemetry and exposures](#evaluation-telemetry-and-exposures). | `true` |
 | `c.feature_flags.exposures_datadog_logging_enabled` | `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` | `Boolean` | Sends exposures to Datadog. Deduplication and `Datadog::OpenFeature::ExposureHook` use the same decisions with either value. | `true` |
 | `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
@@ -3037,16 +3035,16 @@ Future mode also requires the backend to supply accurate `randomizationActivated
 
 #### Evaluation telemetry and exposures
 
-A provider has two independent switches. Each is on by default, set by an environment variable for every provider in the process, and overridden by a provider option:
+A provider has two independent options, each `true` by default and set per provider in code:
 
-| Provider option | Environment variable | When off |
-|---|---|---|
-| `evaluation_telemetry_enabled: false` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED=false` | No flag evaluation events, no `feature_flag.evaluations` metric, and no span enrichment. |
-| `exposures_enabled: false` | `DD_FEATURE_FLAGS_EXPOSURES_ENABLED=false` | Evaluations are not exposures: none is recorded, deduplicated, sent to Datadog, or reported to `Datadog::OpenFeature::ExposureHook` as an exposure. |
+| Provider option | When `false` |
+|---|---|
+| `evaluation_telemetry_enabled:` | No flag evaluation events, no `feature_flag.evaluations` metric, and no span enrichment for this provider. |
+| `exposures_enabled:` | Evaluations through this provider are not exposures: none is recorded, deduplicated, sent to Datadog, or reported to `Datadog::OpenFeature::ExposureHook` as an exposure. |
 
-Neither switch changes flag values or assignment. The provider reads both at construction. An option must be `true`, `false`, or `nil`; `nil` uses the environment variable.
+Neither option changes flag values or assignment. Each must be `true` or `false`. Process-wide settings such as `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` and `DD_FLAGGING_EVALUATION_COUNTS_ENABLED` still apply to every provider.
 
-Some applications decide something ahead of time, such as which version of a notification to send, and expose the subject only when they act on it, such as when the subject opens the notification. Register a second provider for the inspection, under its own OpenFeature domain, with both switches off:
+Some applications decide something ahead of time, such as which version of a notification to send, and expose the subject only when they act on it, such as when the subject opens the notification. Register a second provider for the inspection, under its own OpenFeature domain, with both options set to `false`:
 
 ```ruby
 require "datadog"
@@ -3075,7 +3073,6 @@ seen = live.fetch_string_value(flag_key: "digest-subject-line", default_value: "
 - Both providers share the process's flag configuration, so for the same flag, targeting key, attributes, and configuration, they return the same variant.
 - An inspection does not mark the subject as exposed, so the later live evaluation still sends the exposure.
 - Evaluate inspections through the inspection domain's client only. Hooks that the application registers itself, at the API or client level, still run; `ExposureHook` reports inspections with `exposure?` and `should_send?` false.
-- A process that only ever inspects can use the environment variables instead of provider options.
 - `exposures_enabled: false` differs from `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`, which keeps exposures for deduplication and `ExposureHook` and only stops sending them to Datadog.
 
 #### Evaluation telemetry opt-out

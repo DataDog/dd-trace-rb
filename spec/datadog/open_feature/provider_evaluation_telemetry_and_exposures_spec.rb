@@ -7,9 +7,6 @@ require "datadog/open_feature/provider"
 require "datadog/open_feature/component"
 
 RSpec.describe "OpenFeature evaluation telemetry and exposures switches" do
-  with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED" => nil,
-    "DD_FEATURE_FLAGS_EXPOSURES_ENABLED" => nil
-
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil, inc: nil) }
   let(:evp_payloads) { [] }
@@ -205,53 +202,22 @@ RSpec.describe "OpenFeature evaluation telemetry and exposures switches" do
     expect(customer_evaluations.last.should_send?).to be(true)
   end
 
-  context "when the environment disables both" do
-    with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED" => "false",
-      "DD_FEATURE_FLAGS_EXPOSURES_ENABLED" => "false"
+  it "registers no telemetry or exposure hooks when both are disabled" do
+    provider = Datadog::OpenFeature::Provider.new(
+      evaluation_telemetry_enabled: false,
+      exposures_enabled: false,
+      enable_evaluation_telemetry_opt_out_parameter: true,
+    )
 
-    it "applies to a provider without options" do
-      provider = Datadog::OpenFeature::Provider.new
-
-      expect(provider.hooks).to be_empty
-      details = evaluate(client_for(provider))
-      expect(details.variant).to eq("on")
-      expect(telemetry_counts).to eq(no_telemetry)
-      expect(sent_exposures).to be_empty
-    end
-  end
-
-  [true, false].each do |enabled|
-    context "when the options are #{enabled} and the environment is #{!enabled}" do
-      with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED" => (!enabled).to_s,
-        "DD_FEATURE_FLAGS_EXPOSURES_ENABLED" => (!enabled).to_s
-
-      it "uses the options" do
-        provider = Datadog::OpenFeature::Provider.new(
-          evaluation_telemetry_enabled: enabled, exposures_enabled: enabled,
-        )
-
-        evaluate(client_for(provider))
-
-        expect(telemetry_counts).to eq(enabled ? {evp: 1, metrics: 1, span_annotations: 2} : no_telemetry)
-        expect(sent_exposures.size).to eq(enabled ? 1 : 0)
-      end
-    end
-  end
-
-  it "reads the configuration once, at construction" do
-    Datadog.configuration.feature_flags.exposures_enabled = false
-    provider = Datadog::OpenFeature::Provider.new
-    Datadog.configuration.feature_flags.exposures_enabled = true
-    Datadog.configuration.feature_flags.evaluation_telemetry_enabled = false
-
-    evaluate(client_for(provider))
-
-    expect(telemetry_counts).to eq(evp: 1, metrics: 1, span_annotations: 1)
+    expect(provider.hooks).to be_empty
+    details = evaluate(client_for(provider))
+    expect(details.variant).to eq("on")
+    expect(telemetry_counts).to eq(no_telemetry)
     expect(sent_exposures).to be_empty
   end
 
   [:evaluation_telemetry_enabled, :exposures_enabled].each do |option|
-    ["false", 0, :off].each do |value|
+    [nil, "false", 0, :off].each do |value|
       it "rejects #{option}: #{value.inspect}" do
         expect { Datadog::OpenFeature::Provider.new(option => value) }
           .to raise_error(ArgumentError, /#{option}/)

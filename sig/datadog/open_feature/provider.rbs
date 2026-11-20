@@ -62,8 +62,8 @@ module Datadog
       def initialize: (?experimentation_opt_out_mode: (String | Symbol)?,
                        ?enable_evaluation_telemetry_opt_out_parameter: bool?,
                        ?flag_selection: flag_selection_option?,
-                       ?evaluation_telemetry_enabled: bool?,
-                       ?exposures_enabled: bool?) -> void
+                       ?evaluation_telemetry_enabled: bool,
+                       ?exposures_enabled: bool) -> void
 
       def init: () -> void
 
@@ -113,7 +113,7 @@ module Datadog
 
       def telemetry_hooks: (Component? component) -> Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook]
 
-      def resolve_switch: (Symbol name, untyped option, bool configured) -> bool
+      def validate_switch: (Symbol name, untyped option) -> bool
 
       def log_disabled_switches: () -> void
 

@@ -2,5 +2,5 @@
   "type": "Added",
   "product": "Open Feature",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6733",
-  "message": "Add `evaluation_telemetry_enabled:` to `Datadog::OpenFeature::Provider.new` and `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED` (default `true`); `false` stops a provider's evaluation events, metrics, and span tags."
+  "message": "Add `evaluation_telemetry_enabled:` to `Datadog::OpenFeature::Provider.new` (default `true`); `false` stops that provider's flag evaluation events, `feature_flag.evaluations` metric, and flag span tags."
 }

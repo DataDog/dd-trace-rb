@@ -407,14 +407,6 @@ module Datadog
 
           def evaluation_telemetry_per_subject_opt_out_enabled=: (bool) -> void
 
-          def evaluation_telemetry_enabled: () -> bool
-
-          def evaluation_telemetry_enabled=: (bool) -> void
-
-          def exposures_enabled: () -> bool
-
-          def exposures_enabled=: (bool) -> void
-
           def exposures_datadog_logging_enabled: () -> bool
 
           def exposures_datadog_logging_enabled=: (bool) -> void

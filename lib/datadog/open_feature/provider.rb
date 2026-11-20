@@ -76,20 +76,18 @@ module Datadog
 
       attr_reader :metadata
 
-      # @param evaluation_telemetry_enabled [Boolean, nil] whether this provider sends flag evaluation events,
-      #   records the feature_flag.evaluations metric and enriches spans. Nil uses
-      #   DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED (default true); true or false overrides it.
-      # @param exposures_enabled [Boolean, nil] whether evaluations through this provider are exposures. When
+      # @param evaluation_telemetry_enabled [Boolean] whether this provider sends flag evaluation events,
+      #   records the feature_flag.evaluations metric and enriches spans.
+      # @param exposures_enabled [Boolean] whether evaluations through this provider are exposures. When
       #   false, none is recorded, deduplicated, sent, or reported to ExposureHook as an exposure, so a later
-      #   evaluation through a provider with exposures enabled still sends it. Nil uses
-      #   DD_FEATURE_FLAGS_EXPOSURES_ENABLED (default true); true or false overrides it.
-      #   Neither option changes flag values or assignment. Both are read at construction.
+      #   evaluation through a provider with exposures enabled still sends it.
+      #   Neither option changes flag values or assignment.
       def initialize(
         experimentation_opt_out_mode: nil,
         enable_evaluation_telemetry_opt_out_parameter: nil,
         flag_selection: nil,
-        evaluation_telemetry_enabled: nil,
-        exposures_enabled: nil
+        evaluation_telemetry_enabled: true,
+        exposures_enabled: true
       )
         mode = experimentation_opt_out_mode
         mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
@@ -106,14 +104,8 @@ module Datadog
         else
           raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
-        @evaluation_telemetry_enabled = resolve_switch(
-          :evaluation_telemetry_enabled,
-          evaluation_telemetry_enabled,
-          Datadog.configuration.feature_flags.evaluation_telemetry_enabled,
-        )
-        @exposures_enabled = resolve_switch(
-          :exposures_enabled, exposures_enabled, Datadog.configuration.feature_flags.exposures_enabled,
-        )
+        @evaluation_telemetry_enabled = validate_switch(:evaluation_telemetry_enabled, evaluation_telemetry_enabled)
+        @exposures_enabled = validate_switch(:exposures_enabled, exposures_enabled)
         log_disabled_switches
         @flag_selection = Configuration::FlagSelection.canonicalize(flag_selection)
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
@@ -264,15 +256,10 @@ module Datadog
         hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
       end
 
-      def resolve_switch(name, option, configured)
-        case option
-        when nil
-          configured
-        when true, false
-          option
-        else
-          raise ArgumentError, "#{name} expects true, false, or nil"
-        end
+      def validate_switch(name, option)
+        return option if option == true || option == false
+
+        raise ArgumentError, "#{name} expects true or false"
       end
 
       def log_disabled_switches

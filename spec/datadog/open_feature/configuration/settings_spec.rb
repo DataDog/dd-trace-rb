@@ -97,50 +97,6 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
     end
 
-    describe "#evaluation_telemetry_enabled" do
-      subject(:enabled) { settings.feature_flags.evaluation_telemetry_enabled }
-
-      {nil => true, "true" => true, "false" => false}.each do |value, expected|
-        context "when DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED is #{value.inspect}" do
-          with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED" => value
-
-          it { is_expected.to be(expected) }
-        end
-      end
-
-      [true, false].each do |value|
-        context "when explicit configuration is #{value}" do
-          with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED" => (!value).to_s
-
-          before { settings.feature_flags.evaluation_telemetry_enabled = value }
-
-          it { is_expected.to be(value) }
-        end
-      end
-    end
-
-    describe "#exposures_enabled" do
-      subject(:enabled) { settings.feature_flags.exposures_enabled }
-
-      {nil => true, "true" => true, "false" => false}.each do |value, expected|
-        context "when DD_FEATURE_FLAGS_EXPOSURES_ENABLED is #{value.inspect}" do
-          with_env "DD_FEATURE_FLAGS_EXPOSURES_ENABLED" => value
-
-          it { is_expected.to be(expected) }
-        end
-      end
-
-      [true, false].each do |value|
-        context "when explicit configuration is #{value}" do
-          with_env "DD_FEATURE_FLAGS_EXPOSURES_ENABLED" => (!value).to_s
-
-          before { settings.feature_flags.exposures_enabled = value }
-
-          it { is_expected.to be(value) }
-        end
-      end
-    end
-
     describe "#evaluation_telemetry_per_subject_opt_out_enabled" do
       subject(:enabled) { settings.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled }
 
