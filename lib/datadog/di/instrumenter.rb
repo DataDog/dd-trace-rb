@@ -5,6 +5,7 @@ require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
+require_relative "snapshot_correlation"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -563,14 +564,15 @@ module Datadog
       # non-capturing hit consults the probe's own rate limiter and then
       # the process-wide log rate limiter.
       #
-      # An admitted hit yields the active trace for the snapshot envelope:
-      # the gate's own resolution for a capturing hit, reused by the
-      # envelope capture, and a fresh resolution for a non-capturing hit or
-      # for a gate error that failed open.
+      # An admitted hit yields the trace and span for the snapshot envelope,
+      # captured together: from the gate's own trace resolution for a
+      # capturing hit, and from a fresh resolution for a non-capturing hit
+      # or for a gate error that failed open. The yielded value is nil when
+      # that fresh resolution fails.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
-      # @yieldparam trace [Datadog::Tracing::TraceOperation, nil] the trace
-      #   active when the hit was admitted
+      # @yieldparam correlation [Datadog::DI::SnapshotCorrelation, nil] the
+      #   trace and span active when the hit was admitted
       # @return [Boolean]
       def emit?(probe)
         if probe.capturing?
@@ -587,7 +589,7 @@ module Datadog
               return false
             end
 
-            yield(active_trace_at_admission) if block_given?
+            yield(correlation_at_admission) if block_given?
             return true
           end
 
@@ -599,7 +601,7 @@ module Datadog
             return false
           end
 
-          yield(trace) if block_given?
+          yield(SnapshotCorrelation.capture(trace)) if block_given?
         else
           unless probe.own_rate_limit_allows?
             record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
@@ -608,7 +610,7 @@ module Datadog
 
           return false unless global_rate_limit_allows?(probe)
 
-          yield(active_trace_at_admission) if block_given?
+          yield(correlation_at_admission) if block_given?
         end
         true
       end
@@ -620,29 +622,16 @@ module Datadog
         Datadog::DI.active_trace
       end
 
-      # Returns the trace active when the gate admitted a hit, for the
-      # snapshot envelope, or nil when resolution fails.
+      # Captures the trace and span active when the gate admitted a hit,
+      # for the snapshot envelope, or returns nil when resolution fails.
       #
-      # @return [Datadog::Tracing::TraceOperation, nil]
-      def active_trace_at_admission
-        current_trace
+      # @return [Datadog::DI::SnapshotCorrelation, nil]
+      def correlation_at_admission
+        SnapshotCorrelation.capture(current_trace)
       rescue Exception => exc # standard:disable Lint/RescueException
         reraise_per_policy(exc)
 
         logger.debug { "[di-correlation] admission trace capture failed: #{exc.class}: #{exc.message}" }
-        nil
-      end
-
-      # Returns the span active when the gate admitted a hit, for the
-      # snapshot envelope, or nil when resolution fails.
-      #
-      # @return [Datadog::Tracing::SpanOperation, nil]
-      def active_span_at_admission
-        Datadog::DI.active_span
-      rescue Exception => exc # standard:disable Lint/RescueException
-        reraise_per_policy(exc)
-
-        logger.debug { "[di-correlation] admission span capture failed: #{exc.class}: #{exc.message}" }
         nil
       end
 
@@ -713,16 +702,16 @@ module Datadog
         return yield unless probe.enabled?
 
         DI.enter_probe
-        # The trace is captured at admission, before the customer method
-        # runs: a method that finishes the active trace or starts a new one
-        # must not relabel the snapshot away from the trace whose budget the
-        # gate consumed, nor pair that trace with a span of the replacement
-        # trace. The gate passes its own resolution to the block, so an
-        # admitted capturing hit resolves the trace once. The declaration sits
-        # above the begin/ensure body: steep drops @type var annotations
-        # inside a body that has an ensure clause.
-        # @type var admission_trace: Datadog::Tracing::TraceOperation?
-        admission_trace = nil
+        # The trace and span are captured together at admission, before the
+        # customer method runs: a method that finishes the active trace,
+        # starts a new one or continues another must not relabel the snapshot
+        # away from the trace whose budget the gate consumed, nor pair that
+        # trace with a span of another trace. The gate passes its own
+        # resolution to the block, so an admitted capturing hit resolves the
+        # trace once. The declaration sits above the begin/ensure body: steep
+        # drops @type var annotations inside a body that has an ensure clause.
+        # @type var admission_correlation: SnapshotCorrelation?
+        admission_correlation = nil
         begin
           di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -778,8 +767,7 @@ module Datadog
             end
           end
 
-          admitted = continue && emit?(probe) { |trace| admission_trace = trace }
-          admission_span = active_span_at_admission if admitted
+          admitted = continue && emit?(probe) { |correlation| admission_correlation = correlation }
           if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
@@ -879,8 +867,7 @@ module Datadog
               entry_capture_expressions: entry_capture_expressions,
               entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
-              admission_trace: admission_trace,
-              admission_span: admission_span,
+              admission_correlation: admission_correlation,
               return_value: rv, duration: duration, exception: exc)
 
             begin
