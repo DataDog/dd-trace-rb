@@ -115,6 +115,23 @@ bundle exec rake local_config_map:generate
 ```
 
 This task generates `lib/datadog/core/configuration/supported_configurations.rb` ahead of time, so the tracer does not need to parse the JSON file every time.
+Never edit the generated file by hand.
+
+### Step 3: Define the setting
+
+For a user setting, define the option in the relevant settings or configuration file (usually `**/configuration/settings.rb`) and read the environment variable with `o.env`. If the `supported-configurations.json` entry has `propertyKeys`, keep it in sync with the option's `Datadog.configuration` path.
+
+### Step 4: Document it
+
+Document user-facing settings and environment variables in `docs/GettingStarted.md`.
+
+### Step 5: Validate
+
+Run the check described in [Validation](#validation):
+
+```bash
+bundle exec rspec spec/datadog/core/configuration/supported_configurations_spec.rb
+```
 
 ## RuboCop Integration
 
