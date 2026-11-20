@@ -439,6 +439,184 @@ RSpec.describe Datadog::DI::Remote do
           end
         end
       end
+
+      context "probe with non-String id received and then deleted" do
+        let(:probe_spec) do
+          {id: 42, name: "bar", type: "LOG_PROBE", where: {typeName: "Foo", methodName: "bar"}}
+        end
+
+        let(:delete_transaction) do
+          path = transaction.first.path
+          repository.transaction do |_repository, repository_transaction|
+            repository_transaction.delete(path)
+          end
+        end
+
+        it "errors the content, tracks no probe, and reports both errors" do
+          allow(component).to receive(:logger).and_return(logger)
+          allow(component).to receive(:telemetry).and_return(telemetry)
+          expect(component).to receive(:parse_probe_spec_and_notify) do |parsed_probe_spec|
+            Datadog::DI::ProbeBuilder.build_from_remote_config(parsed_probe_spec, logger: logger)
+          end
+          expect(probe_manager).not_to receive(:add_probe)
+          expect(probe_manager).not_to receive(:remove_probe)
+          expect_lazy_log_many(logger, :debug,
+            /unhandled exception handling a probe.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/,
+            /unhandled exception removing probes.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/)
+          expect(telemetry).to receive(:report).with(
+            an_instance_of(Datadog::Core::Remote::Configuration::Error),
+            description: "Unhandled exception handling probe in DI remote receiver",
+          )
+          expect(telemetry).to receive(:report).with(
+            an_instance_of(Datadog::Core::Remote::Configuration::Error),
+            description: "Unhandled exception removing probes in DI remote receiver",
+          )
+
+          receiver.call(repository, transaction)
+          expect(transaction.first.content.apply_state).to eq(
+            Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR,
+          )
+
+          receiver.call(repository, delete_transaction)
+
+          expect(probe_repository.installed_probes).to be_empty
+          expect(probe_repository.pending_probes).to be_empty
+          expect(probe_repository.failed_probes).to be_empty
+        end
+      end
+    end
+  end
+
+  describe ".remove_probe" do
+    let(:component) do
+      instance_double(Datadog::DI::Component).tap do |component|
+        allow(component).to receive(:settings).and_return(settings)
+      end
+    end
+
+    let(:content) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash",
+          content: {"id" => 42}.to_json,
+        },
+      )
+    end
+
+    context "when probe id is not a String and exceptions are propagated" do
+      mock_settings_for_di do |settings|
+        allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+      end
+
+      it "raises Configuration::Error" do
+        expect do
+          described_class.send(:remove_probe, content, component)
+        end.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for id: expected String: 42",
+        )
+      end
+    end
+
+    context "when probe id is not a String and exceptions are not propagated" do
+      mock_settings_for_di do |settings|
+        allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+      end
+
+      let(:logger) { instance_double(Datadog::DI::Logger) }
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+      it "logs and reports the error without calling the probe manager" do
+        allow(component).to receive(:logger).and_return(logger)
+        allow(component).to receive(:telemetry).and_return(telemetry)
+        expect(component).not_to receive(:probe_manager)
+        expect_lazy_log(logger, :debug,
+          /unhandled exception removing probes.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(Datadog::Core::Remote::Configuration::Error),
+          description: "Unhandled exception removing probes in DI remote receiver",
+        )
+
+        expect do
+          described_class.send(:remove_probe, content, component)
+        end.not_to raise_error
+      end
+    end
+  end
+
+  describe ".remove_withdrawn_probes" do
+    let(:logger) { instance_double(Datadog::DI::Logger) }
+
+    let(:component) do
+      instance_double(Datadog::DI::Component).tap do |component|
+        allow(component).to receive(:logger).and_return(logger)
+      end
+    end
+
+    let(:probe_repository) { Datadog::DI::ProbeRepository.new }
+
+    let(:probe_manager) do
+      instance_double(Datadog::DI::ProbeManager).tap do |probe_manager|
+        allow(probe_manager).to receive(:probe_repository).and_return(probe_repository)
+      end
+    end
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123,
+      )
+    end
+
+    let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+
+    let(:target) do
+      Datadog::Core::Remote::Configuration::Target.parse(
+        {
+          "custom" => {"v" => 1},
+          "hashes" => {"sha256" => Digest::SHA256.hexdigest(probe_content.to_json)},
+          "length" => probe_content.to_json.length,
+        },
+      )
+    end
+
+    let(:content) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash",
+          content: probe_content.to_json,
+        },
+      )
+    end
+
+    before do
+      probe_repository.installed_probes[probe.id] = probe
+
+      repository.transaction do |_repository, repository_transaction|
+        repository_transaction.insert(content.path, target, content)
+      end
+    end
+
+    context "when a tracked probe is absent from repository contents" do
+      let(:probe_content) { {"id" => "11"} }
+
+      it "removes the absent probe" do
+        expect(component).to receive(:probe_manager).at_least(:once).and_return(probe_manager)
+        expect_lazy_log(logger, :trace, /removing probe #{probe.id} withdrawn from remote configuration/)
+        expect(probe_manager).to receive(:remove_probe).with(probe.id)
+
+        described_class.send(:remove_withdrawn_probes, repository, component)
+      end
+    end
+
+    context "when a content carries a non-String probe id" do
+      let(:probe_content) { {"id" => 42} }
+
+      it "skips removal" do
+        expect(component).not_to receive(:probe_manager)
+        expect_lazy_log(logger, :debug,
+          /skipping withdrawn-probe reconcile.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/)
+
+        described_class.send(:remove_withdrawn_probes, repository, component)
+      end
     end
   end
 end

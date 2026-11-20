@@ -28,7 +28,6 @@ module Datadog
               class KeyError < StandardError
                 def initialize: (untyped key) -> void
               end
-
               class ConfigError < StandardError
               end
 
@@ -37,7 +36,7 @@ module Datadog
               end
 
               class TypeError < ConfigError
-                def initialize: (untyped type, untyped value) -> void
+                def initialize: (any value, field: String, expected_type: Module) -> void
               end
 
               class DecodeError < ConfigError
