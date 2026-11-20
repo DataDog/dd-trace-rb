@@ -26,7 +26,10 @@ module Datadog
 
           ret = []
           File.foreach(filepath) do |entry_line|
-            ret << parse(entry_line) unless entry_line.empty?
+            # Without chomp, a bare cgroup v2 line ("0::/") keeps its newline in the path,
+            # so the inode lookup fails and no container identity is sent.
+            line = entry_line.chomp
+            ret << parse(line) unless line.empty?
           end
           ret
         end
