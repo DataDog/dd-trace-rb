@@ -195,17 +195,6 @@ module Datadog
             response.net_http_res.to_hash
               .transform_values! { |value| Array(value).join(", ") } # steep:ignore BlockBodyTypeMismatch
           end
-
-          def handle(result, context:)
-            context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
-
-            TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
-            end
-          end
         end
       end
     end
