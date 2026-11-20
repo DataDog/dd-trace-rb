@@ -140,14 +140,15 @@ jobs:
           DD_GIT_COMMIT_SHA: ${{ github.sha }}
         run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
       - run: echo "$DD_GIT_COMMIT_SHA"
-      - name: Get Datadog credentials via dd-sts
-        id: dd-sts
-        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+      - name: Get Datadog credentials via datadog-wif
+        id: dd-wif
+        uses: DataDog/datadog-workload-identity-federation-github-action/intake@c9456387851248e0a5452f99085b16ad14fc3acb # v1.0.0
         with:
-          policy: public-datadog-dd-trace-rb
+          org_uuid: 8dee7c38-00cb-11ea-a77b-8b5a08d3b091 # Datadog HQ (org 2)
+          site: datadoghq.com
       - name: Upload junit reports
         env:
-          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
+          DD_API_KEY: ${{ steps.dd-wif.outputs.api_key }}
         run: datadog-ci junit upload --verbose tmp/rspec/
 
   coverage:
@@ -181,14 +182,15 @@ jobs:
           path: tmp/coverage
           pattern: coverage-*
           merge-multiple: true
-      - name: Get Datadog credentials via dd-sts
-        id: dd-sts
-        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+      - name: Get Datadog credentials via datadog-wif
+        id: dd-wif
+        uses: DataDog/datadog-workload-identity-federation-github-action/intake@c9456387851248e0a5452f99085b16ad14fc3acb # v1.0.0
         with:
-          policy: public-datadog-dd-trace-rb
+          org_uuid: 8dee7c38-00cb-11ea-a77b-8b5a08d3b091 # Datadog HQ (org 2)
+          site: datadoghq.com
       - name: Upload coverage reports to Datadog
         env:
-          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
+          DD_API_KEY: ${{ steps.dd-wif.outputs.api_key }}
         run: |
           for container_dir in tmp/coverage/versions/*/*/; do
             alias_name=$(basename "$(dirname "$container_dir")")
