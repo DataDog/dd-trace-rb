@@ -31,7 +31,7 @@ module Datadog
           # The guardrails metric emitter.
           # @return [GuardrailsTelemetry]
           attr_reader :guardrails_telemetry
-          # The pruner applied to snapshots above MAX_SERIALIZED_SNAPSHOT_SIZE.
+          # The pruner applied to snapshots above MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES.
           # @return [SnapshotPruner]
           attr_reader :snapshot_pruner
 
@@ -52,20 +52,20 @@ module Datadog
 
           # The backend's limit on an individual snapshot payload, aka
           # "log line", is 1 MB.
-          BACKEND_SNAPSHOT_SIZE_LIMIT = 1024 * 1024
+          BACKEND_SNAPSHOT_SIZE_LIMIT_BYTES = 1024 * 1024
 
           # The intake adds host tags and +ddtags+ to a snapshot before the
-          # backend applies BACKEND_SNAPSHOT_SIZE_LIMIT.
+          # backend applies BACKEND_SNAPSHOT_SIZE_LIMIT_BYTES.
           BACKEND_ENRICHMENT_HEADROOM = 4 * 1024
 
           # The largest encoded snapshot that is sent. Larger snapshots are
           # pruned to fit.
-          MAX_SERIALIZED_SNAPSHOT_SIZE = BACKEND_SNAPSHOT_SIZE_LIMIT - BACKEND_ENRICHMENT_HEADROOM
+          MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES = BACKEND_SNAPSHOT_SIZE_LIMIT_BYTES - BACKEND_ENRICHMENT_HEADROOM
 
           # The maximum chunk (batch) size that intake permits is 5 MB.
           #
           # Two bytes are for the [ and ] of JSON array syntax.
-          MAX_CHUNK_SIZE = 5 * 1024 * 1024 - 2
+          MAX_CHUNK_SIZE_BYTES = 5 * 1024 * 1024 - 2
 
           # Try to send smaller payloads to avoid large network requests.
           # If a payload is larger than default chunk size but is under the
@@ -80,7 +80,7 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Snapshots larger than MAX_SERIALIZED_SNAPSHOT_SIZE are pruned:
+          # Snapshots larger than MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES are pruned:
           # their largest, most deeply nested captured values are replaced
           # with a pruned marker until they fit. Snapshots that pruning
           # cannot fit are dropped. Batches are split into chunks of ~2MB
@@ -100,7 +100,7 @@ module Datadog
             pruned_events = []
             payload.each do |event|
               encoded = encoder.encode(event.payload)
-              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES
                 pruned = prune_snapshot(encoded)
                 unless pruned
                   dropped_events << [event, encoded.bytesize]
@@ -168,7 +168,7 @@ module Datadog
             payload
           end
 
-          # Prunes an encoded snapshot to fit MAX_SERIALIZED_SNAPSHOT_SIZE.
+          # Prunes an encoded snapshot to fit MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES.
           #
           # A pruner failure drops the snapshot and is reported here, so
           # that it does not reach the serialization error callback, which
@@ -178,8 +178,8 @@ module Datadog
           # @return [String, nil] the pruned snapshot, nil when the snapshot
           #   is to be dropped because pruning cannot fit it or failed
           def prune_snapshot(encoded)
-            pruned = snapshot_pruner.prune(encoded, max_size: MAX_SERIALIZED_SNAPSHOT_SIZE)
-            if pruned.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+            pruned = snapshot_pruner.prune(encoded, max_size: MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES)
+            if pruned.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES
               log_snapshot_drop
               return
             end
@@ -197,7 +197,7 @@ module Datadog
             nil
           end
 
-          # Logs the drop of a snapshot that exceeds MAX_SERIALIZED_SNAPSHOT_SIZE.
+          # Logs the drop of a snapshot that exceeds MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES.
           #
           # @return [void]
           def log_snapshot_drop

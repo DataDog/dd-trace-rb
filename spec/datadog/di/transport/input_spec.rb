@@ -140,7 +140,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     before do
       # Reduce limits to make the test run faster and not require a lot of memory
       stub_const("Datadog::DI::Transport::Input::Transport::DEFAULT_CHUNK_SIZE", 100_000)
-      stub_const("Datadog::DI::Transport::Input::Transport::MAX_CHUNK_SIZE", 200_000)
+      stub_const("Datadog::DI::Transport::Input::Transport::MAX_CHUNK_SIZE_BYTES", 200_000)
     end
 
     let(:snapshot) do
@@ -170,7 +170,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       before do
         # Reduce limits even more to force a reasonably-sized snapshot to be dropped
-        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES", 2_000)
       end
 
       let(:small_snapshot) do
@@ -229,8 +229,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         before do
           encoded = JSON.dump(multibyte_snapshot)
-          expect(encoded.length).to be < Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE
-          expect(encoded.bytesize).to be > Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE
+          expect(encoded.length).to be < Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES
+          expect(encoded.bytesize).to be > Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES
         end
 
         it "drops the snapshot measured in bytes" do
@@ -459,7 +459,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     end
   end
 
-  context "when a snapshot exceeds MAX_SERIALIZED_SNAPSHOT_SIZE and is within BACKEND_SNAPSHOT_SIZE_LIMIT" do
+  context "when a snapshot exceeds MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES and is within BACKEND_SNAPSHOT_SIZE_LIMIT_BYTES" do
     let(:near_limit_snapshot) do
       {
         debugger: {
@@ -476,8 +476,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
     before do
       encoded_size = JSON.dump(near_limit_snapshot).bytesize
-      expect(encoded_size).to be > described_class::MAX_SERIALIZED_SNAPSHOT_SIZE
-      expect(encoded_size).to be <= described_class::BACKEND_SNAPSHOT_SIZE_LIMIT
+      expect(encoded_size).to be > described_class::MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES
+      expect(encoded_size).to be <= described_class::BACKEND_SNAPSHOT_SIZE_LIMIT_BYTES
 
       allow(transport).to receive(:send_input_chunk) do |chunked_payload, _serialized_tags|
         sent_payloads << chunked_payload
