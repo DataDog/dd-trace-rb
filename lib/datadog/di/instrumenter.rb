@@ -999,19 +999,20 @@ module Datadog
           )
         end
 
-        # Re-entrancy guard, mirroring the method-probe wrapper: the
-        # processing below dispatches interceptable stdlib methods
-        # (Kernel#send, Mutex#synchronize, WeakRef methods), and a nested
-        # method-probe firing during this callback must short-circuit
-        # instead of consuming rate-limit tokens and snapshotting
-        # DI-internal arguments. The prior guard state is restored so a
-        # hit nested inside other DI processing does not clear the outer
-        # guard. The guard starts after the untargeted match check above:
-        # an untargeted trace point invokes this callback for every line
-        # executed in the process, so the unmatched-line return would
-        # otherwise run the fiber-local guard round trip on each of them.
-        was_in_probe = DI.in_probe?
-        DI.enter_probe unless was_in_probe
+        # Re-entrancy guard, mirroring the method-probe wrapper. A hit while
+        # the guard is held comes from code DI runs during its own probe
+        # processing (snapshot building, or the correlation sampler reading
+        # its WeakRef ledger under the sampler mutex, where a nested gate
+        # call would fail on the recursive lock), so it is skipped. Holding
+        # the guard here makes method probes on the stdlib methods this
+        # callback dispatches short-circuit. The check runs after the
+        # untargeted match check above: an untargeted trace point invokes
+        # this callback for every line executed in the process, and the
+        # unmatched-line return keeps the fiber-local guard read off those
+        # lines.
+        return if DI.in_probe?
+
+        DI.enter_probe
         begin
           # We set the trace point on :return to be able to instrument
           # 'end' lines. This also causes the trace point to be invoked on
@@ -1088,7 +1089,7 @@ module Datadog
           check_and_disable_if_exceeded(probe, responder, di_start_time)
           nil
         ensure
-          DI.leave_probe unless was_in_probe
+          DI.leave_probe
         end
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
