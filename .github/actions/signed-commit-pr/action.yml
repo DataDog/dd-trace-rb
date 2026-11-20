@@ -124,8 +124,13 @@ runs:
         fi
         echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
 
-    - name: Create signed commit
-      id: commit
+    # ghcommit-action makes one attempt and has no retry, so a single 502/504
+    # from GitHub's API frontends would fail the whole run without the
+    # attempts below
+    # (https://github.com/DataDog/dd-trace-rb/actions/runs/43656277577).
+    # Attempts are repeated steps because a `uses:` step cannot be looped.
+    - name: Create signed commit (attempt 1 of 3)
+      id: commit-1
       if: steps.stage.outputs.changed == 'true'
       uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
       with:
@@ -143,6 +148,113 @@ runs:
         # ref was just created at, rather than whatever the CLI's `git rev-parse
         # HEAD` fallback resolves to.
         GHCOMMIT_SHA: ${{ steps.scratch.outputs.head-sha }}
+      continue-on-error: true
+
+    # A 5xx response can arrive after the mutation was applied, so a retry
+    # must guard on the scratch ref's current head: guarding on the original
+    # head would fail as a stale-head conflict. A head past the guarded SHA
+    # means the failed attempt applied the mutation. The checkout still
+    # contains the full change set, and createCommitOnBranch aborts a
+    # mutation deleting a path the branch no longer contains, so a replay
+    # would fail on every deletion the applied commit already made. The
+    # applied commit is therefore used when its tree matches the staged
+    # tree; when its tree cannot be read, the head is recorded as an
+    # unverified candidate, the next attempt is skipped so no replay runs
+    # against it, and the candidate's verification is retried by the next
+    # backoff step and, after the last attempt, by the resolve step.
+    - name: Back off and re-read the scratch head
+      id: backoff-1
+      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        SCRATCH: ${{ steps.stage.outputs.scratch }}
+        GUARDED_SHA: ${{ steps.scratch.outputs.head-sha }}
+        CANDIDATE_SHA: ''
+        ACTION_PATH: ${{ github.action_path }}
+      run: ${{ github.action_path }}/recheck-scratch-head.sh
+
+    - name: Create signed commit (attempt 2 of 3)
+      id: commit-2
+      if: steps.stage.outputs.changed == 'true' && steps.commit-1.outcome == 'failure' && steps.backoff-1.outputs.applied-hash == '' && steps.backoff-1.outputs.candidate-sha == ''
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ steps.stage.outputs.scratch }}
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GHCOMMIT_SHA: ${{ steps.backoff-1.outputs.head-sha }}
+      continue-on-error: true
+
+    # Also runs when the backoff above recorded an unverified candidate, so
+    # the candidate's verification is retried after another backoff.
+    - name: Back off and re-read the scratch head
+      id: backoff-2
+      if: steps.stage.outputs.changed == 'true' && (steps.commit-2.outcome == 'failure' || steps.backoff-1.outputs.candidate-sha != '')
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        SCRATCH: ${{ steps.stage.outputs.scratch }}
+        GUARDED_SHA: ${{ steps.backoff-1.outputs.head-sha }}
+        CANDIDATE_SHA: ${{ steps.backoff-1.outputs.candidate-sha }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: ${{ github.action_path }}/recheck-scratch-head.sh
+
+    - name: Create signed commit (attempt 3 of 3)
+      id: commit-3
+      if: steps.stage.outputs.changed == 'true' && steps.commit-2.outcome == 'failure' && steps.backoff-2.outputs.applied-hash == '' && steps.backoff-2.outputs.candidate-sha == ''
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ steps.stage.outputs.scratch }}
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GHCOMMIT_SHA: ${{ steps.backoff-2.outputs.head-sha }}
+
+    # Once an attempt succeeds, or a backoff step records the hash of an
+    # applied attempt, the rest are skipped, so at most one of the five
+    # commit hashes below is set. When a backoff step records an unverified
+    # candidate instead, its verification is retried here and the
+    # candidate's hash is used on a match.
+    - name: Resolve the created commit
+      id: commit
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        ACTION_PATH: ${{ github.action_path }}
+        FIRST: ${{ steps.commit-1.outputs.commit-hash }}
+        SECOND: ${{ steps.commit-2.outputs.commit-hash }}
+        THIRD: ${{ steps.commit-3.outputs.commit-hash }}
+        APPLIED_FIRST: ${{ steps.backoff-1.outputs.applied-hash }}
+        APPLIED_SECOND: ${{ steps.backoff-2.outputs.applied-hash }}
+        CANDIDATE_FIRST: ${{ steps.backoff-1.outputs.candidate-sha }}
+        CANDIDATE_SECOND: ${{ steps.backoff-2.outputs.candidate-sha }}
+      run: |
+        commit="$THIRD"
+        [ -n "$commit" ] || commit="$SECOND"
+        [ -n "$commit" ] || commit="$FIRST"
+        [ -n "$commit" ] || commit="$APPLIED_SECOND"
+        [ -n "$commit" ] || commit="$APPLIED_FIRST"
+        if [ -z "$commit" ]; then
+          candidate="$CANDIDATE_SECOND"
+          [ -n "$candidate" ] || candidate="$CANDIDATE_FIRST"
+          if [ -n "$candidate" ]; then
+            verdict="$("$ACTION_PATH/verify-commit-tree.sh" "$candidate")"
+            if [ "$verdict" = "match" ]; then
+              echo "The recorded candidate $candidate matches the staged tree; using it."
+              commit="$candidate"
+            fi
+          fi
+        fi
+        echo "commit-hash=$commit" >> "$GITHUB_OUTPUT"
 
     # Single move onto a commit that already exists, so an open pull request on
     # `branch` never observes a head level with its base. Runs even when the

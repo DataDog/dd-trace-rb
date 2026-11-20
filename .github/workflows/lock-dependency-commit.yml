@@ -77,7 +77,15 @@ jobs:
       # local `uses: ./...` resolves from the workspace, which is the PR's head_sha
       # here, letting a PR rewrite the action and run it with the token above.
       # A pinned action cannot be influenced that way.
-      - name: Commit changes
+      # Every attempt guards on the checked-out head: this branch is the pull
+      # request's, and a head that moved since checkout means either this
+      # workflow's commit succeeded (its push re-triggers the chain, which then
+      # finds nothing to commit) or the pull request advanced. Either way the
+      # safe action is to fail rather than append to a head of unknown origin.
+      # GHCOMMIT_SHA is set explicitly so each attempt guards on the checked-out
+      # SHA, overriding the CLI's `git rev-parse HEAD` fallback.
+      - name: Commit changes (attempt 1 of 3)
+        id: commit-1
         if: steps.check.outputs.changed == 'true'
         uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
         with:
@@ -87,3 +95,40 @@ jobs:
           commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GHCOMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        continue-on-error: true
+
+      - name: Back off before retrying the commit
+        if: steps.check.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
+        run: sleep 30
+
+      - name: Commit changes (attempt 2 of 3)
+        id: commit-2
+        if: steps.check.outputs.changed == 'true' && steps.commit-1.outcome == 'failure'
+        uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+        with:
+          repo: ${{ github.repository }}
+          branch: ${{ github.event.workflow_run.head_branch }}
+          file_pattern: "gemfiles/*"
+          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GHCOMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        continue-on-error: true
+
+      - name: Back off before retrying the commit
+        if: steps.check.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
+        run: sleep 30
+
+      - name: Commit changes (attempt 3 of 3)
+        id: commit-3
+        if: steps.check.outputs.changed == 'true' && steps.commit-2.outcome == 'failure'
+        uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+        with:
+          repo: ${{ github.repository }}
+          branch: ${{ github.event.workflow_run.head_branch }}
+          file_pattern: "gemfiles/*"
+          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GHCOMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
