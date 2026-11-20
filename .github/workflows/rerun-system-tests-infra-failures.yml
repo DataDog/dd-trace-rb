@@ -1,0 +1,58 @@
+name: Re-run System Tests infra failures
+
+# This workflow always runs the version of this file committed to master,
+# because workflow_run workflows are resolved from the default branch. It never
+# executes pull-request-controlled code: pull-request-triggered System Tests
+# runs are excluded by the job filter, the checkout is the default branch, and
+# the script validates RUN_ID as digits before requesting any GitHub API
+# endpoint with it.
+on: # yamllint disable-line rule:truthy
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows:
+      - System Tests
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Id of a completed failed System Tests run to inspect'
+        required: true
+        type: string
+      dry_run:
+        description: 'Report the decision without re-running jobs'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: rerun-system-tests-infra-failures
+  cancel-in-progress: false
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  rerun:
+    name: Re-run jobs after a runner lost communication
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'failure' &&
+       github.event.workflow_run.head_branch == 'master' &&
+       github.event.workflow_run.event != 'pull_request' &&
+       github.event.workflow_run.run_attempt == 1)
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_ID: ${{ inputs.run_id || github.event.workflow_run.id }}
+      DRY_RUN: ${{ inputs.dry_run == true }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Re-run System Tests jobs after a runner lost communication
+        run: python3 .github/scripts/rerun_system_tests_infra_failures.py
