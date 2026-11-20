@@ -28,6 +28,7 @@
   - &other >-
       error_tracking_simple.rb
       tracing_trace.rb
+      tracing_rds_endpoint.rb
       di_instrument.rb
       library_gem_loading.rb
 
