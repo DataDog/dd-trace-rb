@@ -149,7 +149,21 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       expect(collector.rasp.evals).to eq(1)
       expect(collector.waf.matches).to eq(1)
+      expect(collector.waf.rule_triggers).to eq(0)
       expect(collector.rasp.duration_ns).to eq(100)
+    end
+
+    it "counts RASP-only blocking detections as request rule triggers" do
+      result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+        events: [], actions: {"block_request" => {"status_code" => 403, "type" => "auto"}}, attributes: {},
+        keep: true, timeout: false, duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
+      )
+
+      collector.record_rasp(result, type: "ssrf", phase: "response")
+
+      expect(collector.waf.evals).to eq(0)
+      expect(collector.waf.matches).to eq(1)
+      expect(collector.waf.rule_triggers).to eq(1)
     end
 
     context "when no results were recorded" do
@@ -212,6 +226,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       it "contains cumulative metrics of both results" do
         expect(collector.rasp.evals).to eq(2)
         expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.rule_triggers).to eq(1)
         expect(collector.waf.errors).to eq(0)
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(1100)
