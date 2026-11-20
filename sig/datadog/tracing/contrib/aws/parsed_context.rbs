@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Aws
         class ParsedContext
+          PROVEN_ACCOUNT_ID_PROVIDERS: ::Array[::String]
+
           def initialize: (untyped context) -> void
 
           def safely: (untyped attr, ?untyped? fallback) -> untyped
@@ -18,6 +20,8 @@ module Datadog
           def http_method: () -> untyped
 
           def region: () -> untyped
+
+          def assumed_role_account_id: () -> untyped
 
           def retry_attempts: () -> untyped
 
