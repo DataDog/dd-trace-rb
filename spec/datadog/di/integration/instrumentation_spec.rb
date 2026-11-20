@@ -467,7 +467,7 @@ RSpec.describe "Instrumentation integration" do
             {
               entry: {
                 arguments: {
-                  arg1: {type: "String", value: "hello world"},
+                  greeting: {type: "String", value: "hello world"},
                   self: {
                     type: "InstrumentationSpecTestClass",
                     fields: {
@@ -577,7 +577,7 @@ RSpec.describe "Instrumentation integration" do
             type: "LOG_PROBE",
             where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
             captureExpressions: [
-              {name: "arg1", expr: {dsl: "arg1", json: {ref: "arg1"}}},
+              {name: "a", expr: {dsl: "a", json: {ref: "a"}}},
             ],
           }
         end
@@ -595,7 +595,7 @@ RSpec.describe "Instrumentation integration" do
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
-            "arg1" => {type: "Integer", value: "7"},
+            "a" => {type: "Integer", value: "7"},
           )
           expect(captures).not_to have_key(:entry)
         end
@@ -613,7 +613,7 @@ RSpec.describe "Instrumentation integration" do
             where: {typeName: "InstrumentationSpecTestClass", methodName: "mutating_method"},
             evaluateAt: "ENTRY",
             captureExpressions: [
-              {name: "greeting_at_entry", expr: {dsl: "arg1", json: {ref: "arg1"}}},
+              {name: "greeting_at_entry", expr: {dsl: "greeting", json: {ref: "greeting"}}},
             ],
           }
         end
@@ -689,7 +689,7 @@ RSpec.describe "Instrumentation integration" do
             where: {typeName: "InstrumentationSpecTestClass", methodName: "mutating_method"},
             evaluateAt: "EXIT",
             captureExpressions: [
-              {name: "greeting_at_exit", expr: {dsl: "arg1", json: {ref: "arg1"}}},
+              {name: "greeting_at_exit", expr: {dsl: "greeting", json: {ref: "greeting"}}},
             ],
           }
         end
@@ -725,7 +725,7 @@ RSpec.describe "Instrumentation integration" do
             where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
             captureSnapshot: true,
             captureExpressions: [
-              {name: "arg1", expr: {dsl: "arg1", json: {ref: "arg1"}}},
+              {name: "arg1", expr: {dsl: "a", json: {ref: "a"}}},
             ],
           }
         end
@@ -764,7 +764,7 @@ RSpec.describe "Instrumentation integration" do
             type: "LOG_PROBE",
             where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
             captureExpressions: [
-              {name: "arg1", expr: {dsl: "arg1", json: {ref: "arg1"}}},
+              {name: "arg1", expr: {dsl: "a", json: {ref: "a"}}},
             ],
           }
         end
@@ -803,9 +803,9 @@ RSpec.describe "Instrumentation integration" do
             type: "LOG_PROBE",
             where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
             captureExpressions: [
-              {name: "count", expr: {dsl: "len(arg1)", json: {len: {ref: "arg1"}}}},
-              {name: "filtered", expr: {dsl: "arg1.filter(@it >= 0)",
-                                        json: {filter: [{ref: "arg1"}, {ge: [{ref: "@it"}, 0]}]}}},
+              {name: "count", expr: {dsl: "len(a)", json: {len: {ref: "a"}}}},
+              {name: "filtered", expr: {dsl: "a.filter(@it >= 0)",
+                                        json: {filter: [{ref: "a"}, {ge: [{ref: "@it"}, 0]}]}}},
             ],
           }
         end
@@ -927,7 +927,7 @@ RSpec.describe "Instrumentation integration" do
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
-          expect(captures.fetch(:entry).fetch(:arguments).fetch(:arg1)).to include(
+          expect(captures.fetch(:entry).fetch(:arguments).fetch(:greeting)).to include(
             type: "String", value: "hell", truncated: true,
           )
           expect(captures.fetch(:return).fetch(:arguments).fetch(:@return)).to include(
@@ -960,9 +960,9 @@ RSpec.describe "Instrumentation integration" do
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
-          arg1 = captures.fetch(:entry).fetch(:arguments).fetch(:arg1)
-          expect(arg1).to include(type: "Array", notCapturedReason: "collectionSize", size: 5)
-          expect(arg1.fetch(:elements).size).to eq(2)
+          items = captures.fetch(:entry).fetch(:arguments).fetch(:items)
+          expect(items).to include(type: "Array", notCapturedReason: "collectionSize", size: 5)
+          expect(items.fetch(:elements).size).to eq(2)
           ret = captures.fetch(:return).fetch(:arguments).fetch(:@return)
           expect(ret).to include(type: "Array", notCapturedReason: "collectionSize", size: 5)
           expect(ret.fetch(:elements).size).to eq(2)
@@ -1939,10 +1939,10 @@ RSpec.describe "Instrumentation integration" do
         expect(captured_snapshot[:debugger][:snapshot][:captures]).to have_key(:entry)
 
         entry_capture = captured_snapshot[:debugger][:snapshot][:captures][:entry]
-        expect(entry_capture[:arguments]).to have_key(:arg1)
+        expect(entry_capture[:arguments]).to have_key(:binary_param)
 
         # The binary string is escaped to b'...' format
-        binary_param_value = entry_capture[:arguments][:arg1][:value]
+        binary_param_value = entry_capture[:arguments][:binary_param][:value]
         expect(binary_param_value).to be_a(String)
         expect(binary_param_value).to eq("b'\\x80\\x81\\x82\\xff\\xfe'")
         expect(binary_param_value.encoding).to eq(Encoding::UTF_8)
@@ -2153,7 +2153,7 @@ RSpec.describe "Instrumentation integration" do
           snapshots = JSON.parse(input_requests.first)
           expect(snapshots.size).to eq 1
           snapshot = snapshots.first
-          expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments", "arg1")).to eq("pruned" => true)
+          expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments", "a")).to eq("pruned" => true)
           expect(snapshot.dig("debugger", "snapshot", "probe", "id")).to eq "payload-too-large-test"
           expect(JSON.dump(snapshot).bytesize).to be <= payload_limit
           expect(probe.enabled?).to be true
