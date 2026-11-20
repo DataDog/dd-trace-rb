@@ -1,7 +1,7 @@
 module Datadog
   module SymbolDatabase
     module FileHash
-      def self.compute: (String? file_path, logger: untyped) -> String?
+      def self.compute: (String? file_path, logger: SymbolDatabase::Logger) -> String?
     end
   end
 end

@@ -110,7 +110,7 @@ module Datadog
         :MODULE_CLASS_VARIABLES, :MODULE_CONSTANTS, :MODULE_AUTOLOAD_P, :MODULE_CONST_GET,
         :MODULE_CONST_DEFINED, :KERNEL_CLASS
 
-      # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
+      # @param logger [SymbolDatabase::Logger] Logger instance
       # @param settings [Configuration::Settings] Tracer settings
       def initialize(logger:, settings:)
         @logger = logger
