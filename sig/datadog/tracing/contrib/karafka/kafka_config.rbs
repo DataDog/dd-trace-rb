@@ -4,6 +4,12 @@ module Datadog
       module Karafka
         module KafkaConfig
           def self.bootstrap_servers: (Hash[Symbol | String, any]? kafka_config) -> String?
+
+          def self.with_job_bootstrap_servers: [T] (String? bootstrap_servers) { () -> T } -> T
+
+          def self.job_bootstrap_servers: () -> String?
+
+          JOB_BOOTSTRAP_SERVERS_KEY: Symbol
         end
       end
     end

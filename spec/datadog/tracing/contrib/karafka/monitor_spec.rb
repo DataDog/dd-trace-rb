@@ -75,6 +75,16 @@ RSpec.describe "Karafka monitor" do
         )
       end
 
+      it "passes the topic's bootstrap servers to the job, and restores them afterwards" do
+        job_bootstrap_servers = nil
+        Karafka.monitor.instrument("worker.processed", {job: job}) do
+          job_bootstrap_servers = Datadog::Tracing::Contrib::Karafka::KafkaConfig.job_bootstrap_servers
+        end
+
+        expect(job_bootstrap_servers).to eq "kafka-1:9092,kafka-2:9092"
+        expect(Datadog::Tracing::Contrib::Karafka::KafkaConfig.job_bootstrap_servers).to be_nil
+      end
+
       context "when the topic has no bootstrap.servers configured" do
         let(:kafka_config) { {} }
 

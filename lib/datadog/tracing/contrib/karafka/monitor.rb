@@ -21,6 +21,7 @@ module Datadog
             return super unless TRACEABLE_EVENTS.include?(event_id)
 
             Datadog::Tracing.trace(Ext::SPAN_WORKER_PROCESS) do |span|
+              bootstrap_servers = nil
               job = payload[:job]
               job_type = fetch_job_type(job.class)
               consumer = job.executor.topic.consumer
@@ -68,7 +69,7 @@ module Datadog
                 end
               end
 
-              super
+              KafkaConfig.with_job_bootstrap_servers(bootstrap_servers) { super }
             end
           end
 

@@ -75,7 +75,7 @@ RSpec.describe "Karafka patcher" do
       end
     end
 
-    context "when the topic overrides bootstrap.servers" do
+    context "when iterated in a worker job whose topic overrides bootstrap.servers" do
       before do
         allow(::Karafka::App.config).to receive(:kafka).and_return({"bootstrap.servers": "kafka-1:9092"})
       end
@@ -87,11 +87,11 @@ RSpec.describe "Karafka patcher" do
         allow(message).to receive(:timestamp).and_return(Time.now)
         allow(message).to receive(:topic).and_return("topic_a")
         topic = ::Karafka::Routing::Topic.new("topic_a", double(id: 0))
-        topic.kafka = {"bootstrap.servers": "other-kafka:9092"}
-        allow(::Karafka::Routing::Router).to receive(:find_by).with(name: "topic_a").and_return(topic)
 
         messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
-        messages.each {}
+        Datadog::Tracing::Contrib::Karafka::KafkaConfig.with_job_bootstrap_servers("other-kafka:9092") do
+          messages.each {}
+        end
 
         expect(span.get_tag("messaging.kafka.bootstrap.servers")).to eq "other-kafka:9092"
       end

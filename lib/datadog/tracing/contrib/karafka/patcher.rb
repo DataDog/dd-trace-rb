@@ -26,11 +26,10 @@ module Datadog
           # (e.g. `my_batch_operation messages.payloads`)
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
-            # A topic may override `bootstrap.servers` to consume from another cluster; its `kafka` falls back
-            # to `Karafka::App.config.kafka` otherwise. The worker span reads the same topic configuration.
-            # If the topic is routed in several consumer groups, the first one wins.
-            topic = ::Karafka::Routing::Router.find_by(name: metadata.topic)
-            bootstrap_servers = KafkaConfig.bootstrap_servers(topic ? topic.kafka : ::Karafka::App.config.kafka)
+            # Outside a worker job, e.g. when the batch is iterated on another thread, the routed topic is
+            # unknown and the app-wide brokers are used.
+            bootstrap_servers = KafkaConfig.job_bootstrap_servers ||
+              KafkaConfig.bootstrap_servers(::Karafka::App.config.kafka)
 
             @messages_array.each do |message|
               trace_digest = if configuration[:distributed_tracing]
