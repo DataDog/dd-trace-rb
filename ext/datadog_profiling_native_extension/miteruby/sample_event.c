@@ -1,7 +1,9 @@
 #include <ruby.h>
 
 #include "sample_event.h"
+#include "can_overflow.h"
 #include "../collectors_stack.h" // for MAX_FRAMES_LIMIT
+#include "../helpers.h"
 #include "../private_vm_api_access.h"
 #include "../time_helpers.h"
 
@@ -11,15 +13,26 @@
 #define MITERUBY_MAX_SIZE_BYTES \
   MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME)
 
+typedef frame_info miteruby_sample_frames_t[MAX_FRAMES_LIMIT + 1];
+#define MITERUBY_PUBLISH_STACK_BUDGET (sizeof(miteruby_sample_frames_t) + MITERUBY_MAX_SIZE_BYTES + KiB_AS_BYTES(16))
+
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
 );
 static cpu_time_t current_thread_cpu_time(void);
 static inline monotonic_time_t monotonic_time_now(void);
 
+static bool miteruby_sample_event_try_publish(
+  miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
+) {
+  if (miteruby_can_overflow(MITERUBY_PUBLISH_STACK_BUDGET)) return false;
+
+  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, cpu_time);
+}
+
 bool miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue_t *raw_events_queue) {
   int saved_errno = errno;
-  bool published = miteruby_sample_event_publish_internal(
+  bool published = miteruby_sample_event_try_publish(
     raw_events_queue, (value_thread_t) {.value = rb_thread_current()}, NULL, current_thread_cpu_time()
   );
   errno = saved_errno;
@@ -27,17 +40,17 @@ bool miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue_t *raw_e
 }
 
 bool miteruby_sample_event_publish_mask(miteruby_raw_events_queue_t *raw_events_queue, const sigset_t *signal_mask) {
-  return miteruby_sample_event_publish_internal(
+  return miteruby_sample_event_try_publish(
     raw_events_queue, (value_thread_t) {.value = rb_thread_current()}, signal_mask, current_thread_cpu_time()
   );
 }
 
 bool miteruby_sample_event_publish_thread(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask) {
-  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, INVALID_CPU_TIME);
+  return miteruby_sample_event_try_publish(raw_events_queue, thread, signal_mask, INVALID_CPU_TIME);
 }
 
 bool miteruby_sample_event_publish_testing(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time) {
-  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, cpu_time);
+  return miteruby_sample_event_try_publish(raw_events_queue, thread, signal_mask, cpu_time);
 }
 
 static cpu_time_t current_thread_cpu_time(void) {
@@ -53,12 +66,11 @@ static inline monotonic_time_t monotonic_time_now(void) {
 // TODO: Revisit upstream rb_profile_frames if we accept its block/eval fidelity trade-off (see design/EventDesign.md),
 // or an upstream API supplies the frame metadata and bytecode positions needed for deferred symbolication.
 // TODO: Emit correlation data from tracing (trace id, span id, endpoint)
-// TODO: We're allocating quite a lot on the stack, maybe we shouldn't
-static bool miteruby_sample_event_publish_internal(
+static __attribute__((noinline)) bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
 ) {
   monotonic_time_t timestamp = monotonic_time_now();
-  frame_info frames[MAX_FRAMES_LIMIT + 1];
+  miteruby_sample_frames_t frames;
   int count = ddtrace_rb_profile_frames(thread.value, 0, MAX_FRAMES_LIMIT + 1, frames, true);
 
   union {
