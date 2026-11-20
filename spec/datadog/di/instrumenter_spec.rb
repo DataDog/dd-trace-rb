@@ -2778,6 +2778,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
+          freeze_rate_limiter_clock
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_method(probe) do |payload|
@@ -2970,6 +2971,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
+          freeze_rate_limiter_clock
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 

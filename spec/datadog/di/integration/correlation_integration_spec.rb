@@ -249,6 +249,7 @@ RSpec.describe "Correlation integration" do
     before { stub_no_trace }
 
     it "applies the capturing probe's own rate limit, uncorrelated" do
+      freeze_rate_limiter_clock
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 
       CorrelationIntegrationTestClass.new.loop_n(25)
