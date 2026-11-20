@@ -64,6 +64,7 @@ module Datadog
           @mutex.synchronize do
             @rasp.evals += 1
             @waf.matches += 1 if result.match?
+            @waf.rule_triggers += 1 if result.rule_triggered?
             @waf.errors += 1 if result.error?
             @rasp.timeouts += 1 if result.timeout?
             @rasp.duration_ns += result.duration_ns
