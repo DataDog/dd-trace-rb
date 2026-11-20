@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6731",
+  "message": "Data Streams Monitoring tracks SQS and SNS messages sent and received with the AWS SDK, including Shoryuken workers and SNS to SQS subscriptions, and links their pathways with services traced by other Datadog tracers."
+}
