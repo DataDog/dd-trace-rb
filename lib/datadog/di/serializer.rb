@@ -47,6 +47,16 @@ module Datadog
       # a safe stub rather than terminate the process.
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
+      # Bind Kernel's reflective methods so serialization resolves the real
+      # implementations: customer-overridden #class/#instance_variables/
+      # #instance_variable_get can't intercept serialization, and blank-slate
+      # BasicObject receivers serialize instead of raising NoMethodError.
+      KERNEL_CLASS = ::Kernel.instance_method(:class)
+      KERNEL_INSTANCE_VARIABLES = ::Kernel.instance_method(:instance_variables)
+      KERNEL_INSTANCE_VARIABLE_GET = ::Kernel.instance_method(:instance_variable_get)
+      private_constant :KERNEL_CLASS, :KERNEL_INSTANCE_VARIABLES,
+        :KERNEL_INSTANCE_VARIABLE_GET
+
       # Placeholder emitted by #serialize_value_for_message in place of a value
       # whose identifier or type matches the redaction configuration. The
       # message-path counterpart of the +notCapturedReason+
@@ -238,7 +248,7 @@ module Datadog
         collection_size: nil,
         type: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
-        cls = type || value.class
+        cls = type || KERNEL_CLASS.bind(value).call
         begin
           if deadline_exceeded?(deadline)
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "serialized_values_skipped_by_timeout", 1)
@@ -415,7 +425,7 @@ module Datadog
               # instance variables on all supported Ruby runtimes, so that the UI
               # stays consistent. Ruby DI does not support JRuby, so JRuby's lack
               # of ordering of #instance_variables is not handled here.
-              ivars = value.instance_variables
+              ivars = KERNEL_INSTANCE_VARIABLES.bind(value).call
 
               ivars.each do |ivar|
                 if cur >= attribute_count
@@ -424,7 +434,7 @@ module Datadog
                   break
                 end
                 cur += 1
-                entry = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                entry = serialize_value(KERNEL_INSTANCE_VARIABLE_GET.bind(value).call(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
                 fields[ivar] = entry
                 if entry[:notCapturedReason] == "timeout"
                   serialized.update(notCapturedReason: "timeout")
@@ -526,7 +536,7 @@ module Datadog
         else
           return "..." if depth <= 0
 
-          vars = value.instance_variables
+          vars = KERNEL_INSTANCE_VARIABLES.bind(value).call
           truncated = false
           max = max_capture_attribute_count_for_message
           if vars.length > max
@@ -541,7 +551,7 @@ module Datadog
             serialized_value = if redactor.redact_identifier?(var)
               REDACTED_VALUE_FOR_MESSAGE
             else
-              serialize_value_for_message(value.send(:instance_variable_get, var), depth: depth - 1)
+              serialize_value_for_message(KERNEL_INSTANCE_VARIABLE_GET.bind(value).call(var), depth: depth - 1)
             end
             "#{var}=#{serialized_value}"
           end
@@ -552,14 +562,14 @@ module Datadog
           serialized = if serialized.any?
             " " + serialized.join(" ")
           end
-          "#<#{class_name(value.class)}#{serialized}>"
+          "#<#{class_name(KERNEL_CLASS.bind(value).call)}#{serialized}>"
         end
       rescue Exception => exc # standard:disable Lint/RescueException
         raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
         telemetry&.report(exc, description: "Error serializing for message")
         # TODO handle class_name raising here as well.
-        "#<#{class_name(value.class)}: serialization error>"
+        "#<#{class_name(KERNEL_CLASS.bind(value).call)}: serialization error>"
       end
 
       # Computes the absolute thread CPU time deadline (in seconds) for a
