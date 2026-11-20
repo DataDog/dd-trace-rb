@@ -58,6 +58,7 @@ static size_t system_page_size = 4096;
 static atomic_size_t currently_allocated_bytes_stat = 0;
 
 __attribute__((constructor)) static void initialize_system_page_size(void) {
+  // Use sysconf because getpagesize is a legacy API removed from POSIX.
   long page_size = sysconf(_SC_PAGESIZE);
   if (page_size > (long)system_page_size) {
     system_page_size = (size_t)page_size;
