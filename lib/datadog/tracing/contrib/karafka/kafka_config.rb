@@ -20,15 +20,17 @@ module Datadog
           # `bootstrap.servers` to consume from another cluster, and message batches do not keep
           # their routed topic, so the worker instrumentation passes them to the message spans.
           def self.with_job_bootstrap_servers(bootstrap_servers)
-            previous = Thread.current[JOB_BOOTSTRAP_SERVERS_KEY]
+            previous = job_bootstrap_servers
             Thread.current[JOB_BOOTSTRAP_SERVERS_KEY] = bootstrap_servers
-            yield
-          ensure
-            Thread.current[JOB_BOOTSTRAP_SERVERS_KEY] = previous
+            begin
+              yield
+            ensure
+              Thread.current[JOB_BOOTSTRAP_SERVERS_KEY] = previous
+            end
           end
 
           def self.job_bootstrap_servers
-            Thread.current[JOB_BOOTSTRAP_SERVERS_KEY]
+            Thread.current[JOB_BOOTSTRAP_SERVERS_KEY] #: String?
           end
         end
       end
