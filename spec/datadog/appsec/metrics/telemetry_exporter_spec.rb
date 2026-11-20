@@ -26,7 +26,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
     let(:waf_metrics) do
       Datadog::AppSec::Metrics::Collector::Store.new(
-        evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0,
+        evals: 0, matches: 0, rule_triggers: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0,
         inputs_truncated: 0, downstream_requests: 0,
       )
     end
@@ -49,8 +49,9 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
       described_class.export_waf_request_metrics(waf_metrics, context)
     end
 
-    it 'sets rule_triggered as "true" when metrics has non-zero count of matches' do
+    it 'sets rule_triggered as "true" when metrics has non-zero count of rule triggers' do
       waf_metrics.matches = 1
+      waf_metrics.rule_triggers = 1
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
@@ -58,6 +59,18 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
+    end
+
+    it 'sets rule_triggered as "false" when matches were recorded without rule triggers' do
+      waf_metrics.matches = 1
+
+      expect(Datadog::AppSec.telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
+        tags: hash_including(rule_triggered: "false"),
+      )
+
+      described_class.export_waf_request_metrics(waf_metrics, context)
+      expect(waf_metrics.matches).to eq(1)
     end
 
     it 'sets waf_error as "true" when metrics has non-zero count of errors' do

@@ -17,7 +17,8 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context "when result matches without blocking actions" do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          events: [{"rule" => {"id" => "test-rule"}}], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false,
         )
       end
@@ -71,7 +72,8 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context "when result matches with timeout" do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
+          events: [{"rule" => {"id" => "test-rule"}}], actions: {}, attributes: {}, keep: false, timeout: true,
+          duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false,
         )
       end
@@ -83,6 +85,25 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
           .with("specsec", "rasp.rule.match", 1, tags: {rule_type: "my-type", waf_version: "1.42.99", block: "irrelevant"})
         expect(telemetry).to receive(:inc)
           .with("specsec", "rasp.timeout", 1, tags: {rule_type: "my-type", waf_version: "1.42.99"})
+
+        described_class.report_rasp("my-type", run_result)
+      end
+    end
+
+    context "when an attribute-only match times out" do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [], actions: {}, attributes: {"appsec.api.redirection.move_target" => "/redirect"},
+          keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0, input_truncated: false,
+        )
+      end
+
+      it "reports evaluation and timeout metrics without a rule match" do
+        expect(telemetry).to receive(:inc)
+          .with("specsec", "rasp.rule.eval", 1, tags: {rule_type: "my-type", waf_version: "1.42.99"})
+        expect(telemetry).to receive(:inc)
+          .with("specsec", "rasp.timeout", 1, tags: {rule_type: "my-type", waf_version: "1.42.99"})
+        expect(telemetry).not_to receive(:inc).with("specsec", "rasp.rule.match", anything, anything)
 
         described_class.report_rasp("my-type", run_result)
       end

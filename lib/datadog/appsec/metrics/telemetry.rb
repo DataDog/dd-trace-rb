@@ -24,7 +24,7 @@ module Datadog
           AppSec.telemetry.inc(namespace, "rasp.rule.eval", 1, tags: tags)
           AppSec.telemetry.inc(namespace, "rasp.timeout", 1, tags: tags) if result.timeout?
 
-          if result.match?
+          if result.rule_triggered?
             blocked = result.actions.key?(ACTION_BLOCK) || result.actions.key?(ACTION_REDIRECT)
             # NOTE: Mutates tags to avoid an extra hash allocation. Keep this the last .inc call.
             tags[:block] = blocked ? BLOCK_SUCCESS : BLOCK_IRRELEVANT

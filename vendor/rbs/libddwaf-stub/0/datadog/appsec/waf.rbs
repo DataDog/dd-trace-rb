@@ -93,13 +93,13 @@ module Datadog
       class HandleBuilder
         @builder_ptr: ::FFI::Pointer
 
-        def initialize: (?limits: ::Hash[::Symbol, ::Integer], ?obfuscator: ::Hash[::Symbol, ::String]) -> void
+        def initialize: (?obfuscator: ::Hash[::Symbol, ::String]) -> void
 
         def finalize!: () -> void
 
         def build_handle: () -> Handle
 
-        def add_or_update_config: (untyped config, path: ::String) -> untyped
+        def add_or_update_config: (untyped config, path: ::String) -> ConfigurationResult
 
         def remove_config_at_path: (::String path) -> bool
 
@@ -172,28 +172,30 @@ module Datadog
         def to_h: () -> ::Hash[::Symbol, (::Symbol | WAF::opaque)]
       end
 
+      class ConfigurationResult
+        attr_reader diagnostics: diagnostics?
+
+        def initialize: (success: bool, diagnostics: diagnostics?) -> void
+
+        def success?: () -> bool
+      end
+
       class Context
-        @context_ptr: ::FFI::Pointer
-
-        @retained: Array[untyped]
-
-        RESULT_CODE: ::Hash[::Symbol, ::Symbol]
-
         def initialize: (::FFI::Pointer context_ptr) -> void
 
         def finalize!: () -> void
 
-        def run: (WAF::input persistent_data, WAF::input ephemeral_data, ?::Integer timeout) -> Result
+        def eval: (Hash[WAF::input, WAF::input] data, ?Integer timeout) -> Result
 
-        private
+        def build_subcontext: [T] () { (Subcontext) -> T } -> T
+      end
 
-        def ensure_pointer_presence!: () -> void
+      class Subcontext
+        def initialize: (FFI::Pointer subcontext_ptr, context: Context) -> void
 
-        def retained: () -> Array[untyped]
+        def finalize!: () -> void
 
-        def retain: (top object) -> void
-
-        def release: (top object) -> void
+        def eval: (Hash[WAF::input, WAF::input] data, ?Integer timeout) -> Result
       end
     end
   end

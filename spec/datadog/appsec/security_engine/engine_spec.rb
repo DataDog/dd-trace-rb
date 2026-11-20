@@ -16,6 +16,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
   before do
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
     allow(telemetry).to receive(:inc)
+    allow(telemetry).to receive(:report)
   end
 
   describe ".new" do
@@ -235,8 +236,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
   describe "#add_or_update_config" do
     subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
 
-    it "returns diagnostics with loaded config identifiers and no errors" do
-      diagnostics = engine.add_or_update_config(
+    it "returns true for an accepted configuration" do
+      success = engine.add_or_update_config(
         {
           custom_rules: [
             {
@@ -254,10 +255,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         path: "datadog/603646/ASM/test-custom-rule",
       )
 
-      aggregate_failures("diagnostics") do
-        expect(diagnostics.dig("custom_rules", "errors")).to be_empty
-        expect(diagnostics.dig("custom_rules", "loaded")).to eq(%w[test-custom-rule-id])
-      end
+      expect(success).to be(true)
     end
 
     context "when config loading fails with item-level errors" do
@@ -292,18 +290,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:error)
       end
 
-      it "returns diagnostics with loaded config identifiers and errors for invalid rules" do
-        diagnostics = engine.add_or_update_config(config_with_invalid_rule, path: "datadog/603646/ASM/test-custom-rule")
+      it "accepts a configuration with individual rule errors" do
+        success = engine.add_or_update_config(config_with_invalid_rule, path: "datadog/603646/ASM/test-custom-rule")
 
-        aggregate_failures("diagnostics") do
-          expect(diagnostics.dig("custom_rules", "failed")).to match(%w[invalid-rule-one-id invalid-rule-two-id])
-          expect(diagnostics.dig("custom_rules", "loaded")).to eq(%w[test-custom-rule-id])
-
-          expect(diagnostics.dig("custom_rules", "errors")).to eq({
-            "missing key 'conditions'" => %w[invalid-rule-one-id],
-            "missing key 'parameters'" => %w[invalid-rule-two-id],
-          })
-        end
+        expect(success).to be(true)
       end
 
       it "reports item-level errors count through telemetry" do
@@ -337,10 +327,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:error)
       end
 
-      it "returns diagnostics with loaded config identifiers and errors for invalid rules" do
-        diagnostics = engine.add_or_update_config("", path: "datadog/603646/ASM/test-custom-rule")
+      it "returns false for the rejected submission" do
+        success = engine.add_or_update_config("", path: "datadog/603646/ASM/test-custom-rule")
 
-        expect(diagnostics.fetch("error")).to eq("invalid configuration type, expected 'map', obtained 'string'")
+        expect(success).to be(false)
       end
 
       it "reports top-level error count through telemetry" do
@@ -366,22 +356,19 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       end
     end
 
-    context "when config loading fails with top-level error for some config key" do
+    context "when config loading fails with error for some config key" do
       before do
         allow(telemetry).to receive(:inc)
         allow(telemetry).to receive(:error)
       end
 
-      it "returns diagnostics with loaded config identifiers and errors for invalid rules" do
-        diagnostics = engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
+      it "returns false for the rejected submission" do
+        success = engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
 
-        aggregate_failures("diagnostics") do
-          expect(diagnostics).not_to have_key("error")
-          expect(diagnostics.dig("custom_rules", "error")).to eq("bad cast, expected 'array', obtained 'string'")
-        end
+        expect(success).to be(false)
       end
 
-      it "reports top-level error count through telemetry" do
+      it "reports rule errors count through telemetry" do
         expect(telemetry).to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
           "waf.config_errors",
@@ -398,7 +385,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
       end
 
-      it "reports top-level error through telemetry" do
+      it "reports rule error through telemetry" do
         expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
 
         engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
@@ -449,18 +436,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         }
       end
 
-      it "returns diagnostics with loaded rules identifiers and no errors" do
-        diagnostics = engine.add_or_update_config(asm_dd_config, path: "datadog/603646/ASM_DD/latest/config")
+      it "returns true for an accepted ruleset" do
+        success = engine.add_or_update_config(asm_dd_config, path: "datadog/603646/ASM_DD/latest/config")
 
-        aggregate_failures("diagnostics") do
-          expect(diagnostics.dig("rules", "loaded")).to eq(%w[rasp-003-001])
-          expect(diagnostics.dig("rules", "errors")).to be_empty
-
-          expect(diagnostics.dig("actions", "loaded")).to eq(%w[block-sqli])
-          expect(diagnostics.dig("actions", "errors")).to be_empty
-
-          expect(diagnostics.dig("processors", "errors")).to eq({})
-        end
+        expect(success).to be(true)
       end
 
       it "does not fall back when an individual processor fails to load" do
@@ -468,10 +447,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
         expect(telemetry).to receive(:error).with("missing key 'generator': [invalid-processor]")
 
-        diagnostics = engine.add_or_update_config(config, path: "datadog/603646/ASM_DD/latest/config")
+        success = engine.add_or_update_config(config, path: "datadog/603646/ASM_DD/latest/config")
 
-        expect(diagnostics.dig("processors", "failed")).to eq(%w[invalid-processor])
-        expect(diagnostics["ruleset_version"]).to eq("1.0.0")
+        expect(success).to be(true)
       end
 
       it "reloads default rules without conflicts when the processor section fails to load" do
@@ -479,13 +457,16 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
         expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
 
-        diagnostics = engine.add_or_update_config(
+        success = engine.add_or_update_config(
           asm_dd_config.merge(processors: ""),
           path: "datadog/603646/ASM_DD/latest/config",
         )
 
-        expect(diagnostics.dig("rules", "loaded")).to eq(%w[rasp-003-001])
-        expect(diagnostics.dig("rules", "errors")).to be_empty
+        expect(success).to be(false)
+        engine.reconfigure!
+        runner = engine.new_runner
+        expect(runner.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
+        runner.finalize!
       end
 
       it "removes default config before adding new config" do

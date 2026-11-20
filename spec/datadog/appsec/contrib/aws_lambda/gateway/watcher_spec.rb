@@ -68,7 +68,6 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
 
         expect(context).to have_received(:run_waf).with(
           hash_including("server.request.method" => "GET", "server.request.uri.raw" => "/test"),
-          {},
           anything,
         )
       end
@@ -184,7 +183,6 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
 
         expect(context).to have_received(:run_waf).with(
           hash_including("server.response.status" => "200"),
-          {},
           anything,
         )
       end

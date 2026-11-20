@@ -104,6 +104,51 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
+    it "keeps the first WAF derivatives and collects distinct keys from later results" do
+      trace = Datadog::Tracing::TraceOperation.new
+      trace.measure("request") do |span|
+        span.set_tag("_dd.appsec.trace.req_headers", "previous request headers")
+        context = Datadog::AppSec::Context.new(trace, span, waf_runner)
+
+        [
+          {
+            "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
+            "_dd.appsec.trace.req_headers" => "request headers",
+            "_dd.appsec.fp.http.endpoint" => "first fingerprint",
+            "_dd.appsec.s.req.body" => [{"first" => [8]}],
+          },
+          {
+            "appsec.api.redirection.move_target" => "/mirror/200",
+            "_dd.appsec.trace.res_headers" => "response headers",
+            "_dd.appsec.fp.http.endpoint" => "second fingerprint",
+            "_dd.appsec.s.req.body" => [{"second" => [8]}],
+          },
+        ].each do |attributes|
+          result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+            events: [],
+            actions: {},
+            attributes: attributes,
+            keep: true,
+            timeout: false,
+            duration_ns: 0,
+            duration_ext_ns: 0,
+            input_truncated: false,
+          )
+          context.events.push(Datadog::AppSec::SecurityEvent.new(result, trace: trace, span: span))
+        end
+
+        described_class.record(context)
+      end
+
+      expect(trace.flush!.spans.first.meta).to include(
+        "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
+        "_dd.appsec.trace.req_headers" => "request headers",
+        "_dd.appsec.trace.res_headers" => "response headers",
+        "_dd.appsec.fp.http.endpoint" => "first fingerprint",
+        "_dd.appsec.s.req.body" => '[{"first":[8]}]',
+      )
+    end
+
     context "when no security events are recorded" do
       let(:rack_request) do
         instance_double(
@@ -402,11 +447,13 @@ RSpec.describe Datadog::AppSec::Event do
     let(:with_trace) { true }
     let(:with_span) { true }
 
+    let(:waf_events) { [{"rule" => {"id" => "test-rule"}}] }
     let(:waf_actions) { {} }
     let(:waf_result) do
       dbl = double
 
       allow(dbl).to receive(:actions).and_return(waf_actions)
+      allow(dbl).to receive(:events).and_return(waf_events)
 
       dbl
     end
@@ -443,7 +490,17 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
+    context "without events or actions" do
+      let(:waf_events) { [] }
+
+      it "does not add AppSec event tags to span" do
+        expect(context.span.send(:meta)).to_not include("appsec.event", "appsec.blocked")
+      end
+    end
+
     context "with block_request action" do
+      let(:waf_events) { [] }
+
       let(:waf_actions) do
         {"block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}}
       end
@@ -455,6 +512,8 @@ RSpec.describe Datadog::AppSec::Event do
     end
 
     context "with redirect_request action" do
+      let(:waf_events) { [] }
+
       let(:waf_actions) do
         {"redirect_request" => {"status_code" => "302", "location" => "https://datadoghq.com"}}
       end

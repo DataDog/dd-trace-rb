@@ -25,18 +25,17 @@ module Datadog
                   context = payload.context
                   next stack.call(payload) unless context
 
-                  persistent_data = WAFAddresses.from_request(payload.data)
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  evaluation_data = WAFAddresses.from_request(payload.data)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || !result.attributes.empty?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
 
                   if result.match?
                     AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
@@ -49,17 +48,17 @@ module Datadog
                   context = payload.context
                   next stack.call(payload) unless context
 
-                  persistent_data = WAFAddresses.from_response(payload.data)
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  evaluation_data = WAFAddresses.from_response(payload.data)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
+
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
+                  end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
 
                   if result.match?
                     AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 

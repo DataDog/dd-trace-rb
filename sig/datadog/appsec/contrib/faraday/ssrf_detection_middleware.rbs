@@ -24,8 +24,6 @@ module Datadog
           def read_body: (Utils::HTTP::Body::body body, limit: Integer) -> String?
 
           def normalize_headers: (::Faraday::Utils::Headers? headers) -> Hash[String, String]
-
-          def handle: (SecurityEngine::result result, context: Context) -> void
         end
       end
     end

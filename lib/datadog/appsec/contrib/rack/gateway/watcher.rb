@@ -27,7 +27,7 @@ module Datadog
                 gateway.watch("rack.request") do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                  persistent_data = {
+                  evaluation_data = {
                     "server.request.cookies" => gateway_request.cookies,
                     "server.request.query" => gateway_request.query,
                     "server.request.uri.raw" => gateway_request.fullpath,
@@ -37,18 +37,16 @@ module Datadog
                     "server.request.method" => gateway_request.method,
                   }
 
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || !result.attributes.empty?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
 
                   if result.match?
                     AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
@@ -60,22 +58,22 @@ module Datadog
                 gateway.watch("rack.response") do |stack, gateway_response|
                   context = gateway_response.context
 
-                  persistent_data = {
+                  evaluation_data = {
                     "server.response.status" => gateway_response.status.to_s,
                     "server.response.headers" => gateway_response.headers,
                     "server.response.headers.no_cookies" => gateway_response.headers.dup.tap { |h| h.delete("set-cookie") },
                   }
 
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
+
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
+                  end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
 
                   if result.match?
                     AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
@@ -94,34 +92,34 @@ module Datadog
                   limit = Datadog.configuration.appsec.body_parsing_size_limit
                   next stack.call(request) if limit.zero?
 
-                  persistent_data = {}
+                  evaluation_data = {}
                   byte_length = gateway_request.body_bytesize(limit)
 
                   if byte_length
-                    persistent_data["server.request.body.byte_length"] = byte_length
+                    evaluation_data["server.request.body.byte_length"] = byte_length
 
                     if byte_length <= limit
                       body = gateway_request.form_hash
-                      persistent_data["server.request.body"] = body if body
+                      evaluation_data["server.request.body"] = body if body
                     end
                   # NOTE: Body was parsed before measurement, keep byte_length unset
                   elsif gateway_request.env.key?("rack.request.form_hash")
                     body = gateway_request.env["rack.request.form_hash"]
-                    persistent_data["server.request.body"] = body if body
+                    evaluation_data["server.request.body"] = body if body
                   end
 
-                  next stack.call(request) if persistent_data.empty?
+                  next stack.call(request) if evaluation_data.empty?
 
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
+
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
+                  end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
 
                   if result.match?
                     AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 

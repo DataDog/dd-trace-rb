@@ -109,7 +109,6 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => expected_db_statement,
             "server.db.system" => "postgresql",
@@ -125,7 +124,6 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "postgresql",
