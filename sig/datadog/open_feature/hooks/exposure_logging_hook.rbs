@@ -23,6 +23,14 @@ module Datadog
           evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
           **any _opts
         ) -> void
+
+        private
+
+        def report_result: (
+          ResolutionDetails result,
+          flag_key: String,
+          context: ::OpenFeature::SDK::EvaluationContext?
+        ) -> bool?
       end
     end
   end

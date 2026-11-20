@@ -1,0 +1,13 @@
+module Datadog
+  module OpenFeature
+    class ExposureResolutionDetails < ::OpenFeature::SDK::Provider::ResolutionDetails
+      type exposure = [String, ResolutionDetails, ::OpenFeature::SDK::EvaluationContext?]
+
+      @pending_exposures: Array[exposure]?
+
+      attr_writer pending_exposures: Array[exposure]?
+
+      def take_exposures: () -> Array[exposure]
+    end
+  end
+end

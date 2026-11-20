@@ -1534,3 +1534,134 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
   end
 end
+
+RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
+  subject(:record) { provider.send(:record_dependency_evaluations, result, nil, 1234) }
+
+  let(:provider) { described_class.new(enable_evaluation_telemetry_opt_out_parameter: false) }
+  let(:evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook, capture: nil) }
+  let(:metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook, capture: nil) }
+  let(:component) do
+    instance_double(Datadog::OpenFeature::Component, flag_eval_evp_hook: evp_hook, flag_eval_metrics_hook: metrics_hook, debug_logging_hook: nil)
+  end
+  let(:components) { instance_double(Datadog::Core::Configuration::Components, open_feature: component) }
+  let(:dependency) do
+    Datadog::OpenFeature::ResolutionDetails.new(
+      value: true, variant: "on", reason: "STATIC", allocation_key: "parent-allocation",
+      flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false},
+    )
+  end
+  let(:result) do
+    Datadog::OpenFeature::ResolutionDetails.new(dependency_evaluations: [["parent", dependency, false]])
+  end
+
+  before do
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components).and_return(components)
+  end
+
+  it "records reached prerequisites even when their exposure is ineligible" do
+    record
+    expect(evp_hook).to have_received(:capture) do |key, context, details|
+      expect(key).to eq("parent")
+      expect(context).to be_nil
+      expect(details.variant).to eq("on")
+      expect(details.flag_metadata).to include("dd.eval.timestamp_ms" => 1234,
+        Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false)
+    end
+    expect(metrics_hook).to have_received(:capture).with("parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+  end
+
+  it "preserves prerequisite errors" do
+    dependency.error_code = "FLAG_NOT_FOUND"
+    dependency.error_message = "missing prerequisite"
+    dependency.reason = "ERROR"
+    dependency[:error?] = true
+    record
+    expect(metrics_hook).to have_received(:capture) do |_key, details|
+      expect(details.error_code).to eq("FLAG_NOT_FOUND")
+      expect(details.reason).to eq("ERROR")
+    end
+  end
+
+  it "does not let telemetry failures escape" do
+    allow(evp_hook).to receive(:capture).and_raise(StandardError)
+    expect { record }.not_to raise_error
+  end
+
+  ["EVP", "metrics"].each do |sink|
+    it "continues other observations after a prerequisite #{sink} capture fails" do
+      result.dependency_evaluations << ["other-parent", dependency, true]
+      failing_hook = (sink == "EVP") ? evp_hook : metrics_hook
+      allow(failing_hook).to receive(:capture).with("parent", any_args).and_raise(StandardError)
+
+      record
+
+      expect(evp_hook).to have_received(:capture).with("parent", nil, kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(metrics_hook).to have_received(:capture).with("parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(evp_hook).to have_received(:capture).with("other-parent", nil, kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(metrics_hook).to have_received(:capture).with("other-parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+    end
+  end
+
+  context "with a nested JSON prerequisite" do
+    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger) }
+    let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter, record: false) }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil) }
+    let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: false) }
+    let(:evaluation_context) { OpenFeature::SDK::EvaluationContext.new(targeting_key: "subject") }
+    let(:configuration_json) do
+      configuration = JSON.parse(File.read(File.expand_path("../../fixtures/ffe/dependent_flags.json", __dir__)))
+      parent = configuration.fetch("flags").fetch("parent")
+      parent["variationType"] = "JSON"
+      nested_value = true
+      101.times { nested_value = {"nested" => nested_value} }
+      parent.fetch("variations").fetch("on")["value"] = nested_value
+      parent.fetch("variations").fetch("off")["value"] = {}
+      parent.fetch("allocations").fetch(0).fetch("splits").fetch(0)["serialId"] = 42
+      configuration["observeFullEvaluationData"] = true
+      JSON.generate(configuration, max_nesting: false)
+    end
+
+    before do
+      skip "requires the prerequisite-aware native library" unless Datadog::Core::FeatureFlags.evaluator_capabilities.include?("dependent-flag-variant-key-v1")
+      allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
+      allow(component).to receive(:span_enrichment_hook).and_return(nil)
+      allow(component).to receive(:exposure_logging_hook).and_return(
+        Datadog::OpenFeature::Hooks::ExposureLoggingHook.new(reporter, telemetry: telemetry, logger: logger),
+      )
+      engine.reconfigure!(configuration_json)
+    end
+
+    it "preserves the native root assignment, prerequisite observations, and eligible exposures" do
+      details = ::OpenFeature::SDK::Client.new(provider: provider).fetch_boolean_details(
+        flag_key: "root", default_value: false, evaluation_context: evaluation_context,
+      )
+
+      expect(details.value).to be(true)
+      expect(details.variant).to eq("on")
+      expect(details.reason).to eq("TARGETING_MATCH")
+      expect(details.error_code).to be_nil
+      expect(evp_hook).to have_received(:capture) do |key, context, observation|
+        expect(key).to eq("parent")
+        expect(context).to eq(evaluation_context)
+        expect(observation.variant).to eq("on")
+        expect(observation.error_code).to be_nil
+        expect(observation.flag_metadata).to include(
+          "__dd_allocation_key" => "parent-allocation",
+          "__dd_observe_full_evaluation_data" => true,
+        )
+      end
+      expect(metrics_hook).to have_received(:capture).with("parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(reporter).to have_received(:record).with(
+        flag_key: "parent", allocation_key: "parent-allocation", variant: "on", serial_id: 42,
+        context: evaluation_context, features: {},
+      )
+      expect(reporter).to have_received(:record).with(
+        flag_key: "root", allocation_key: "root-allocation", variant: "on", serial_id: nil,
+        context: evaluation_context, features: {},
+      )
+      expect(telemetry).not_to have_received(:report)
+    end
+  end
+end

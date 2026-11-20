@@ -74,6 +74,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "flag_selection:" do
 
     before do
       Datadog::OpenFeature::FlagSelectionReporter.reset_once_guards
+      allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(false)
       allow(logger).to receive(:error) { |message| errors << message }
       allow(Datadog::OpenFeature).to receive(:activate_provider).with(provider) do
         [activation.activate(provider), activation.failure]
@@ -125,6 +126,34 @@ RSpec.describe Datadog::OpenFeature::Provider, "flag_selection:" do
             "and key_patterns string arrays). Loading the full flag configuration.",
         )
         expect(errors).to be_empty
+      end
+    end
+
+    context "when capability parameters make the selected URL too long" do
+      let(:flag_selection) { {tags: ["team:#{"a" * 50}"]} }
+      let(:provider) { described_class.new(flag_selection: flag_selection) }
+
+      before do
+        allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true)
+        selection_query = Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(flag_selection).query
+        settings.env = "x" * (8192 - "#{rules_url}?dd_env=&#{selection_query}".bytesize)
+        stub_request(:get, "#{rules_url}?dd_env=#{settings.env}&cap_dependent-flags-variant-key=v1")
+          .to_return(status: 200, body: ufc, headers: ignored_headers)
+      end
+
+      it "loads all flags and reports that the selection was dropped" do
+        configuration.set_provider_and_wait(provider)
+
+        expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::READY)
+        activation.shutdown!
+        expect(errors.pop(true)).to eq(
+          "flag_selection was not sent (too_many_values: the request URL is at most 8192 bytes). " \
+            "Loading the full flag configuration.",
+        )
+        expect(errors).to be_empty
+        expect(telemetry).to have_received(:inc)
+          .with("tracers", "flag_selection.dropped", 1, tags: {reason: "too_many_values"})
+        expect(telemetry).not_to have_received(:inc).with("tracers", "flag_selection.ignored", any_args)
       end
     end
 

@@ -18,6 +18,7 @@ module Datadog
       :serial_id,
       :extra_logging,
       :features,
+      :dependency_evaluations,
       :log?,
       :error?,
       keyword_init: true,

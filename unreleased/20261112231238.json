@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6613",
+  "message": "Prevent feature flag exposures when an OpenFeature application hook fails, preserving exposures for a later successful evaluation of the same subject."
+}

@@ -58,6 +58,10 @@ module Datadog
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         log_resolution(flag_key, expected_type, result)
 
+        (result.dependency_evaluations || []).each do |_key, dependency, _eligible|
+          with_observe_full_evaluation_data(dependency, observe_full_evaluation_data)
+        end
+
         result
       rescue => e
         @telemetry.report(e, description: "OpenFeature: Failed to fetch flag value")

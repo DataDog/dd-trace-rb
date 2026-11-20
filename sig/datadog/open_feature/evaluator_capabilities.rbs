@@ -1,0 +1,9 @@
+module Datadog
+  module OpenFeature
+    module EvaluatorCapabilities
+      DEPENDENT_FLAG_VARIANT_KEY_V1: String
+
+      def self.dependent_flags?: () -> bool
+    end
+  end
+end
