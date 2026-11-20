@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6574",
+  "message": "Support direct delivery of exposures and flag evaluations when agentless configuration is used and no compatible local Agent is available."
+}
