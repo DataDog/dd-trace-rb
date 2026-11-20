@@ -7,6 +7,7 @@ RSpec.describe "OpenFeature benchmarks" do
 
   benchmarks_to_validate = [
     "open_feature_flagevaluation",
+    "open_feature_scale_json",
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|

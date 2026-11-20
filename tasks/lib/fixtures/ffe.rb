@@ -18,9 +18,11 @@ class FfeFixtures
 
   # Bump the version segment whenever the extractor keeps a different set of files, so caches
   # extracted by an older version at the same pin are not reused.
-  CACHE = File.join("tmp", "ffe-system-test-data", "v2")
+  CACHE = File.join("tmp", "ffe-system-test-data", "v3")
   CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}.freeze
   FLAG_SELECTION_PATTERN = %r{\Aflag-selection/[^/]+\.json\z}.freeze
+  # Only the opt-in suites that a spec or benchmark reads. The scale suites are about 16 MB extracted.
+  SUITES_PATTERN = %r{\Aevaluation-suites/(scale|scale-json)/(ufc-config\.json|cases/[^/]+\.json)\z}.freeze
   HTTP_ATTEMPTS = 3
   HTTP_TIMEOUT_SECONDS = 15
   RETRYABLE_STATUS = /\A(429|5\d\d)\z/.freeze
@@ -68,13 +70,20 @@ class FfeFixtures
     Gem::Package::TarReader.new(Zlib::GzipReader.new(StringIO.new(gzip))) do |tar|
       tar.each do |entry|
         relative = entry.full_name.sub(/\A[^\/]+\//, "")
-        next unless relative == "ufc-config.json" || relative.match?(CASES_PATTERN) || relative.match?(FLAG_SELECTION_PATTERN)
+        next unless kept?(relative)
 
         destination = File.join(staging, relative)
         FileUtils.mkdir_p(File.dirname(destination))
         File.binwrite(destination, entry.read)
       end
     end
+  end
+
+  def kept?(relative)
+    relative == "ufc-config.json" ||
+      relative.match?(CASES_PATTERN) ||
+      relative.match?(FLAG_SELECTION_PATTERN) ||
+      relative.match?(SUITES_PATTERN)
   end
 
   def tarball_url
