@@ -1,5 +1,8 @@
 # Named path filters consumed by dorny/paths-filter. Each gated workflow
 # points its `filters:` input here and reads its own group's output.
+
+# system-tests builds the gem from the checkout with `gem build`, so only the gemspec and the
+# files it packages reach the weblogs and the parametric app.
 system_tests:
   - '.github/forced-tests-list.cfg'
   - '.github/workflows/system-tests.yml'
@@ -7,10 +10,7 @@ system_tests:
   - 'bin/**'
   - 'datadog.gemspec'
   - 'ext/**'
-  - 'Gemfile'
-  - '*.gemfile'
   - 'lib/**'
-  - 'lib-injection/**'
 dependencies:
   - Gemfile
   - '*.gemfile'
