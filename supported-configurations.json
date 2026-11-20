@@ -1922,6 +1922,20 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_PARTIAL_FLUSH_ENABLED": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_PARTIAL_FLUSH_MIN_SPANS": [
+      {
+        "version": "C",
+        "type": "int",
+        "default": "500"
+      }
+    ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
       {
         "version": "A",
