@@ -242,13 +242,16 @@ module Datadog
       #
       # This method is meant to be called from the "end" trace point,
       # which is invoked for each class definition.
+      #
+      # @param cls [Class, Module] the class or module whose body has just ended
+      # @return [void]
       private def install_pending_method_probes(cls)
         probe_repository.synchronize do
           # TODO search more efficiently than linearly
           probe_repository.pending_probes.each do |probe_id, probe|
             if probe.method?
               # TODO move this stringification elsewhere
-              if probe.type_name == cls.name
+              if probe.normalized_type_name == cls.name
                 begin
                   # TODO is it OK to hook from trace point handler?
                   # TODO the class is now defined, but can hooking still fail?
