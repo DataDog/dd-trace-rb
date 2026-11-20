@@ -28,7 +28,8 @@ namespace :dependency do
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
   task all: [:generate, :lock, :propagate]
 
-  desc "Find gemfiles for #{AppraisalConversion.runtime_identifier} with no matching appraisal definition"
+  desc "Find gemfiles for #{AppraisalConversion.runtime_identifier} with no matching appraisal definition, " \
+    "and lockfiles with no matching gemfile"
   task :orphans do
     sh "bundle exec ruby appraisal/orphans.rb"
   end
