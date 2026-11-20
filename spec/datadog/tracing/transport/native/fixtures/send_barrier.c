@@ -9,17 +9,22 @@
 #include <unistd.h>
 
 /* Pause after the real native result exists, before Ruby regains the GVL. */
-ddog_TraceExporterError *ddog_trace_exporter_send_trace_chunks_observed(
+ddog_TraceExporterError *ddog_trace_exporter_send_trace_chunks_batched(
     const ddog_TraceExporter *exporter, ddog_TracerTraceChunks *chunks,
-    ddog_TraceExporterResponse **response, ddog_TraceExporterObservations *report,
+    size_t max_payload_bytes, ddog_TraceExporterBatch **batch,
     const ddog_TraceExporterCancelToken *cancel) {
     typedef ddog_TraceExporterError *(*send_fn)(const ddog_TraceExporter *, ddog_TracerTraceChunks *,
-        ddog_TraceExporterResponse **, ddog_TraceExporterObservations *, const ddog_TraceExporterCancelToken *);
+        size_t, ddog_TraceExporterBatch **, const ddog_TraceExporterCancelToken *);
     void *library = dlopen(getenv("OBSERVATION_LIBRARY"), RTLD_NOW | RTLD_NOLOAD);
-    send_fn send = library ? (send_fn)dlsym(library, "ddog_trace_exporter_send_trace_chunks_observed") : NULL;
+    send_fn send = library ? (send_fn)dlsym(library, "ddog_trace_exporter_send_trace_chunks_batched") : NULL;
     if (send == NULL) { fprintf(stderr, "Cannot resolve observed send: %s\n", dlerror()); _exit(20); }
 
-    ddog_TraceExporterError *error = send(exporter, chunks, response, report, cancel);
+    ddog_TraceExporterError *error = send(exporter, chunks, max_payload_bytes, batch, cancel);
+    typedef ddog_TraceExporterBatchPayload (*payload_fn)(const ddog_TraceExporterBatch *, size_t);
+    payload_fn get_payload = (payload_fn)dlsym(library, "ddog_trace_exporter_batch_payload");
+    if (get_payload == NULL) { fprintf(stderr, "Cannot resolve batch accessor\n"); _exit(20); }
+    ddog_TraceExporterBatchPayload payload = get_payload(*batch, 0);
+    const ddog_TraceExporterObservations *report = &payload.observations;
     char message[256];
     int size = snprintf(message, sizeof(message),
         "{\"requests\":%" PRIu64 ",\"chunks_sent\":%" PRIu64 ",\"bytes_sent\":%" PRIu64
