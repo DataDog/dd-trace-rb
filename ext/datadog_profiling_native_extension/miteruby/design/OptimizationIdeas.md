@@ -62,3 +62,9 @@ to get whatever's new/missing).
 
 The trade-off of enabling such "no-GVL" serialization is increased memory usage: we'd be copying a lot of
 strings that already live inside the Ruby heap. So it's a bit unclear how worth it is the trade-off.
+
+## Keep interned events queue even closer to pprof output
+
+In https://github.com/DataDog/libdd-c/pull/18 we explored something like this -- if we already know the id assigment for
+the exported profile, then "exporting" a stack (an array of location ids) could become "just feed the stack from the
+interned events queue directly into the zstd compressor".
