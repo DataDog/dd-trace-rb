@@ -2,6 +2,7 @@ require "open3"
 require "set"
 
 require_relative "appraisal_conversion"
+require_relative "edge_dependencies"
 require_relative "runtime_matcher"
 
 # rubocop:disable Metrics/BlockLength
@@ -36,43 +37,7 @@ namespace :edge do
 
   desc "Update groups with targeted dependencies"
   task :update do |_t, args|
-    # Naming convention:
-    #
-    # Key: integration name, the same as the name of spec task in Rakefile and MatrixFile
-    # Value: gem name, or a list of gem names when the group bundles several that
-    # the integration owns (e.g. ethon + typhoeus, or the aws-sdk family)
-    allowlist = {
-      "ai_guard:ruby_llm" => "ruby_llm",
-      "appsec:active_record" => "activerecord",
-      "appsec:devise" => "devise",
-      "aws" => ["aws-sdk", "aws-sdk-core"],
-      "dalli" => "dalli",
-      "elasticsearch" => "elasticsearch",
-      "ethon" => ["ethon", "typhoeus"],
-      "excon" => "excon",
-      "faraday" => ["faraday", "faraday-follow_redirects"],
-      "grape" => "grape",
-      "graphql" => "graphql",
-      "grpc" => "grpc",
-      "httpclient" => "httpclient",
-      "httprb" => "http",
-      "karafka" => "karafka",
-      "mongodb" => "mongo",
-      "open_feature" => "openfeature-sdk",
-      "opensearch" => "opensearch-ruby",
-      "rack" => "rack",
-      "redis" => "redis",
-      "rest_client" => "rest-client",
-      "sequel" => "sequel",
-      "shoryuken" => ["shoryuken", "aws-sdk-sqs"],
-      "sneakers" => "kicks",
-      "stripe" => "stripe",
-      "waterdrop" => "waterdrop",
-      # Add more integrations here, when their gems need to track the latest
-      # release; the gems may live in a shared group, as long as each entry
-      # lists only the gems that integration owns
-    }
-
+    allowlist = EdgeDependencies::ALLOWLIST
     allowlist = allowlist.slice(*args.extras) if args.extras.any?
 
     allowlist.each do |integration, gems|
@@ -100,6 +65,11 @@ namespace :edge do
         end
       end
     end
+  end
+
+  desc "Print the markdown table of allowlisted gems whose lockfile version changed since a git revision"
+  task :report, [:base] do |_t, args|
+    puts EdgeDependencies.report(base: args[:base] || "HEAD")
   end
 end
 # rubocop:enable Metrics/BlockLength
