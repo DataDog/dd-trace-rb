@@ -43,9 +43,11 @@ module Datadog
       #  if rate is zero, never allow
       # @param max_tokens [Numeric] Limit of available tokens
       # @raise [ArgumentError] when rate or max_tokens is not a number
-      def initialize(rate, max_tokens = rate)
+      def initialize(rate, max_tokens = nil)
         super()
 
+        # Capacity must reach the one-token admission cost; a rate below 1 otherwise never admits.
+        max_tokens = [rate, 1].max if max_tokens.nil?
         initialize_bucket(rate, max_tokens)
 
         @total_messages = 0

@@ -19,7 +19,7 @@ module Datadog
 
       @current_window: Float?
 
-      def initialize: (Float | Integer rate, ?Numeric max_tokens) -> void
+      def initialize: (Float | Integer rate, ?Numeric? max_tokens) -> void
 
       def allow?: (?Integer size) -> bool
 
