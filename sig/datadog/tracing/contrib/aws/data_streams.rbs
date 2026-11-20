@@ -1,0 +1,41 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        module DataStreams
+          ATTRIBUTE_NAME: ::String
+          MAX_MESSAGE_ATTRIBUTES: ::Integer
+          BASE64_TEXT: ::Regexp
+
+          def self.before_request: (::String? service, ::Symbol? operation, untyped context) -> void
+
+          def self.after_response: (::String? service, ::Symbol? operation, untyped context, untyped response) -> void
+
+          def self.consume: (::String queue, untyped message) -> void
+
+          def self.inject_sqs: (::Hash[::Symbol, untyped] message, ::String? queue) -> ::Hash[::Symbol, untyped]
+
+          def self.inject_sns: (::Hash[::Symbol, untyped] message, ::String? topic) -> ::Hash[::Symbol, untyped]
+
+          def self.inject: (::Hash[::Symbol, untyped] message, ::String type, ::String destination) { (::Hash[::String, untyped]) -> ::Hash[::Symbol, ::String] } -> ::Hash[::Symbol, untyped]
+
+          def self.with_entries: (::Hash[::Symbol, untyped] params) { (::Hash[::Symbol, untyped]) -> ::Hash[::Symbol, untyped] } -> ::Hash[::Symbol, untyped]
+
+          def self.request_datadog_attribute: (::Hash[::Symbol, untyped] params) -> ::Hash[::Symbol, untyped]
+
+          def self.extract_carrier: (untyped message) -> ::Hash[::String, untyped]?
+
+          def self.unwrap_double_encoding: (untyped value) -> untyped
+
+          def self.parse_attribute_hash: (::Hash[untyped, untyped] attribute) -> ::Hash[::String, untyped]?
+
+          def self.parse_json: (untyped value) -> ::Hash[::String, untyped]?
+
+          def self.queue_name: (::Hash[::Symbol, untyped] params) -> ::String?
+
+          def self.sns_destination: (::Hash[::Symbol, untyped] params) -> ::String?
+        end
+      end
+    end
+  end
+end

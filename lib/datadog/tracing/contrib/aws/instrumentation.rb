@@ -4,6 +4,7 @@ require_relative "../../metadata/ext"
 require_relative "../analytics"
 require_relative "ext"
 require_relative "../span_attribute_schema"
+require_relative "data_streams"
 
 module Datadog
   module Tracing
@@ -20,8 +21,13 @@ module Datadog
         class Handler < Seahorse::Client::Handler
           def call(context)
             Tracing.trace(Ext::SPAN_COMMAND) do |span|
-              @handler.call(context).tap do
-                annotate!(span, ParsedContext.new(context))
+              parsed = ParsedContext.new(context)
+              service = parsed.safely(:resource, "").split(".").first
+              operation = parsed.safely(:operation)
+              DataStreams.before_request(service, operation, context)
+              @handler.call(context).tap do |response|
+                annotate!(span, parsed)
+                DataStreams.after_response(service, operation, context, response)
               end
             end
           end
