@@ -4,7 +4,7 @@ module Datadog
       module Aws
         module Service
           class Lambda < Base
-            def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, untyped] params) -> void
+            def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 
             private
 

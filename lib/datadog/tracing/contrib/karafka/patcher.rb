@@ -26,6 +26,12 @@ module Datadog
           # (e.g. `my_batch_operation messages.payloads`)
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
+            # A topic may override `bootstrap.servers` to consume from another cluster; its `kafka` falls back
+            # to `Karafka::App.config.kafka` otherwise. The worker span reads the same topic configuration.
+            # If the topic is routed in several consumer groups, the first one wins.
+            topic = ::Karafka::Routing::Router.find_by(name: metadata.topic)
+            bootstrap_servers = KafkaConfig.bootstrap_servers(topic ? topic.kafka : ::Karafka::App.config.kafka)
+
             @messages_array.each do |message|
               trace_digest = if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
@@ -60,7 +66,6 @@ module Datadog
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
 
-                bootstrap_servers = KafkaConfig.bootstrap_servers(::Karafka::App.config.kafka)
                 span.set_tag(Contrib::Kafka::Ext::TAG_KAFKA_BOOTSTRAP_SERVERS, bootstrap_servers) if bootstrap_servers
 
                 span.resource = message.topic
