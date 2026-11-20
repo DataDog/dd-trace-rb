@@ -241,6 +241,19 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker.stop
         expect(worker.send(:thread)).to be nil
       end
+
+      context "when the thread does not stop within the timeout" do
+        it "kills the thread and waits for it to finish" do
+          thread = worker.send(:thread)
+          expect(thread).to receive(:join).with(0.5).ordered.and_return(nil)
+          expect(thread).to receive(:kill).ordered.and_call_original
+          expect(thread).to receive(:join).with(0.5).ordered.and_call_original
+
+          worker.stop(0.5)
+
+          expect(thread.alive?).to be false
+        end
+      end
     end
 
     context "worker is not running" do
@@ -252,6 +265,43 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         expect do
           worker.stop
         end.not_to raise_error
+      end
+    end
+  end
+
+  describe "worker thread" do
+    context "when an event is queued while the thread finishes a cycle that sent nothing" do
+      let(:status) { {status: "received"}.freeze }
+      let(:sent_batches) { Queue.new }
+      let(:first_cycle_gate) { Queue.new }
+
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(0.01)
+        allow(diagnostics_transport).to receive(:send_diagnostics) { |batch| sent_batches << batch }
+
+        injected = false
+        allow(worker).to receive(:maybe_send).and_wrap_original do |original|
+          # Hold the first cycle until #start has recorded the thread, so
+          # that add_status below does not start a second thread.
+          first_cycle_gate.pop unless injected
+          sent = original.call
+          if !sent && !injected
+            injected = true
+            # Runs on the worker thread after the queues were drained and
+            # before the thread waits, so the wake-up signal is lost.
+            worker.add_status(status)
+          end
+          sent
+        end
+      end
+
+      it "sends the event within the minimum send interval" do
+        worker.start
+        first_cycle_gate << true
+
+        try_wait_until(seconds: 5) { !sent_batches.empty? }
+
+        expect(sent_batches.pop).to eq([status])
       end
     end
   end

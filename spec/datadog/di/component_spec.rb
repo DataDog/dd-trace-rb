@@ -644,7 +644,7 @@ RSpec.describe Datadog::DI::Component do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
     let(:component) { described_class.build(settings, agent_settings, logger) }
-    let(:mutex) { component.instance_variable_get(:@lifecycle_mutex) }
+    let(:mutex) { component.send(:lifecycle_mutex) }
 
     before do
       # Stub the lifecycle method bodies so the test asserts only on the
