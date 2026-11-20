@@ -90,6 +90,22 @@ module Datadog
                 o.default false
               end
 
+              # Produces flag evaluation events, the feature_flag.evaluations metric and span enrichment.
+              # A provider option overrides it.
+              option :evaluation_telemetry_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED"
+                o.default true
+              end
+
+              # Treats evaluations as exposures; unlike exposures_datadog_logging_enabled, false also skips
+              # deduplication and ExposureHook. A provider option overrides it.
+              option :exposures_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EXPOSURES_ENABLED"
+                o.default true
+              end
+
               # Sends exposure events to Datadog.
               option :exposures_datadog_logging_enabled do |o|
                 o.type :bool

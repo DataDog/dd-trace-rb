@@ -2894,6 +2894,8 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | Setting | Environment variable | Type | Description | Default |
 |---|---|---|---|---|
 | `c.feature_flags.enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. `false` takes precedence over every configuration source. | `true` |
+| `c.feature_flags.evaluation_telemetry_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED` | `Boolean` | Produces evaluation telemetry: flag evaluation events, the `feature_flag.evaluations` metric, and span enrichment. A provider option overrides it. See [Evaluation telemetry and exposures](#evaluation-telemetry-and-exposures). | `true` |
+| `c.feature_flags.exposures_enabled` | `DD_FEATURE_FLAGS_EXPOSURES_ENABLED` | `Boolean` | Treats evaluations as exposures. A provider option overrides it. See [Evaluation telemetry and exposures](#evaluation-telemetry-and-exposures). | `true` |
 | `c.feature_flags.exposures_datadog_logging_enabled` | `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` | `Boolean` | Sends exposures to Datadog. Deduplication and `Datadog::OpenFeature::ExposureHook` use the same decisions with either value. | `true` |
 | `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
@@ -2960,7 +2962,7 @@ end
 - The callback runs on the evaluation thread and must not block or do I/O. Hand the data to a background queue.
 - An exception raised by the callback never affects the evaluation. The first one is logged at warn level, later ones at debug level.
 - The exposure cache keeps the last exposure for up to 1,000 of the most recently used flag and subject pairs. A cache hit does not confirm delivery to your data store; your code owns queueing and retries.
-- To record exposures only in your own data store, set `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`. `should_send?` keeps returning the same results.
+- To record exposures only in your own data store, set `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`. `should_send?` keeps returning the same results. To make evaluations stop counting as exposures, rather than only stop sending them, see [Evaluation telemetry and exposures](#evaluation-telemetry-and-exposures).
 - The hook skips its callback, with one warning, for evaluations that do not come from a directly registered Datadog provider, such as evaluations through a composed provider.
 - Flag metadata contains one `__dd_feature.<key>` entry for each feature of the selected split. These entries are public.
 - Other flag metadata keys that start with `__dd_` are internal and can change or be missing. To get the exposure decision, use `ExposureHook` (`exposure?`, `cache_hit?`, and `should_send?`) instead of reading flag metadata.
@@ -3032,6 +3034,49 @@ Account for that change in experiment analysis.
 Each enabled mode requires matching native library support. An active provider raises `ArgumentError` at construction when the installed native library lacks it.
 Experiment allocation classification comes from `doLog`, so published winners must use ordinary allocations with `doLog: false` to remain eligible in both opt-out modes.
 Future mode also requires the backend to supply accurate `randomizationActivatedAt` values; absent activation times exclude experiment allocations.
+
+#### Evaluation telemetry and exposures
+
+A provider has two independent switches. Each is on by default, set by an environment variable for every provider in the process, and overridden by a provider option:
+
+| Provider option | Environment variable | When off |
+|---|---|---|
+| `evaluation_telemetry_enabled: false` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED=false` | No flag evaluation events, no `feature_flag.evaluations` metric, and no span enrichment. |
+| `exposures_enabled: false` | `DD_FEATURE_FLAGS_EXPOSURES_ENABLED=false` | Evaluations are not exposures: none is recorded, deduplicated, sent to Datadog, or reported to `Datadog::OpenFeature::ExposureHook` as an exposure. |
+
+Neither switch changes flag values or assignment. The provider reads both at construction. An option must be `true`, `false`, or `nil`; `nil` uses the environment variable.
+
+Some applications decide something ahead of time, such as which version of a notification to send, and expose the subject only when they act on it, such as when the subject opens the notification. Register a second provider for the inspection, under its own OpenFeature domain, with both switches off:
+
+```ruby
+require "datadog"
+require "datadog/open_feature/provider"
+require "open_feature/sdk"
+
+OpenFeature::SDK.configure do |config|
+  config.set_provider(Datadog::OpenFeature::Provider.new, domain: "live")
+  config.set_provider(
+    Datadog::OpenFeature::Provider.new(evaluation_telemetry_enabled: false, exposures_enabled: false),
+    domain: "peek",
+  )
+end
+
+live = OpenFeature::SDK.build_client(domain: "live")
+peek = OpenFeature::SDK.build_client(domain: "peek")
+user = OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-123")
+
+# At send time: the variant the subject gets, with no exposure or evaluation telemetry.
+planned = peek.fetch_string_value(flag_key: "digest-subject-line", default_value: "control", evaluation_context: user)
+
+# When the subject opens the notification: the same variant, and the exposure.
+seen = live.fetch_string_value(flag_key: "digest-subject-line", default_value: "control", evaluation_context: user)
+```
+
+- Both providers share the process's flag configuration, so for the same flag, targeting key, attributes, and configuration, they return the same variant.
+- An inspection does not mark the subject as exposed, so the later live evaluation still sends the exposure.
+- Evaluate inspections through the inspection domain's client only. Hooks that the application registers itself, at the API or client level, still run; `ExposureHook` reports inspections with `exposure?` and `should_send?` false.
+- A process that only ever inspects can use the environment variables instead of provider options.
+- `exposures_enabled: false` differs from `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`, which keeps exposures for deduplication and `ExposureHook` and only stops sending them to Datadog.
 
 #### Evaluation telemetry opt-out
 

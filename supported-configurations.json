@@ -415,6 +415,22 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.evaluation_telemetry_enabled"],
+        "default": "true"
+      }
+    ],
+    "DD_FEATURE_FLAGS_EXPOSURES_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.exposures_enabled"],
+        "default": "true"
+      }
+    ],
     "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED": [
       {
         "version": "A",
