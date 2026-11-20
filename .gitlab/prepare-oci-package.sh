@@ -55,7 +55,9 @@ cp ../tmp/version sources
 ## shared copy: regular files byte for byte, symlinks by target. The
 ## conflict check below fails the package build when it does not. The mkmf
 ## Makefiles differ per gem home, so install_datadog_deps.rb strips them
-## with the other extension build products before this script runs.
+## with the other extension build products before this script runs; it also
+## removes the per-home compiled `lib/` copies of `ffi`, `msgpack` and
+## `cgi`, whose requires then resolve to the per-home `extensions/` copies.
 
 mkdir -p sources/ruby/common/gems
 
@@ -64,7 +66,7 @@ fail_conflict() {
   exit 1
 }
 
-for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
+for package in libdatadog libddwaf datadog-ruby_core_source logger ffi msgpack cgi datadog; do
   echo ".. scanning for ${package}"
 
   # The `[0-9]` after the package name keeps the `datadog` pattern from
