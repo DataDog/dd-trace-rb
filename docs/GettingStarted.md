@@ -3040,9 +3040,9 @@ A provider has two independent options, each `true` by default and set per provi
 | Provider option | When `false` |
 |---|---|
 | `evaluation_telemetry_enabled:` | No flag evaluation events, no `feature_flag.evaluations` metric, and no span enrichment for this provider. |
-| `exposures_enabled:` | Evaluations through this provider are not exposures: none is recorded, deduplicated, sent to Datadog, or reported to `Datadog::OpenFeature::ExposureHook` as an exposure. |
+| `exposures_enabled:` | Evaluations through this provider are not exposures: none is recorded, deduplicated, sent to Datadog, or reported to `Datadog::OpenFeature::ExposureHook` as an exposure. With span enrichment on, spans record the flag but not the subject. |
 
-Neither option changes flag values or assignment. Each must be `true` or `false`. Process-wide settings such as `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` and `DD_FLAGGING_EVALUATION_COUNTS_ENABLED` still apply to every provider.
+Neither option changes flag values or assignment. Each must be `true` or `false`; any other value, including `nil`, raises `ArgumentError`. Process-wide settings such as `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` and `DD_FLAGGING_EVALUATION_COUNTS_ENABLED` still apply to every provider.
 
 Some applications decide something ahead of time, such as which version of a notification to send, and expose the subject only when they act on it, such as when the subject opens the notification. Register a second provider for the inspection, under its own OpenFeature domain, with both options set to `false`:
 

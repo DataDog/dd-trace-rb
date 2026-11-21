@@ -202,6 +202,47 @@ RSpec.describe "OpenFeature evaluation telemetry and exposures switches" do
     expect(customer_evaluations.last.should_send?).to be(true)
   end
 
+  it "leaves out only the hooks of the disabled switch" do
+    expect(Datadog::OpenFeature::Provider.new(exposures_enabled: false).hooks)
+      .to eq([component.flag_eval_metrics_hook, component.flag_eval_evp_hook])
+    expect(Datadog::OpenFeature::Provider.new(evaluation_telemetry_enabled: false).hooks)
+      .to eq([component.exposure_logging_hook])
+  end
+
+  it "does not let an exposures-only opt-out suppress the later exposure of the same subject" do
+    peek = client_for(Datadog::OpenFeature::Provider.new(exposures_enabled: false))
+    live = client_for(Datadog::OpenFeature::Provider.new)
+
+    evaluate(peek)
+    exposed = evaluate(live)
+
+    expect(exposed.variant).to eq("on")
+    expect(sent_exposures.size).to eq(1)
+    expect(customer_evaluations.map(&:exposure?)).to eq([false, true])
+  end
+
+  it "drops exposure metadata the engine returns when exposures are disabled" do
+    allow(engine).to receive(:fetch_value).and_wrap_original do |original, *args, **options|
+      original.call(*args, **options).dup.tap do |result|
+        result.flag_metadata = {
+          Datadog::OpenFeature::Ext::METADATA_DO_LOG => true,
+          Datadog::OpenFeature::Ext::METADATA_SPLIT_SERIAL_ID => 100,
+          Datadog::OpenFeature::Ext::METADATA_EXPOSURE_CACHE_HIT => false,
+        }
+      end
+    end
+
+    details = evaluate(client_for(Datadog::OpenFeature::Provider.new(exposures_enabled: false)))
+
+    expect(details.flag_metadata.keys).not_to include(
+      Datadog::OpenFeature::Ext::METADATA_DO_LOG,
+      Datadog::OpenFeature::Ext::METADATA_SPLIT_SERIAL_ID,
+      Datadog::OpenFeature::Ext::METADATA_EXPOSURE_CACHE_HIT,
+    )
+    expect(customer_evaluations.map(&:exposure?)).to eq([false])
+    expect(customer_evaluations.map(&:split_serial_id)).to eq([nil])
+  end
+
   it "registers no telemetry or exposure hooks when both are disabled" do
     provider = Datadog::OpenFeature::Provider.new(
       evaluation_telemetry_enabled: false,
@@ -244,6 +285,9 @@ RSpec.describe "OpenFeature evaluation telemetry and exposures switches" do
       expect(inspected.variant).to eq("off")
       expect(exposed.variant).to eq(inspected.variant)
       expect(sent_exposures).to be_empty
+
+      evaluate(live, "user-2")
+      expect(sent_exposures.size).to eq(1)
     end
   end
 end

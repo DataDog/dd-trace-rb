@@ -80,8 +80,8 @@ module Datadog
       #   records the feature_flag.evaluations metric and enriches spans.
       # @param exposures_enabled [Boolean] whether evaluations through this provider are exposures. When
       #   false, none is recorded, deduplicated, sent, or reported to ExposureHook as an exposure, so a later
-      #   evaluation through a provider with exposures enabled still sends it.
-      #   Neither option changes flag values or assignment.
+      #   evaluation through a provider with exposures enabled still sends it, and enriched spans omit the subject.
+      #   Neither option changes flag values or assignment. Each raises ArgumentError unless true or false.
       def initialize(
         experimentation_opt_out_mode: nil,
         enable_evaluation_telemetry_opt_out_parameter: nil,
@@ -587,6 +587,11 @@ module Datadog
           metadata[Ext::METADATA_DO_LOG] = true
           serial_id = result.serial_id
           metadata[Ext::METADATA_SPLIT_SERIAL_ID] = serial_id unless serial_id.nil?
+        elsif !@exposures_enabled
+          # Keeps exposure data the engine may return out of ExposureHook results.
+          metadata.delete(Ext::METADATA_DO_LOG)
+          metadata.delete(Ext::METADATA_SPLIT_SERIAL_ID)
+          metadata.delete(Ext::METADATA_EXPOSURE_CACHE_HIT)
         end
         features = result.features
         SplitFeatures.write(metadata, features) if features && !features.empty?
