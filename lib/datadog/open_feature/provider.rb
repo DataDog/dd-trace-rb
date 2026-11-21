@@ -76,7 +76,19 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize(experimentation_opt_out_mode: nil, enable_evaluation_telemetry_opt_out_parameter: nil, flag_selection: nil)
+      # @param evaluation_telemetry_enabled [Boolean] whether this provider sends flag evaluation events,
+      #   records the feature_flag.evaluations metric and enriches spans.
+      # @param exposures_enabled [Boolean] whether evaluations through this provider are exposures. When
+      #   false, none is recorded, deduplicated, sent, or reported to ExposureHook as an exposure, so a later
+      #   evaluation through a provider with exposures enabled still sends it, and enriched spans omit the subject.
+      #   Neither option changes flag values or assignment. Each raises ArgumentError unless true or false.
+      def initialize(
+        experimentation_opt_out_mode: nil,
+        enable_evaluation_telemetry_opt_out_parameter: nil,
+        flag_selection: nil,
+        evaluation_telemetry_enabled: true,
+        exposures_enabled: true
+      )
         mode = experimentation_opt_out_mode
         mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
         # Preserve the requested policy if this provider is activated after configuration changes.
@@ -92,6 +104,9 @@ module Datadog
         else
           raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
+        @evaluation_telemetry_enabled = validate_switch(:evaluation_telemetry_enabled, evaluation_telemetry_enabled)
+        @exposures_enabled = validate_switch(:exposures_enabled, exposures_enabled)
+        log_disabled_switches
         @flag_selection = Configuration::FlagSelection.canonicalize(flag_selection)
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
@@ -197,15 +212,11 @@ module Datadog
 
       def hooks
         component = Datadog.send(:components).open_feature
-        telemetry_hooks = [
-          component&.flag_eval_metrics_hook,
-          component&.flag_eval_evp_hook,
-        ].compact
-        if @enable_evaluation_telemetry_opt_out_parameter
-          telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
-        end
+        # The exposure hook and its cache are shared by every provider, so a provider with exposures
+        # disabled must not run it: its evaluations would suppress another provider's exposures.
+        exposure_hook = component&.exposure_logging_hook if @exposures_enabled
 
-        [component&.exposure_logging_hook, *telemetry_hooks, component&.debug_logging_hook].compact
+        [exposure_hook, *telemetry_hooks(component), component&.debug_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -235,6 +246,30 @@ module Datadog
       private
 
       attr_reader :flag_selection
+
+      def telemetry_hooks(component)
+        return [] unless @evaluation_telemetry_enabled
+
+        hooks = [component&.flag_eval_metrics_hook, component&.flag_eval_evp_hook].compact
+        return hooks unless @enable_evaluation_telemetry_opt_out_parameter
+
+        hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
+      end
+
+      def validate_switch(name, option)
+        return option if option == true || option == false
+
+        raise ArgumentError, "#{name} expects true or false"
+      end
+
+      def log_disabled_switches
+        return if @evaluation_telemetry_enabled && @exposures_enabled
+
+        Datadog.logger.debug do
+          "Feature Flags: provider evaluation telemetry #{@evaluation_telemetry_enabled ? "enabled" : "disabled"}, " \
+            "exposures #{@exposures_enabled ? "enabled" : "disabled"}"
+        end
+      end
 
       def warn_if_hooks_unsupported
         return if defined?(::OpenFeature::SDK::Hooks::HookExecutor)
@@ -471,7 +506,7 @@ module Datadog
         # Drive APM span enrichment directly from the evaluation path. This is the only reliable
         # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
         # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
-        unless evaluation_telemetry_opted_out?(evaluation_context)
+        if @evaluation_telemetry_enabled && !evaluation_telemetry_opted_out?(evaluation_context)
           enrich_span(flag_key, result, evaluation_context)
         end
 
@@ -547,10 +582,16 @@ module Datadog
           metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
-        if result.log?
+        # Reporting only: the engine already selected the allocation from its configured do_log.
+        if exposure?(result)
           metadata[Ext::METADATA_DO_LOG] = true
           serial_id = result.serial_id
           metadata[Ext::METADATA_SPLIT_SERIAL_ID] = serial_id unless serial_id.nil?
+        elsif !@exposures_enabled
+          # Keeps exposure data the engine may return out of ExposureHook results.
+          metadata.delete(Ext::METADATA_DO_LOG)
+          metadata.delete(Ext::METADATA_SPLIT_SERIAL_ID)
+          metadata.delete(Ext::METADATA_EXPOSURE_CACHE_HIT)
         end
         features = result.features
         SplitFeatures.write(metadata, features) if features && !features.empty?
@@ -580,11 +621,15 @@ module Datadog
           variant: result.variant,
           value: result.value,
           serial_id: result.serial_id,
-          do_log: result.log? || false,
+          do_log: exposure?(result),
           targeting_key: evaluation_context&.targeting_key,
         )
       rescue => e
         Datadog.logger.debug { "OpenFeature: span enrichment dispatch failed: #{e.class}: #{e.message}" }
+      end
+
+      def exposure?(result)
+        @exposures_enabled && result.log? == true
       end
 
       def span_enrichment_hook

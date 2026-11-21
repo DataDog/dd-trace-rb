@@ -51,13 +51,19 @@ module Datadog
 
       @enable_evaluation_telemetry_opt_out_parameter: bool
 
+      @evaluation_telemetry_enabled: bool
+
+      @exposures_enabled: bool
+
       @flag_selection: Configuration::FlagSelection?
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
       def initialize: (?experimentation_opt_out_mode: (String | Symbol)?,
                        ?enable_evaluation_telemetry_opt_out_parameter: bool?,
-                       ?flag_selection: flag_selection_option?) -> void
+                       ?flag_selection: flag_selection_option?,
+                       ?evaluation_telemetry_enabled: bool,
+                       ?exposures_enabled: bool) -> void
 
       def init: () -> void
 
@@ -104,6 +110,12 @@ module Datadog
       private
 
       attr_reader flag_selection: Configuration::FlagSelection?
+
+      def telemetry_hooks: (Component? component) -> Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook]
+
+      def validate_switch: (Symbol name, bool option) -> bool
+
+      def log_disabled_switches: () -> void
 
       def resolve_experimentation_opt_out_mode: (String mode) -> experimentation_opt_out_mode
 
@@ -180,6 +192,8 @@ module Datadog
         ResolutionDetails result,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context
       ) -> void
+
+      def exposure?: (ResolutionDetails result) -> bool
 
       def span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
 
