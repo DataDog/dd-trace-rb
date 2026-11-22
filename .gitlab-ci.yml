@@ -249,7 +249,7 @@ generate-supported-versions:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 9c99e12186311ebd6cd1d0ce57c4d93b53703d93 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: e18688b80101005987adfa1f1cb8098a1f40437e # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
