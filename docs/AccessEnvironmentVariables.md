@@ -83,7 +83,6 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
       {
         "version": "A",
         "type": "boolean",
-        "propertyKeys": ["tracing.new_variable"],
         "default": "true",
         "aliases": ["DD_ALIAS_1", "DD_ALIAS_2"],
         "deprecated": true
@@ -98,7 +97,6 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
 - **supportedConfigurations**: Maps variable names to configuration metadata. For now, we only support a single version per configuration but it is an array for future usage. No runtime checks will be performed against these values (except aliases and deprecations), as they will be used to generate documentation and are only informative, but **please keep them updated!!!**
   - `version`: String indicating which implementations the tracer supports. Implementations are defined in the Configuration Registry. Versions are non-numeric to avoid confusion with library versions.
   - `type`: Optional, one of `boolean | int | float | string | array | map`. Indicates the type of the configuration value. **Different value means different version!**
-  - `propertyKeys`: Optional, array containing a single value, the path to access the configuration from `Datadog.configuration`. *This value can differ between config versions*
   - `default`: Optional, the default value, as a string (like if we gave the default value through environment variable). **Different value means different version!**
   - `aliases`: Optional, maps the config to an array of alias names. These environment variables should not be used in dd-trace-rb code. These aliases are by default considered deprecated. To accept non-deprecated environment variables, you must also add them as a separate configuration.
   - `deprecated`: Optional, true | false, adds a log message to deprecated environment variables.
@@ -119,7 +117,7 @@ Never edit the generated file by hand.
 
 ### Step 3: Define the setting
 
-For a user setting, define the option in the relevant settings or configuration file (usually `**/configuration/settings.rb`) and read the environment variable with `o.env`. If the `supported-configurations.json` entry has `propertyKeys`, keep it in sync with the option's `Datadog.configuration` path.
+For a user setting, define the option in the relevant settings or configuration file (usually `**/configuration/settings.rb`) and read the environment variable with `o.env`.
 
 ### Step 4: Document it
 
@@ -190,7 +188,6 @@ Missing properties:
     {
       "version": "A",
       "type": "boolean",
-      "propertyKeys": ["error_tracking"],
       "default": "false"
     }
   ]
