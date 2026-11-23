@@ -258,7 +258,9 @@ RSpec.describe Datadog::DI::Probe do
         expect(probe.rate_limit).to eq(42)
       end
     end
+  end
 
+  describe "rate_limit" do
     context "fractional rate_limit" do
       let(:probe) do
         described_class.new(
