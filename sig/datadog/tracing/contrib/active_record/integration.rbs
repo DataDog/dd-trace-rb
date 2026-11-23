@@ -7,6 +7,8 @@ module Datadog
 
           MINIMUM_VERSION: untyped
 
+          MAKARA_MINIMUM_VERSION: Gem::Version
+
           def self.version: () -> untyped
 
           def self.loaded?: () -> untyped

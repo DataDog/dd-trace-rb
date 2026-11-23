@@ -14,10 +14,26 @@ module Datadog
           Symbol expected_type,
           Hash[String, untyped] context
         ) -> ResolutionDetails
+
+        def get_assignment_with_options: (
+          String flag_key,
+          Symbol expected_type,
+          Hash[String, untyped] context,
+          bool experimentation_opt_out_immediate
+        ) -> ResolutionDetails
+
+        def get_assignment_with_opt_out_mode: (
+          String flag_key,
+          Symbol expected_type,
+          Hash[String, untyped] context,
+          Symbol experimentation_opt_out_mode
+        ) -> ResolutionDetails
       end
 
       class ResolutionDetails
         type metadata_t = Hash[String, String]
+
+        type feature_t = [String, String | Float | bool, Array[String]]
 
         @value: Datadog::Helpers::json
 
@@ -46,6 +62,8 @@ module Datadog
         def log?: () -> bool
 
         def flag_metadata: () -> metadata_t
+
+        def features: () -> Array[feature_t]
 
         private
 

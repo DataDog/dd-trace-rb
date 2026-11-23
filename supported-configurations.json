@@ -415,12 +415,28 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.exposures_datadog_logging_enabled"],
+        "default": "true"
+      }
+    ],
     "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["feature_flags.evaluation_telemetry_per_subject_opt_out_enabled"],
         "default": "false"
+      }
+    ],
+    "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE": [
+      {
+        "version": "A",
+        "type": "string",
+        "propertyKeys": ["feature_flags.experimentation_opt_out_mode"],
+        "default": "disabled"
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [

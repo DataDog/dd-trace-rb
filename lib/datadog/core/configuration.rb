@@ -84,15 +84,15 @@ module Datadog
         configuration = self.configuration
         yield(configuration)
 
+        new_components = nil
+        retired_data_streams = nil
         safely_synchronize do |write_components|
-          write_components.call(
-            if components?
-              replace_components!(configuration, @components)
-            else
-              build_components(configuration)
-            end,
-          )
+          new_components = components? ? replace_components!(configuration, @components) : build_components(configuration)
+          write_components.call(new_components)
+          # Remote Config may change data_streams.enabled during the rebuild, then lose its own reconcile.
+          retired_data_streams = new_components&.swap_data_streams
         end
+        new_components&.stop_retired_data_streams(retired_data_streams) if retired_data_streams
 
         configuration
       end

@@ -423,6 +423,35 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   describe "emitted payload shape" do
     let(:logger) { instance_double(Logger, debug: nil) }
 
+    it "splits rows by evaluation features and writes them on each row" do
+      payload = captured_payload do |writer|
+        [{"holdout.key" => "h-1"}, {"holdout.key" => "h-2"}, {"holdout.key" => "h-2"}, {}].each do |features|
+          writer.enqueue(
+            flag_key: "features-flag", variant: "on", allocation_key: "alloc-1", targeting_key: "user-42",
+            eval_time_ms: realistic_eval_ms, attrs: {}, features: features,
+          )
+        end
+      end
+
+      rows = payload["flagEvaluations"].map { |row| [row["features"], row["evaluation_count"]] }
+      expect(rows).to contain_exactly([{"holdout.key" => "h-1"}, 1], [{"holdout.key" => "h-2"}, 2], [nil, 1])
+    end
+
+    it "writes evaluation features on degraded rows" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      writer = described_class.new(transport: transport, logger: logger)
+      key = ["degraded-flag", "on", "alloc", false, "", {"holdout.key" => "h-1"}]
+      entry = {
+        count: 3, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
+        runtime_default: false, error_message: "", observe_full_evaluation_data: false,
+      }
+
+      events = writer.send(:build_events, {full: {}, degraded: {key => entry}, dropped_degraded_overflow: 0})
+      writer.stop
+
+      expect(events.first["features"]).to eq("holdout.key" => "h-1")
+    end
+
     it "emits a full-tier row with variant, allocation, targeting_key, and context" do
       payload = captured_payload do |writer|
         writer.enqueue(
@@ -1131,7 +1160,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       raw_subject = "jane.doe@datadoghq.com"
       # The synthetic key says consent is enabled, while the aggregate's AND-folded
       # consent says at least one evaluation disabled it.
-      key = ["pii-flag", "on", "alloc", false, "", raw_subject, nil, true]
+      key = ["pii-flag", "on", "alloc", false, "", raw_subject, nil, true, {}]
       entry = {
         count: 1, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
         runtime_default: false, error_message: "", targeting_key: raw_subject,

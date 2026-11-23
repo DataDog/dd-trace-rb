@@ -4,11 +4,11 @@ module Datadog
       module Span
         # DEV: Pending OpenTelemetry::SDK typechecking
 
-        def set_attribute: (::String key, ::String | bool | ::Numeric | ::Array[::String | ::Numeric | bool] value) -> untyped # ::OpenTelemetry::SDK::Trace::Span
+        def set_attribute: (String key, String | bool | Numeric | Array[String | Numeric | bool] value) -> untyped # ::OpenTelemetry::SDK::Trace::Span
         alias []= set_attribute
-        def add_attributes: (::Hash[::String, ::String | bool | ::Numeric | ::Array[::String | ::Numeric | bool]] attributes) -> untyped # ::OpenTelemetry::SDK::Trace::Span
+        def add_attributes: (Hash[String, String | bool | Numeric | Array[String | Numeric | bool]] attributes) -> untyped # ::OpenTelemetry::SDK::Trace::Span
 
-        def record_exception: (::Exception exception, ?attributes: Hash[String, untyped]?) -> untyped # ::OpenTelemetry::SDK::Trace::Span
+        def record_exception: (Exception exception, ?attributes: Hash[String, untyped]?) -> untyped # ::OpenTelemetry::SDK::Trace::Span
 
         # def status=: (::OpenTelemetry::Trace::Status s s) -> void
         def status=: (untyped s) -> void

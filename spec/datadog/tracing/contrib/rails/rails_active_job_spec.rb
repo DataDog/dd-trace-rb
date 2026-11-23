@@ -290,6 +290,19 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
             end
           end
 
+          it "skips the restore when the processor was replaced during the job" do
+            old_processor = instance_double(Datadog::DataStreams::Processor)
+            new_processor = instance_double(Datadog::DataStreams::Processor)
+            allow(Datadog::DataStreams).to receive(:processor).and_return(old_processor)
+            allow_any_instance_of(job_class).to receive(:perform) do
+              allow(Datadog::DataStreams).to receive(:processor).and_return(new_processor)
+            end
+
+            job_class.execute(job.serialize)
+
+            expect(Datadog::DataStreams).not_to have_received(:pathway_context=).with(context_before_job)
+          end
+
           it "does not touch the pathway context for a job performed without deserializing" do
             job.perform_now
 

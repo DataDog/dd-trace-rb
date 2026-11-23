@@ -303,6 +303,7 @@ RSpec.describe "AWS instrumentation" do
         expect(span.get_tag("aws_service")).to eq("sqs")
         expect(span.get_tag("aws_account")).to eq("123456789012")
         expect(span.get_tag("queuename")).to eq("MyQueueName")
+        expect(span.get_tag("aws.queue.url")).to eq("https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName")
         expect(span.get_tag("path")).to eq("/123456789012/MyQueueName")
         expect(span.get_tag("host")).to eq("sqs.us-stubbed-1.amazonaws.com")
         expect(span.get_tag("http.method")).to eq("POST")
@@ -1179,6 +1180,35 @@ RSpec.describe "AWS instrumentation" do
           .to eq("command")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
           .to eq("states.us-stubbed-1.amazonaws.com")
+      end
+    end
+  end
+
+  context "with a Lambda client" do
+    let(:client) { ::Aws::Lambda::Client.new(stub_responses: responses) }
+    let(:responses) { {invoke: {status_code: 200}} }
+
+    describe "#invoke" do
+      subject!(:invoke) { client.invoke(function_name: function_name) }
+
+      context "with a qualified function ARN" do
+        let(:function_name) { "arn:aws:lambda:us-east-1:123456789012:function:my-function:my-alias" }
+
+        it "generates a span with the unqualified function ARN" do
+          expect(span.name).to eq("aws.command")
+          expect(span.resource).to eq("lambda.invoke")
+          expect(span.get_tag("aws_service")).to eq("lambda")
+          expect(span.get_tag("aws.function.arn")).to eq("arn:aws:lambda:us-east-1:123456789012:function:my-function")
+        end
+      end
+
+      context "with a function name" do
+        let(:function_name) { "my-function" }
+
+        it "generates a span without a function ARN" do
+          expect(span.resource).to eq("lambda.invoke")
+          expect(span.get_tag("aws.function.arn")).to be_nil
+        end
       end
     end
   end

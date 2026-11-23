@@ -60,7 +60,7 @@ module Datadog
             gateway_request = Gateway::Request.new(env)
             gateway_response = nil
 
-            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+            interrupted = ctx.catch_interrupt do
               # TODO: This event should be renamed into `rack.request.start` to
               #       reflect that it's the beginning of the request-cycle
               http_response, _gateway_request = Instrumentation.gateway.push("rack.request", gateway_request) do
@@ -73,15 +73,14 @@ module Datadog
 
               Instrumentation.gateway.push("rack.request.finish", gateway_request)
               Instrumentation.gateway.push("rack.response", gateway_response)
-
-              nil
             end
 
+            response_shared = http_response && ctx.shared?
+            replace_response = interrupted && !response_shared
             add_normalized_route_tag(ctx, env)
 
-            if interrupt_params
-              ctx.mark_as_interrupted!
-              http_response = AppSec::Response.from_interrupt_params(interrupt_params, env["HTTP_ACCEPT"]).to_rack
+            if replace_response
+              http_response = AppSec::Response.from_interrupt_params(ctx.state[:interrupt_params], env["HTTP_ACCEPT"]).to_rack
             end
 
             # NOTE: This is not optimal, but in the current implementation
@@ -93,7 +92,7 @@ module Datadog
             #       `gateway_response` instead of re-creating it.
             #
             # WARNING: This part will be refactored.
-            tmp_response = if interrupt_params
+            tmp_response = if replace_response
               Gateway::Response.new(http_response[2], http_response[0], http_response[1], context: ctx)
             else
               gateway_response

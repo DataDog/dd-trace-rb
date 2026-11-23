@@ -50,13 +50,17 @@ module Datadog
             @snapshot_pruner = SnapshotPruner.new
           end
 
-          # The limit on an individual snapshot payload, aka "log line",
-          # is 1 MB. Larger snapshots are pruned to fit.
-          MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
+          # The backend's limit on an individual snapshot payload, aka
+          # "log line", is 1 MB.
+          BACKEND_SNAPSHOT_SIZE_LIMIT = 1024 * 1024
 
-          # The intake adds host tags and +ddtags+ before the backend
-          # applies its 1 MB cap; dd-trace-js/dd-trace-go keep this headroom.
+          # The intake adds host tags and +ddtags+ to a snapshot before the
+          # backend applies BACKEND_SNAPSHOT_SIZE_LIMIT.
           BACKEND_ENRICHMENT_HEADROOM = 4 * 1024
+
+          # The largest encoded snapshot that is sent. Larger snapshots are
+          # pruned to fit.
+          MAX_SERIALIZED_SNAPSHOT_SIZE = BACKEND_SNAPSHOT_SIZE_LIMIT - BACKEND_ENRICHMENT_HEADROOM
 
           # The maximum chunk (batch) size that intake permits is 5 MB.
           #
@@ -76,11 +80,11 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Large snapshots (> 1MB) are pruned: their largest, most deeply
-          # nested captured values are replaced with a pruned marker until
-          # they fit. Snapshots that pruning cannot fit are dropped. Batches
-          # are split into chunks of ~2MB each to avoid large network
-          # requests.
+          # Snapshots larger than MAX_SERIALIZED_SNAPSHOT_SIZE are pruned:
+          # their largest, most deeply nested captured values are replaced
+          # with a pruned marker until they fit. Snapshots that pruning
+          # cannot fit are dropped. Batches are split into chunks of ~2MB
+          # each to avoid large network requests.
           #
           # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
           # @param tags [Hash] Tags to send with the snapshots
@@ -144,7 +148,7 @@ module Datadog
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
             ).each do |chunk|
-              # We drop snapshots that are too big earlier.
+              # Snapshots that are too big were pruned or dropped earlier.
               # The limit on chunked payload length here is greater
               # than the limit on snapshot size, therefore no chunks
               # can exceed limits here.
@@ -164,8 +168,7 @@ module Datadog
             payload
           end
 
-          # Prunes an encoded snapshot that exceeds MAX_SERIALIZED_SNAPSHOT_SIZE
-          # to fit MAX_SERIALIZED_SNAPSHOT_SIZE less BACKEND_ENRICHMENT_HEADROOM.
+          # Prunes an encoded snapshot to fit MAX_SERIALIZED_SNAPSHOT_SIZE.
           #
           # A pruner failure drops the snapshot and is reported here, so
           # that it does not reach the serialization error callback, which
@@ -175,9 +178,8 @@ module Datadog
           # @return [String, nil] the pruned snapshot, nil when the snapshot
           #   is to be dropped because pruning cannot fit it or failed
           def prune_snapshot(encoded)
-            target = MAX_SERIALIZED_SNAPSHOT_SIZE - BACKEND_ENRICHMENT_HEADROOM
-            pruned = snapshot_pruner.prune(encoded, max_size: target)
-            if pruned.bytesize > target
+            pruned = snapshot_pruner.prune(encoded, max_size: MAX_SERIALIZED_SNAPSHOT_SIZE)
+            if pruned.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
               log_snapshot_drop
               return
             end

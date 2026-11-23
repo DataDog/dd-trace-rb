@@ -3,6 +3,9 @@ module Datadog
     module Remote
       PRODUCT: "APM_TRACING"
       CAPABILITIES: Array[Integer]
+
+      DATA_STREAMS_ENABLED_CAPABILITY: Integer
+
       # Keyed by specificity priority (1..5); value is the diagnostic label.
       SCOPE_LABELS: Hash[Integer, String]
 

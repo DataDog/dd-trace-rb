@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:3.1-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+FROM ghcr.io/datadog/images-rb/engines/ruby:3.1-gnu-gcc-g63fa2083a2632159fdfccba0106614dd88a4f742
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -41,13 +41,7 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-# Install RubyGems
-RUN gem update --system 3.4.1
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
-
-# Upgrade RubyGems and Bundler
-RUN gem update --system 3.4.1
-RUN gem install bundler
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Setup demo environment includes

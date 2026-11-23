@@ -1,6 +1,8 @@
 module Datadog
   module AIGuard
     module Evaluation
+      type span_metadata = Hash[String | Symbol, Array[Message::serialized] | Helpers::json]
+
       def self.perform: (Array[Message] messages, ?allow_raise: bool) -> Result
 
       def self.perform_no_op: (Array[Message] messages) -> NoOpResult

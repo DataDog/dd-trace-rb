@@ -50,8 +50,51 @@ RSpec.describe "Karafka patcher" do
       expect(span.get_tag("kafka.offset")).to eq 412
       expect(span.get_tag("messaging.destination")).to eq "topic_a"
       expect(span.get_tag("messaging.system")).to eq "kafka"
+      expect(span.get_tag("span.kind")).to eq "consumer"
       expect(span).to_not have_error
       expect(span.resource).to eq "topic_a"
+    end
+
+    context "when bootstrap.servers is configured" do
+      before do
+        allow(::Karafka::App.config).to receive(:kafka).and_return({"bootstrap.servers": "kafka-1:9092"})
+      end
+
+      it "sets the bootstrap servers tag" do
+        metadata = ::Karafka::Messages::Metadata.new
+        metadata["offset"] = 412
+        message = ::Karafka::Messages::Message.new(rand.to_s, metadata)
+        allow(message).to receive(:timestamp).and_return(Time.now)
+        allow(message).to receive(:topic).and_return("topic_a")
+        topic = ::Karafka::Routing::Topic.new("topic_a", double(id: 0))
+
+        messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
+        messages.each {}
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to eq "kafka-1:9092"
+      end
+    end
+
+    context "when iterated in a worker job whose topic overrides bootstrap.servers" do
+      before do
+        allow(::Karafka::App.config).to receive(:kafka).and_return({"bootstrap.servers": "kafka-1:9092"})
+      end
+
+      it "sets the brokers of the consumed cluster" do
+        metadata = ::Karafka::Messages::Metadata.new
+        metadata["offset"] = 412
+        message = ::Karafka::Messages::Message.new(rand.to_s, metadata)
+        allow(message).to receive(:timestamp).and_return(Time.now)
+        allow(message).to receive(:topic).and_return("topic_a")
+        topic = ::Karafka::Routing::Topic.new("topic_a", double(id: 0))
+
+        messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
+        Datadog::Tracing::Contrib::Karafka::KafkaConfig.with_job_bootstrap_servers("other-kafka:9092") do
+          messages.each {}
+        end
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to eq "other-kafka:9092"
+      end
     end
 
     context "when the message has tracing headers" do

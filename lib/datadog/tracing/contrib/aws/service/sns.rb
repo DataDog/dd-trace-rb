@@ -19,6 +19,7 @@ module Datadog
                 topic_name = parts[-1]
                 aws_account = parts[-2]
                 span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
+                span.set_tag(Aws::Ext::TAG_TOPIC_ARN, topic_arn)
               end
               span.set_tag(Aws::Ext::TAG_TOPIC_NAME, topic_name)
             end

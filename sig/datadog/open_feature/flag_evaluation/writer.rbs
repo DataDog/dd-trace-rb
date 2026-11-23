@@ -92,6 +92,7 @@ module Datadog
           ?targeting_key: any,
           ?attrs: Aggregator::raw_context?,
           ?observe_full_evaluation_data: bool,
+          ?features: SplitFeatures::features_t,
           **any event
         ) -> void
 
@@ -140,6 +141,7 @@ module Datadog
           flag_key: String,
           variant: String?,
           allocation_key: String?,
+          features: SplitFeatures::features_t,
           targeting_key: String?,
           entry: Aggregator::entry,
           flush_time_ms: Integer,

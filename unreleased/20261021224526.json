@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "Dynamic Instrumentation",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6539",
-  "message": "Send the probed method name of snapshots as `logger.method_name` instead of `logger.method`, so the Logger Method facet in Log Management shows it; update queries, monitors, and dashboards that filter to use `@logger.method_name`."
-}

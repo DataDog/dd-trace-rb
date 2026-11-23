@@ -146,5 +146,32 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
         expect { User.where(name: "Bob").to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
       end
     end
+
+    context "when query runs in a thread that copied the context before it was deactivated" do
+      before do
+        query_thread
+        User.where(name: "Alice").to_a
+        Datadog::AppSec::Context.deactivate
+        deactivated.push(true)
+      end
+
+      after { FileUtils.rm_rf(db_dir) }
+
+      let(:db_config) { {adapter: "sqlite3", database: File.join(db_dir, "test.db")} }
+      let(:db_dir) { Dir.mktmpdir }
+      let(:deactivated) { Queue.new }
+      let(:query_thread) do
+        locals = Thread.current.keys.map { |key| [key, Thread.current[key]] }
+
+        Thread.new do
+          locals.each { |key, value| Thread.current[key] = value }
+          deactivated.pop
+
+          User.where(name: "Bob").to_a
+        end.tap { |thread| thread.report_on_exception = false }
+      end
+
+      it { expect { query_thread.join }.not_to raise_error }
+    end
   end
 end

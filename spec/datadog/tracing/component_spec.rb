@@ -49,7 +49,9 @@ RSpec.describe Datadog::Tracing::Component do
       shared_examples_for "new tracer" do
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-        let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
+        let(:trace_flush) do
+          be_a(Datadog::Tracing::Flush::Partial) & have_attributes(min_spans_for_partial: 500)
+        end
         let(:sampler) do
           if defined?(super)
             super()
@@ -217,6 +219,15 @@ RSpec.describe Datadog::Tracing::Component do
 
             it_behaves_like "event publishing writer and priority sampler"
           end
+        end
+      end
+
+      context "with :partial_flush disabled" do
+        before { settings.tracing.partial_flush.enabled = false }
+
+        it_behaves_like "new tracer" do
+          let(:options) { {trace_flush: be_a(Datadog::Tracing::Flush::Finished)} }
+          it_behaves_like "event publishing writer and priority sampler"
         end
       end
 

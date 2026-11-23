@@ -4,6 +4,12 @@ require "datadog/appsec/spec_helper"
 
 RSpec.describe Datadog::AppSec::ActionsHandler do
   describe ".handle" do
+    before { Datadog::AppSec::Context.activate(context) }
+    after { Datadog::AppSec::Context.deactivate }
+
+    let(:context) { Datadog::AppSec::Context.new(nil, nil, waf_runner) }
+    let(:waf_runner) { instance_double(Datadog::AppSec::SecurityEngine::Runner, finalize!: nil) }
+
     let(:generate_stack_action) do
       {"generate_stack" => {"stack_id" => "foo"}}
     end
@@ -95,6 +101,26 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       catch(Datadog::AppSec::Ext::INTERRUPT) do
         described_class.handle(generate_stack_action.merge(redirect_request_action))
       end
+    end
+  end
+
+  describe ".interrupt_execution" do
+    context "when context is active" do
+      before { allow(Datadog::AppSec).to receive(:active_context).and_return(context) }
+
+      let(:context) { instance_double(Datadog::AppSec::Context, interrupt!: nil) }
+
+      it "interrupts the active context" do
+        described_class.interrupt_execution({"status_code" => "403"})
+
+        expect(context).to have_received(:interrupt!).with({"status_code" => "403"})
+      end
+    end
+
+    context "when there is no active context" do
+      before { allow(Datadog::AppSec).to receive(:active_context).and_return(nil) }
+
+      it { expect { described_class.interrupt_execution({"status_code" => "403"}) }.not_to raise_error }
     end
   end
 

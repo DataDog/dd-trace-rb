@@ -11,7 +11,7 @@ module Datadog
         def initialize: () -> void
         def configure: () -> void
         def configure_propagation: () -> untyped
-        def wrapped_exporters_from_env: () -> ::Array[untyped]
+        def wrapped_exporters_from_env: () -> Array[untyped]
         def metrics_configuration_hook: () -> void
         def logs_configuration_hook: () -> void
       end
