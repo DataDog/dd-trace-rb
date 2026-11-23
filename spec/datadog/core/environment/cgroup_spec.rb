@@ -139,6 +139,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
 
           before do
             allow(File).to receive(:exist?).with("/sys/fs/cgroup/").and_return(true)
+            allow(File).to receive(:stat).and_call_original
             allow(File).to receive(:stat).with("/sys/fs/cgroup/").and_return(double(ino: inode))
           end
 

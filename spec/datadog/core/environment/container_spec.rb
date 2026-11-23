@@ -196,6 +196,127 @@ RSpec.describe Datadog::Core::Environment::Container do
       end
     end
 
+    context "when a Docker hybrid v1/v2 environment has a readable v2 inode" do
+      include_context "Docker hybrid v1/v2 environment"
+
+      let(:inode_path) { "/sys/fs/cgroup#{v2_path}" }
+
+      before do
+        allow(described_class).to receive(:running_on_host?).and_return(false)
+        allow(File).to receive(:exist?).with(inode_path).and_return(true)
+        allow(File).to receive(:exist?).with("/sys/fs/cgroup/cpuset/docker/#{container_id}").and_return(false)
+        allow(File).to receive(:stat).and_call_original
+        allow(File).to receive(:stat).with(inode_path).and_return(double(ino: 12345))
+      end
+
+      it "uses the v1 container ID for origin headers" do
+        is_expected.to have_attributes(
+          platform: platform,
+          task_uid: nil,
+          container_id: container_id,
+          inode: nil,
+        )
+        expect(described_class.to_headers).to include(
+          "Datadog-Container-ID" => container_id,
+          "Datadog-Entity-ID" => "ci-#{container_id}",
+        )
+      end
+
+      context "when the v2 path is not the root and has no container ID" do
+        let(:v2_path) { "/user.slice/user-1000.slice" }
+
+        it "uses the v1 container ID for origin headers" do
+          is_expected.to have_attributes(
+            platform: platform,
+            task_uid: nil,
+            container_id: container_id,
+            inode: nil,
+          )
+          expect(described_class.to_headers).to include(
+            "Datadog-Container-ID" => container_id,
+            "Datadog-Entity-ID" => "ci-#{container_id}",
+          )
+        end
+      end
+    end
+
+    context "when in a cgroup v2 private namespace environment" do
+      include_context "cgroup v2 private namespace environment"
+
+      let(:running_on_host) { false }
+      let(:root_exists) { true }
+
+      before do
+        allow(described_class).to receive(:running_on_host?).and_return(running_on_host)
+        allow(File).to receive(:exist?).with("/sys/fs/cgroup/").and_return(root_exists)
+        allow(File).to receive(:stat).and_call_original
+        allow(File).to receive(:stat).with("/sys/fs/cgroup/").and_return(double(ino: 12345))
+      end
+
+      it "uses the root inode for origin headers" do
+        is_expected.to have_attributes(platform: nil, task_uid: nil, container_id: nil, inode: 12345)
+        expect(described_class.to_headers).to include("Datadog-Entity-ID" => "in-12345")
+        expect(described_class.to_headers).not_to have_key("Datadog-Container-ID")
+      end
+
+      context "when running on the host" do
+        let(:running_on_host) { true }
+
+        it "omits the container identity" do
+          is_expected.to eq(described_class::Entry.new)
+          expect(described_class.to_headers).not_to include("Datadog-Container-ID", "Datadog-Entity-ID")
+        end
+      end
+
+      context "when the cgroup filesystem root is absent" do
+        let(:root_exists) { false }
+
+        it "omits the container identity" do
+          is_expected.to eq(described_class::Entry.new)
+          expect(described_class.to_headers).not_to include("Datadog-Container-ID", "Datadog-Entity-ID")
+        end
+      end
+    end
+
+    context "when v1 entries precede v2 entries" do
+      include_context "cgroup file"
+
+      let(:v1_path) { "/docker/#{"a" * 64}" }
+      let(:v2_path) { "/docker/#{"b" * 64}" }
+
+      before do
+        cgroup_file.puts "1:cpuset:#{v1_path}"
+        cgroup_file.puts "0::#{v2_path}"
+        cgroup_file.rewind
+
+        allow(described_class).to receive(:running_on_host?).and_return(false)
+        allow(File).to receive(:exist?).with("/sys/fs/cgroup/cpuset#{v1_path}").and_return(true)
+        allow(File).to receive(:exist?).with("/sys/fs/cgroup#{v2_path}").and_return(true)
+        allow(File).to receive(:stat).and_call_original
+        allow(File).to receive(:stat).with("/sys/fs/cgroup/cpuset#{v1_path}").and_return(double(ino: 11111))
+        allow(File).to receive(:stat).with("/sys/fs/cgroup#{v2_path}").and_return(double(ino: 22222))
+      end
+
+      it "prefers the v2 container ID" do
+        is_expected.to have_attributes(platform: "docker", task_uid: nil, container_id: "b" * 64, inode: nil)
+        expect(described_class.to_headers).to include(
+          "Datadog-Container-ID" => "b" * 64,
+          "Datadog-Entity-ID" => "ci-#{"b" * 64}",
+        )
+      end
+
+      context "when neither entry has a container ID" do
+        let(:v1_path) { "/" }
+        let(:v2_path) { "/user.slice/user-1000.slice" }
+
+        it "keeps the v2 inode and platform as the fallback" do
+          is_expected.to have_attributes(platform: "user", task_uid: nil, container_id: nil, inode: 22222)
+          expect(described_class.to_headers).to include("Datadog-Entity-ID" => "in-22222")
+          expect(described_class.to_headers).not_to have_key("Datadog-Container-ID")
+        end
+      end
+    end
+
     context "when parsing cgroup entries raises an error" do
       before do
         allow(Datadog.logger).to receive(:debug)

@@ -425,9 +425,10 @@ module ContainerHelpers
     let(:platform) { "docker" }
     let(:container_id) { "3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860" }
     let(:lines) { 2 }
+    let(:v2_path) { "/" }
 
     before do
-      cgroup_file.puts "0::/"
+      cgroup_file.puts "0::#{v2_path}"
       cgroup_file.puts "1:cpuset:/#{platform}/#{container_id}"
       cgroup_file.rewind
     end
