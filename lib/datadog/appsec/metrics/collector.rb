@@ -63,9 +63,9 @@ module Datadog
         def record_rasp(result, type:, phase: nil)
           @mutex.synchronize do
             @rasp.evals += 1
-            @waf.matches += 1 if result.match?
-            @waf.rule_triggers += 1 if result.rule_triggered?
-            @waf.errors += 1 if result.error?
+            @rasp.matches += 1 if result.match?
+            @rasp.rule_triggers += 1 if result.rule_triggered?
+            @rasp.errors += 1 if result.error?
             @rasp.timeouts += 1 if result.timeout?
             @rasp.duration_ns += result.duration_ns
             @rasp.duration_ext_ns += result.duration_ext_ns
