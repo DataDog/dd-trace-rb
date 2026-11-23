@@ -22,15 +22,9 @@ module Datadog
 
       @stop_requested: bool
 
-      @sleep_remaining: Numeric?
-
       @wake_scheduled: bool
 
       @pid: Integer?
-
-      @flush: Integer
-
-      @last_sent: Numeric?
 
       @status_transport: DI::Transport::Diagnostics::Transport?
 
@@ -68,10 +62,6 @@ module Datadog
       def add_snapshot: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
 
       private
-
-      def last_sent: () -> Numeric
-
-      def set_sleep_remaining: () -> Numeric
 
       def status_queue: () -> Array[Hash[Symbol, untyped]]
 
