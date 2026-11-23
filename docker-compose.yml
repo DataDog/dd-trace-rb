@@ -220,6 +220,8 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xmx750m
+    tmpfs:
+      - /usr/share/elasticsearch/data
   memcached:
     # Dalli 5.x uses the memcached meta protocol, which requires memcached 1.6+.
     image: memcached:1.6-alpine

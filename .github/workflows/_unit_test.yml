@@ -272,7 +272,9 @@ jobs:
           discovery.type: single-node
           xpack.security.enabled: "false"
           ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+        # Index requests wait for a translog fsync, which stalls for seconds on the shared runner disk.
         options: >-
+          --tmpfs /usr/share/elasticsearch/data
           --health-cmd "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"' || exit 1"
           --health-interval 10s
           --health-timeout 5s
