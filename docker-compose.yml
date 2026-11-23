@@ -272,7 +272,7 @@ services:
     ports:
       - 9201:9200
     tmpfs:
-      - /usr/share/opensearch/data
+      - /usr/share/opensearch/data:uid=1000,gid=1000
   postgres:
     image: postgres:9.6
     environment:

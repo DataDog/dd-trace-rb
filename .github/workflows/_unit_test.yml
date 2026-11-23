@@ -297,7 +297,8 @@ jobs:
           cluster.routing.allocation.disk.watermark.high: 2gb
           cluster.routing.allocation.disk.watermark.flood_stage: 1gb
           cluster.routing.allocation.disk.threshold_enabled: "false"
-        options: --tmpfs /usr/share/opensearch/data
+        # The tmpfs root is owned by root; OpenSearch runs as uid 1000.
+        options: --tmpfs /usr/share/opensearch/data:uid=1000,gid=1000
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
