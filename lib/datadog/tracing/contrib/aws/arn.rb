@@ -31,8 +31,8 @@ module Datadog
           end
 
           def self.parse(value)
-            return nil unless scannable?(value)
-            return nil unless arn_like?(value)
+            return nil unless value.is_a?(::String) && value.encoding.ascii_compatible?
+            return nil unless value.start_with?(PREFIX) && value.valid_encoding?
 
             segments = value.split(":", SEGMENT_COUNT)
             return nil unless segments.length == SEGMENT_COUNT
