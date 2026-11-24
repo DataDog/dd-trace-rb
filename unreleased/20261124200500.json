@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6739",
+  "message": "Add Data Streams Monitoring checkpoints for Sidekiq jobs, so pathways continue through jobs pushed and run with Sidekiq."
+}
