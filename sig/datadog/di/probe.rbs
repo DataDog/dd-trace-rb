@@ -25,7 +25,7 @@ module Datadog
 
       @executed_on_line: bool?
 
-      @rate_limit: Integer
+      @rate_limit: (Float | Integer)
 
       @emitting_notified: bool
 
@@ -39,7 +39,7 @@ module Datadog
 	?max_capture_collection_size: Integer?, ?max_capture_string_length: Integer?,
 	?capture_expressions: Array[CaptureExpression],
 	?evaluate_at: Symbol?,
-	?rate_limit: Integer?) -> void
+	?rate_limit: (Float | Integer)?) -> void
 
       attr_reader condition: DI::EL::Expression?
 

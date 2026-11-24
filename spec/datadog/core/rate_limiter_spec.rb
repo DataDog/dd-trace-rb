@@ -133,7 +133,7 @@ RSpec.describe Datadog::Core::TokenBucket do
       it "caps the refill at the one-token capacity" do
         bucket.allow?
         allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(10)
-        bucket.allow?(0) # No-op message, only to force token refilling
+        bucket.allow?(0)
         expect(bucket.available_tokens).to eq(1)
       end
 
