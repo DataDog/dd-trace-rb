@@ -1,0 +1,7 @@
+{
+  "type": "Changed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6738",
+  "author": "@fuzzyrichie",
+  "message": "Reduce overhead in applications that set `c.tracing.enabled = false`: `ActiveSupport` notifications (including `ActiveRecord` queries), Sidekiq job pushes, and `mysql2` and `trilogy` queries no longer build spans that are then discarded."
+}
