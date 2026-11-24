@@ -2,6 +2,6 @@
   "type": "Added",
   "product": "Tracing",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6511",
-  "message": "Add the `aws_account` tag to S3 and DynamoDB spans when a successful AWS response proves which account owns the bucket or table.",
+  "message": "Tag S3 and DynamoDB spans with `aws_account` when AWS confirms the owner: S3 requests that set `expected_bucket_owner`, and DynamoDB requests by table name signed with assume-role credentials.",
   "author": "@pedramsafaei"
 }

@@ -49,14 +49,10 @@ module Datadog
             context.client.config.region
           end
 
-          # The account id STS returned for the assumed role that signed this
-          # request. Other providers take it from local configuration, and a
-          # subclass can override `#refresh`, so only these exact classes count.
-          #
-          # `Aws::Plugins::Sign` prefers request-scoped credentials when a plugin
-          # set them. `@credentials` is read directly because
-          # `RefreshingCredentials#credentials` can refresh, which may call STS
-          # and replace the identity that signed this request.
+          # Only these exact classes get the account id from STS. Other providers
+          # take it from local config, and a subclass can override `#refresh`.
+          # `@credentials` is read because `RefreshingCredentials#credentials`
+          # can refresh and call STS.
           def assumed_role_account_id
             provider = context[:sigv4_credentials] || context.client.config.credentials
             return unless PROVEN_ACCOUNT_ID_PROVIDERS.include?(provider.class.name)

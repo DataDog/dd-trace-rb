@@ -18,20 +18,17 @@ module Datadog
             DNS_SUFFIX_FAILURE_DESCRIPTION =
               "Failed to read AWS partition DNS suffixes; AWS resource owner accounts will not be tagged"
 
-            # Avoids the uninitialized instance variable warning under `-w`.
+            # Avoids the uninitialized instance variable warning on Ruby < 3.0.
             @aws_dotted_dns_suffixes = nil
 
             class << self
-              # DNS suffixes of every AWS partition, each with a leading dot.
-              # Returns an empty list while the partition list cannot be read.
               def aws_dotted_dns_suffixes
                 @aws_dotted_dns_suffixes || load_aws_dotted_dns_suffixes
               end
 
               private
 
-              # Only a non-empty list is memoized, because `Aws::Partitions` is
-              # autoloaded and a failed read can succeed on a later span.
+              # Only a non-empty list is memoized, so a failed read is retried on a later span.
               def load_aws_dotted_dns_suffixes
                 suffixes = []
                 if defined?(::Aws::Partitions)
@@ -66,7 +63,6 @@ module Datadog
             def add_tags(span, params)
             end
 
-            # Only services whose response proves resource ownership need the request context.
             def add_owner_tags(span, params, context)
             end
 
@@ -76,10 +72,7 @@ module Datadog
               value if value.is_a?(String) && ACCOUNT_ID_FORMAT.match?(value)
             end
 
-            # A successful response from the AWS endpoint of the service. A
-            # failed request, or a 2xx from an S3 or DynamoDB compatible service
-            # such as MinIO, LocalStack or DynamoDB Local, says nothing about an
-            # AWS account.
+            # A 2xx from a compatible service such as MinIO or LocalStack says nothing about an AWS account.
             def aws_confirmed_response?(context, endpoint_label)
               status_code = context.safely(:status_code)
               return false unless status_code.is_a?(Integer) && SUCCESS_STATUS_CODES.cover?(status_code)
@@ -87,15 +80,13 @@ module Datadog
               host = context.safely(:host)
               return false unless host.is_a?(String)
 
-              # Matched on the dot boundary so `s3.amazonaws.com.example.net` and
-              # `notamazonaws.com` are not AWS.
-              normalized = host.downcase.delete_suffix(".")
+              normalized = host.downcase
+              normalized.delete_suffix!(".")
+              # Suffixes keep their leading dot, so `notamazonaws.com` is not AWS.
               dotted_suffix = Base.aws_dotted_dns_suffixes.find { |suffix| normalized.end_with?(suffix) }
               return false unless dotted_suffix
 
-              # The service label sits right of any bucket, account or VPC endpoint
-              # label. Load balancer, EC2 and API Gateway hosts under the same
-              # suffix end in their own label and can front any server.
+              # Load balancer, EC2 and API Gateway hosts share the suffix but can front any server.
               labels = normalized.delete_suffix(dotted_suffix).split(".")
               labels.pop if labels.last == "vpce"
               labels.pop if REGION_FORMAT.match?(labels.last)
