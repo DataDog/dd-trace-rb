@@ -9,5 +9,3 @@ COPY . /vendor/dd-trace-rb
 ENV DD_DEMO_ENV_GEM_LOCAL_DATADOG /vendor/dd-trace-rb
 
 RUN /vendor/dd-demo/build_datadog_profiling_native_extension.rb
-
-RUN bundle install

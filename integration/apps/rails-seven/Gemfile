@@ -8,6 +8,7 @@ gem "rails", "~> 7.0.5"
 
 # Choose correct specs for 'datadog' demo environment
 gem *Datadog::DemoEnv.gem_datadog_auto_instrument
+gem 'libdatadog', Datadog::DemoEnv.locked_libdatadog_version if Datadog::DemoEnv.local_gem('datadog')
 
 gem 'dogstatsd-ruby'
 
