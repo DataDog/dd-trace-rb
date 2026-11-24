@@ -4,7 +4,7 @@
 # then generates the library using our local zstd-in.c. Temporary files are cleaned up on exit.
 set -euo pipefail
 
-readonly ZSTD_VERSION="v1.5.7"
+readonly ZSTD_VERSION="v1.6.0"
 readonly EXPECTED_CHECKSUM="238606d9ad2cb4f40063a7def25395f31302da31c0e09727e20af0d204f87721"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,7 +21,7 @@ trap 'exit 143' TERM
 archive_name="zstd-${ZSTD_VERSION#v}.tar.gz"
 printf 'Downloading zstd %s...\n' "$ZSTD_VERSION"
 curl -fsSL --retry 5 --retry-delay 2 \
-  "https://github.com/facebook/zstd/releases/download/$ZSTD_VERSION/$archive_name" \
+  "https://github.com/meta/zstd/releases/download/$ZSTD_VERSION/$archive_name" \
   -o "$temp_dir/$archive_name"
 tar -xzf "$temp_dir/$archive_name" -C "$temp_dir"
 
