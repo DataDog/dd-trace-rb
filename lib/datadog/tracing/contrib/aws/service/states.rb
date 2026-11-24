@@ -13,9 +13,18 @@ module Datadog
           class States < Base
             SERVICE = "states"
 
-            STATE_MACHINE_RESOURCE_TYPES = %w[stateMachine].freeze
+            # A version or alias ARN appends `:<qualifier>` to the state machine.
+            # @see https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsstepfunctions.html
+            STATE_MACHINE_RESOURCE_FORMAT = %r{\AstateMachine:(?<name>[^:/]+)(?::[^:/]+)?\z}
 
-            EXECUTION_RESOURCE_TYPES = %w[execution express].freeze
+            # A Distributed Map child execution adds `/<map run label>` to the
+            # state machine name, and an Express execution ends in its own id.
+            EXECUTION_RESOURCE_FORMAT = %r{
+              \A(?:
+                execution:(?<name>[^:/]+)(?:/[^:/]+)?:[^:/]+ |
+                express:(?<name>[^:/]+)(?:/[^:/]+)?:[^:/]+:[^:/]+
+              )\z
+            }x
 
             def add_tags(span, params)
               execution_arn = params[:execution_arn]
@@ -40,11 +49,11 @@ module Datadog
 
             def parse_state_machine(execution_arn, state_machine_arn)
               execution = Aws::Arn.parse(execution_arn)
-              execution_name = execution&.typed_resource_id(SERVICE, EXECUTION_RESOURCE_TYPES)
+              execution_name = execution&.resource_name(SERVICE, EXECUTION_RESOURCE_FORMAT)
               return if execution_arn && execution_name.nil?
 
               state_machine = Aws::Arn.parse(state_machine_arn)
-              state_machine_name = state_machine&.typed_resource_id(SERVICE, STATE_MACHINE_RESOURCE_TYPES)
+              state_machine_name = state_machine&.resource_name(SERVICE, STATE_MACHINE_RESOURCE_FORMAT)
               return if state_machine_arn && state_machine_name.nil?
 
               # Two ARNs that name different state machines resolve to nothing.

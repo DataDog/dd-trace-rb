@@ -6,9 +6,7 @@ module Datadog
           class DynamoDB < Base
             SERVICE: String
 
-            TABLE_RESOURCE_TYPES: Array[String]
-
-            TABLE_RESOURCE_SEGMENTS: Integer
+            TABLE_RESOURCE_FORMAT: Regexp
 
             def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 

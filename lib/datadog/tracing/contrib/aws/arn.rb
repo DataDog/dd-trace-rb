@@ -13,9 +13,8 @@ module Datadog
           PARTITION_FORMAT = /\Aaws(?:-[a-z0-9]+)*\z/
           REGION_FORMAT = /\A[a-z0-9]+(?:-[a-z0-9]+)*-\d+\z/
           ACCOUNT_ID_FORMAT = /\A\d{12}\z/
-          RESOURCE_SEPARATOR = %r{[:/]}
 
-          attr_reader :partition, :service, :region, :account_id, :resource, :resource_segments
+          attr_reader :partition, :service, :region, :account_id, :resource
 
           # `String#start_with?` raises on a non-ASCII-compatible encoding and
           # `Regexp#match?` raises on invalid bytes.
@@ -62,28 +61,16 @@ module Datadog
             @region = region
             @account_id = account_id
             @resource = resource
-            # `-1` keeps trailing empty segments, so `table/MyTable/` is not `table/MyTable`.
-            @resource_segments = resource.split(RESOURCE_SEPARATOR, -1)
           end
 
-          # The `MyTable` of `table/MyTable`.
-          def typed_resource_id(service_name, resource_types, segments: nil)
-            return nil unless service == service_name
-            return nil unless resource_types.include?(resource_segments[0])
-            return nil if segments && resource_segments.length != segments
+          # The `name` capture of `format` matched against the whole resource.
+          # Each service has its own resource grammar, so a shared separator
+          # split would accept shapes like `table:MyTable` that AWS rejects.
+          # Every resource read this way lives in one Region and one account.
+          def resource_name(service_name, format)
+            return nil unless service == service_name && region && account_id
 
-            id = resource_segments[1]
-            return nil if id.nil? || id.empty?
-
-            id
-          end
-
-          # The `my-topic` of an SNS topic ARN.
-          def bare_resource_id(service_name)
-            return nil unless service == service_name
-            return nil unless resource_segments.length == 1
-
-            resource
+            format.match(resource)&.[](:name)
           end
         end
       end

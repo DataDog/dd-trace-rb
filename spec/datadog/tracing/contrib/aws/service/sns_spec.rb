@@ -180,4 +180,38 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
       expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, anything)
     end
   end
+
+  context "with a FIFO topic ARN" do
+    let(:topic_arn) { "arn:aws:sns:us-west-2:123456789012:my-topic.fifo" }
+    let(:params) { {topic_arn: topic_arn} }
+
+    it "resolves the topic name, ARN and account" do
+      sns.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_TOPIC_NAME, "my-topic.fifo")
+      expect(span).to have_received(:set_tag).with(ext::TAG_TOPIC_ARN, topic_arn)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+    end
+  end
+
+  describe "with an ARN that is not a topic ARN" do
+    [
+      ["a trailing path", "arn:aws:sns:us-west-2:123456789012:my-topic/garbage"],
+      ["a trailing separator", "arn:aws:sns:us-west-2:123456789012:my-topic/"],
+      ["a trailing colon", "arn:aws:sns:us-west-2:123456789012:my-topic:"],
+      ["no Region", "arn:aws:sns::123456789012:my-topic"],
+      ["no account", "arn:aws:sns:us-west-2::my-topic"],
+    ].each do |description, value|
+      context "with #{description}" do
+        let(:params) { {topic_arn: value} }
+
+        it "claims no topic identity" do
+          sns.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_TOPIC_NAME, nil)
+          expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_TOPIC_NAME, anything)
+          expect(span).not_to have_received(:set_tag).with(ext::TAG_TOPIC_ARN, anything)
+          expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, anything)
+        end
+      end
+    end
+  end
 end

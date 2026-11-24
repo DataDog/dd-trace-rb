@@ -370,4 +370,49 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       expect(span).to have_received(:set_tag).with(ext::TAG_STATE_MACHINE_NAME, "MyStateMachine")
     end
   end
+
+  describe "with an ARN that does not follow the Step Functions grammar" do
+    arn = "arn:aws:states:us-east-1:123456789012"
+    [
+      ["a state machine ARN with a slash", {state_machine_arn: "#{arn}:stateMachine/MyStateMachine"}],
+      ["a state machine ARN with an extra segment", {state_machine_arn: "#{arn}:stateMachine:MyStateMachine:1:extra"}],
+      ["a state machine ARN with a trailing colon", {state_machine_arn: "#{arn}:stateMachine:MyStateMachine:"}],
+      ["a state machine ARN with no Region", {state_machine_arn: "arn:aws:states::123456789012:stateMachine:MyStateMachine"}],
+      ["a state machine ARN with no account", {state_machine_arn: "arn:aws:states:us-east-1::stateMachine:MyStateMachine"}],
+      ["an execution ARN with no execution", {execution_arn: "#{arn}:execution:MyStateMachine"}],
+      ["an execution ARN with an extra segment", {execution_arn: "#{arn}:execution:MyStateMachine:my-execution:extra"}],
+      ["an execution ARN with slashes", {execution_arn: "#{arn}:execution/MyStateMachine/my-execution"}],
+      ["an Express execution ARN with no id", {execution_arn: "#{arn}:express:MyStateMachine:my-execution"}],
+      ["a map run ARN", {execution_arn: "#{arn}:mapRun:MyStateMachine/Map:1234-5678"}],
+    ].each do |description, malformed|
+      context "with #{description}" do
+        let(:params) { malformed }
+
+        it "sets no tags whatsoever" do
+          step_functions.add_tags(span, params)
+          expect(span).not_to have_received(:set_tag)
+        end
+      end
+    end
+  end
+
+  describe "with an ARN that follows the Step Functions grammar" do
+    arn = "arn:aws:states:us-east-1:123456789012"
+    [
+      ["a version ARN", {state_machine_arn: "#{arn}:stateMachine:MyStateMachine:1"}],
+      ["an alias ARN", {state_machine_arn: "#{arn}:stateMachine:MyStateMachine:PROD"}],
+      ["a Distributed Map child execution ARN", {execution_arn: "#{arn}:execution:MyStateMachine/Map:1"}],
+      ["a Distributed Map child Express execution ARN", {execution_arn: "#{arn}:express:MyStateMachine/Map:1:1234-5678"}],
+    ].each do |description, valid|
+      context "with #{description}" do
+        let(:params) { valid }
+
+        it "resolves the state machine name and account" do
+          step_functions.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_STATE_MACHINE_NAME, "MyStateMachine")
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+        end
+      end
+    end
+  end
 end

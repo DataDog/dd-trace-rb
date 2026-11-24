@@ -81,7 +81,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
 
   context "with a consumer-qualified stream ARN" do
     let(:stream_arn) do
-      "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream/consumer/my-consumer/1693526402"
+      "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream/consumer/my-consumer:1693526402"
     end
     let(:params) { {stream_arn: stream_arn} }
 
@@ -156,6 +156,31 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
       expect(span).to have_received(:set_tag).with(ext::TAG_STREAM_NAME, nil)
       expect(span).not_to have_received(:set_tag).with(ext::TAG_STREAM_ARN, anything)
       expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, anything)
+    end
+  end
+
+  describe "with an ARN that is not a stream or consumer ARN" do
+    [
+      ["a trailing path", "arn:aws:kinesis:us-east-1:123456789012:stream/Orders/garbage"],
+      ["a trailing separator", "arn:aws:kinesis:us-east-1:123456789012:stream/Orders/"],
+      ["a colon after the resource type", "arn:aws:kinesis:us-east-1:123456789012:stream:Orders"],
+      ["a consumer with a slash before its timestamp", "arn:aws:kinesis:us-east-1:123456789012:stream/Orders/consumer/app/1693526402"],
+      ["a consumer with no timestamp", "arn:aws:kinesis:us-east-1:123456789012:stream/Orders/consumer/app"],
+      ["a consumer with a non-numeric timestamp", "arn:aws:kinesis:us-east-1:123456789012:stream/Orders/consumer/app:latest"],
+      ["no Region", "arn:aws:kinesis::123456789012:stream/Orders"],
+      ["no account", "arn:aws:kinesis:us-east-1::stream/Orders"],
+    ].each do |description, value|
+      context "with #{description}" do
+        let(:params) { {stream_arn: value} }
+
+        it "claims neither a name, an ARN nor an account" do
+          kinesis.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_STREAM_NAME, nil)
+          expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_STREAM_NAME, anything)
+          expect(span).not_to have_received(:set_tag).with(ext::TAG_STREAM_ARN, anything)
+          expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, anything)
+        end
+      end
     end
   end
 end

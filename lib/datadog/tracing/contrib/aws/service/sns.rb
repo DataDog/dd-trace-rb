@@ -13,6 +13,11 @@ module Datadog
           class SNS < Base
             SERVICE = "sns"
 
+            # Endpoint and platform application ARNs carry a `/`, and
+            # subscription ARNs append `:<id>` to the topic.
+            # @see https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonsns.html
+            TOPIC_RESOURCE_FORMAT = %r{\A(?<name>[^:/]+)\z}
+
             def add_tags(span, params)
               topic_name, topic_arn, account_id = parse_topic_arn(params[:topic_arn])
               topic_name ||= params[:name]
@@ -27,10 +32,9 @@ module Datadog
 
             private
 
-            # Endpoint, platform application and subscription ARNs are not topics.
             def parse_topic_arn(value)
               arn = Aws::Arn.parse(value)
-              name = arn&.bare_resource_id(SERVICE)
+              name = arn&.resource_name(SERVICE, TOPIC_RESOURCE_FORMAT)
               return unless arn && name
 
               [name, value, arn.account_id]

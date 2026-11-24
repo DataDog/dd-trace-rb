@@ -6,9 +6,9 @@ module Datadog
           class States < Base
             SERVICE: String
 
-            STATE_MACHINE_RESOURCE_TYPES: Array[String]
+            STATE_MACHINE_RESOURCE_FORMAT: Regexp
 
-            EXECUTION_RESOURCE_TYPES: Array[String]
+            EXECUTION_RESOURCE_FORMAT: Regexp
 
             def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 

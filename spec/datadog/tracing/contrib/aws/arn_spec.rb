@@ -16,45 +16,13 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
         expect(parsed.account_id).to eq("123456789012")
         expect(parsed.resource).to eq("my-topic-name")
       end
-
-      it "reports a bare resource" do
-        expect(parsed.bare_resource_id("sns")).to eq("my-topic-name")
-        expect(parsed.resource_segments).to eq(["my-topic-name"])
-      end
-    end
-
-    context "with a slash-delimited resource" do
-      let(:value) { "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable" }
-
-      it "splits the resource into type and id" do
-        expect(parsed.resource_segments).to eq(["table", "MyTable"])
-      end
     end
 
     context "with a colon-delimited resource" do
       let(:value) { "arn:aws:states:us-east-1:123456789012:execution:my-machine:my-execution" }
 
-      it "splits every resource segment" do
+      it "keeps every colon after the account in the resource" do
         expect(parsed.resource).to eq("execution:my-machine:my-execution")
-        expect(parsed.resource_segments).to eq(["execution", "my-machine", "my-execution"])
-      end
-    end
-
-    context "with a mixed-delimiter resource" do
-      let(:value) { "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream/consumer/my-consumer/1693526402" }
-
-      it "splits on both delimiters" do
-        expect(parsed.resource_segments).to eq(
-          ["stream", "my-stream", "consumer", "my-consumer", "1693526402"],
-        )
-      end
-    end
-
-    context "with a resource ending in a separator" do
-      let(:value) { "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/" }
-
-      it "keeps the trailing empty segment" do
-        expect(parsed.resource_segments).to eq(["table", "MyTable", ""])
       end
     end
 
@@ -102,7 +70,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
       it "keeps the account and reports no Region" do
         expect(parsed.region).to be_nil
         expect(parsed.account_id).to eq("123456789012")
-        expect(parsed.resource_segments).to eq(["global-table", "MyTable"])
+        expect(parsed.resource).to eq("global-table/MyTable")
       end
     end
 
@@ -202,7 +170,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
 
         it "is parsed, because every byte is valid and ASCII-compatible" do
           expect(parsed.service).to eq("dynamodb")
-          expect(parsed.resource_segments).to eq(["table", "MyTable"])
+          expect(parsed.resource).to eq("table/MyTable")
         end
       end
     end
@@ -288,95 +256,38 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
     end
   end
 
-  describe "#typed_resource_id" do
-    subject(:resource_id) { described_class.parse(value).typed_resource_id(service, resource_types) }
+  describe "#resource_name" do
+    subject(:resource_name) { described_class.parse(value).resource_name(service, format) }
 
-    context "with a matching service and resource type" do
+    let(:service) { "dynamodb" }
+    let(:format) { %r{\Atable/(?<name>[^:/]+)\z} }
+
+    context "with a matching service and resource" do
       let(:value) { "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable" }
-      let(:service) { "dynamodb" }
-      let(:resource_types) { ["table"] }
 
       it { is_expected.to eq("MyTable") }
-    end
-
-    context "with one of several accepted resource types" do
-      let(:value) { "arn:aws:states:us-east-1:123456789012:express:MyStateMachine:MyExecution:1234-5678" }
-      let(:service) { "states" }
-      let(:resource_types) { ["execution", "express"] }
-
-      it { is_expected.to eq("MyStateMachine") }
-    end
-
-    context "with a trailing resource id" do
-      let(:value) { "arn:aws:lambda:us-east-1:123456789012:function:my-function:PROD" }
-      let(:service) { "lambda" }
-      let(:resource_types) { ["function"] }
-
-      it "ignores the segments after the id" do
-        is_expected.to eq("my-function")
-      end
     end
 
     context "with a mismatched service" do
       let(:value) { "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable" }
       let(:service) { "kinesis" }
-      let(:resource_types) { ["table"] }
 
       it { is_expected.to be_nil }
     end
 
-    context "with a mismatched resource type" do
-      let(:value) { "arn:aws:lambda:us-east-1:123456789012:layer:my-layer:1" }
-      let(:service) { "lambda" }
-      let(:resource_types) { ["function"] }
+    [
+      ["a different separator", "arn:aws:dynamodb:us-east-1:123456789012:table:MyTable"],
+      ["a trailing separator", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/"],
+      ["a nested resource", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/index/MyIndex"],
+      ["no id", "arn:aws:dynamodb:us-east-1:123456789012:table/"],
+      ["no Region", "arn:aws:dynamodb::123456789012:table/MyTable"],
+      ["no account", "arn:aws:dynamodb:us-east-1::table/MyTable"],
+    ].each do |description, malformed|
+      context "with #{description}" do
+        let(:value) { malformed }
 
-      it { is_expected.to be_nil }
-    end
-
-    context "with a bare resource" do
-      let(:value) { "arn:aws:sns:us-west-2:123456789012:my-topic" }
-      let(:service) { "sns" }
-      let(:resource_types) { ["topic"] }
-
-      it { is_expected.to be_nil }
-    end
-
-    context "with a resource type but no id" do
-      let(:value) { "arn:aws:dynamodb:us-east-1:123456789012:table/" }
-      let(:service) { "dynamodb" }
-      let(:resource_types) { ["table"] }
-
-      it { is_expected.to be_nil }
-    end
-  end
-
-  describe "#bare_resource_id" do
-    subject(:resource_id) { described_class.parse(value).bare_resource_id(service) }
-
-    let(:service) { "sns" }
-
-    context "with a bare resource" do
-      let(:value) { "arn:aws:sns:us-west-2:123456789012:my-topic-name" }
-
-      it { is_expected.to eq("my-topic-name") }
-    end
-
-    context "with a slash-delimited resource" do
-      let(:value) { "arn:aws:sns:us-west-2:123456789012:endpoint/APNS/my-app/1234-5678" }
-
-      it { is_expected.to be_nil }
-    end
-
-    context "with a colon-delimited resource" do
-      let(:value) { "arn:aws:sns:us-west-2:123456789012:my-topic:8a21d249-4329" }
-
-      it { is_expected.to be_nil }
-    end
-
-    context "with a mismatched service" do
-      let(:value) { "arn:aws:sqs:us-west-2:123456789012:my-queue" }
-
-      it { is_expected.to be_nil }
+        it { is_expected.to be_nil }
+      end
     end
   end
 end

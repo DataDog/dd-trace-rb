@@ -12,8 +12,10 @@ module Datadog
           # DynamoDB tag handlers.
           class DynamoDB < Base
             SERVICE = "dynamodb"
-            TABLE_RESOURCE_TYPES = %w[table].freeze
-            TABLE_RESOURCE_SEGMENTS = 2
+            # Indexes, streams, backups, exports and imports nest under
+            # `table/<name>/`, and none of them is the table itself.
+            # @see https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazondynamodb.html
+            TABLE_RESOURCE_FORMAT = %r{\Atable/(?<name>[^:/]+)\z}
 
             def add_tags(span, params)
               table_name, table_arn, account_id = parse_table_arn(params[:table_name])
@@ -31,7 +33,7 @@ module Datadog
 
             def parse_table_arn(value)
               arn = Aws::Arn.parse(value)
-              name = arn&.typed_resource_id(SERVICE, TABLE_RESOURCE_TYPES, segments: TABLE_RESOURCE_SEGMENTS)
+              name = arn&.resource_name(SERVICE, TABLE_RESOURCE_FORMAT)
               return unless arn && name
 
               [name, value, arn.account_id]

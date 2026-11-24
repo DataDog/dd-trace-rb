@@ -13,8 +13,10 @@ module Datadog
           class Kinesis < Base
             SERVICE = "kinesis"
 
-            # Also matches consumer ARNs, `stream/my-stream/consumer/my-consumer:1699999999`.
-            STREAM_RESOURCE_TYPES = %w[stream].freeze
+            # A consumer ARN, `stream/my-stream/consumer/my-consumer:1699999999`,
+            # still names the stream it reads from.
+            # @see https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonkinesis.html
+            STREAM_RESOURCE_FORMAT = %r{\Astream/(?<name>[^:/]+)(?:/consumer/[^:/]+:\d+)?\z}
 
             def add_tags(span, params)
               stream_name, stream_arn, account_id = parse_stream_arn(params[:stream_arn])
@@ -32,7 +34,7 @@ module Datadog
 
             def parse_stream_arn(value)
               arn = Aws::Arn.parse(value)
-              name = arn&.typed_resource_id(SERVICE, STREAM_RESOURCE_TYPES)
+              name = arn&.resource_name(SERVICE, STREAM_RESOURCE_FORMAT)
               return unless arn && name
 
               [name, value, arn.account_id]

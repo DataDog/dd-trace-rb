@@ -6,7 +6,7 @@ module Datadog
           class Kinesis < Base
             SERVICE: String
 
-            STREAM_RESOURCE_TYPES: Array[String]
+            STREAM_RESOURCE_FORMAT: Regexp
 
             def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 

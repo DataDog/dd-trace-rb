@@ -13,8 +13,6 @@ module Datadog
 
           ACCOUNT_ID_FORMAT: Regexp
 
-          RESOURCE_SEPARATOR: Regexp
-
           attr_reader partition: String
 
           attr_reader service: String
@@ -24,8 +22,6 @@ module Datadog
           attr_reader account_id: String?
 
           attr_reader resource: String
-
-          attr_reader resource_segments: Array[String]
 
           def self.scannable?: (any value) -> bool
 
@@ -41,9 +37,7 @@ module Datadog
             resource: String
           ) -> void
 
-          def typed_resource_id: (String service_name, Array[String] resource_types, ?segments: Integer?) -> String?
-
-          def bare_resource_id: (String service_name) -> String?
+          def resource_name: (String service_name, Regexp format) -> String?
         end
       end
     end

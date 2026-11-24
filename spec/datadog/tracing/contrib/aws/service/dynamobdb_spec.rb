@@ -166,11 +166,15 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     end
   end
 
-  describe "with an ARN carrying a subresource beyond the table" do
+  describe "with an ARN that is not a table ARN" do
     [
       ["a stream ARN", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/stream/2024-01-01T00:00:00.000"],
       ["an index ARN", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/index/MyIndex"],
       ["a trailing separator", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/"],
+      ["a colon after the resource type", "arn:aws:dynamodb:us-east-1:123456789012:table:MyTable"],
+      ["a colon inside the name", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable:extra"],
+      ["no Region", "arn:aws:dynamodb::123456789012:table/MyTable"],
+      ["no account", "arn:aws:dynamodb:us-east-1::table/MyTable"],
     ].each do |description, value|
       context "with #{description}" do
         let(:params) { {table_name: value} }

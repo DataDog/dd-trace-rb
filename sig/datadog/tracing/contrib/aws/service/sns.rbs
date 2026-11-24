@@ -6,6 +6,8 @@ module Datadog
           class SNS < Base
             SERVICE: String
 
+            TOPIC_RESOURCE_FORMAT: Regexp
+
             def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 
             private
