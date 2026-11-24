@@ -31,7 +31,7 @@ module Datadog
 
             # Called by ActiveSupport on event start
             def start(name, id, payload)
-              start_span(name, id, payload) if @trace&.call(name, payload)
+              start_span(name, id, payload) if Tracing.enabled? && @trace&.call(name, payload)
             end
 
             # Called by ActiveSupport on event finish

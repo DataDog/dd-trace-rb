@@ -58,6 +58,21 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
             expect(payload[:datadog_span]).to be_nil
           end
         end
+
+        context "when tracing is disabled" do
+          let(:trace) { proc { |_name, _payload| trace_spy.call } }
+          let(:trace_spy) { double("trace_spy") }
+
+          before { allow(Datadog::Tracing).to receive(:enabled?).and_return(false) }
+
+          it "does not start a span operation nor call trace? or the callback" do
+            expect(trace_spy).not_to receive(:call)
+            expect(Datadog::Tracing).not_to receive(:trace)
+            expect(on_start_spy).to_not receive(:call)
+            is_expected.to be_nil
+            expect(payload[:datadog_span]).to be_nil
+          end
+        end
       end
 
       describe "#finish" do

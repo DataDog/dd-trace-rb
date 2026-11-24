@@ -12,6 +12,44 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer))
   end
 
+  describe ".instrument?" do
+    subject(:instrument?) { described_class.instrument?(mode) }
+
+    before { allow(Datadog::Tracing).to receive(:enabled?).and_return(tracing_enabled) }
+
+    context "when tracing is enabled" do
+      let(:tracing_enabled) { true }
+
+      ["disabled", "service", "dynamic_service", "full", nil].each do |propagation|
+        context "with `#{propagation.inspect}` mode" do
+          let(:mode) { propagation }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    context "when tracing is disabled" do
+      let(:tracing_enabled) { false }
+
+      ["disabled", nil].each do |propagation|
+        context "with `#{propagation.inspect}` mode" do
+          let(:mode) { propagation }
+
+          it { is_expected.to be false }
+        end
+      end
+
+      ["service", "dynamic_service", "full"].each do |propagation|
+        context "with `#{propagation}` mode" do
+          let(:mode) { propagation }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+  end
+
   describe ".annotate!" do
     let(:span_op) { Datadog::Tracing::SpanOperation.new("sql_comment_propagation_span", service: "db_service") }
 
