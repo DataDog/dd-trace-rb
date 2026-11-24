@@ -66,6 +66,10 @@ PY
 # @ivoanjo: Strip standalone comments, trailing block comments and extra blank lines to reduce zstd.c size.
 ruby -0777 -i -pe 'gsub(%r{^[ \t]*/\*.*?\*/|(?<=[,;])[ \t]+/\*(?:(?!\*/).)*\*/[ \t]*$}m) { |c| c if c =~ /copyright|license|SPDX|@ivoanjo|\*{4} \w+ inlining /i }; gsub(/\n([ \t]*\n){2,}/, "\n\n")' "$temp_dir/zstd.c"
 
+# @ivoanjo: Trim trailing whitespace except after a backslash, and replace each group of eight leading spaces with a tab.
+# @ivoanjo: Preserve indentation on continued lines, where it can be part of a string literal.
+ruby -0777 -i -pe 'gsub(/(?<![\\ \t])[ \t]+$/, ""); gsub(/(?<!\\\n)^(?: {8})+/) { |spaces| "\t" * (spaces.size / 8) }' "$temp_dir/zstd.c"
+
 install -m 644 "$temp_dir/zstd.c" "$output_path"
 install -m 644 "$source_dir/LICENSE" "$license_path"
 printf 'Updated %s\n' "$output_path" "$license_path"
