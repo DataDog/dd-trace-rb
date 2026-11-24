@@ -2,6 +2,7 @@
 
 require_relative "../../metadata/ext"
 require_relative "../analytics"
+require_relative "data_streams"
 require_relative "distributed/propagation"
 require_relative "ext"
 require_relative "utils"
@@ -51,6 +52,8 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_ID, job["jid"])
               span.set_tag(Ext::TAG_JOB_QUEUE, job["queue"])
               span.set_tag(Ext::TAG_JOB_WRAPPER, job["class"]) if job["wrapped"]
+
+              DataStreams.produce(job)
 
               yield
             end
