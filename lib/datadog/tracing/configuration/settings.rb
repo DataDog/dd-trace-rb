@@ -276,9 +276,13 @@ module Datadog
               settings :partial_flush do
                 # Enable partial trace flushing.
                 #
-                # @default `true`
+                # @default `DD_TRACE_PARTIAL_FLUSH_ENABLED` environment variable, otherwise `true`
                 # @return [Boolean]
-                option :enabled, default: true, type: :bool
+                option :enabled do |o|
+                  o.type :bool
+                  o.env Tracing::Configuration::Ext::PartialFlush::ENV_ENABLED
+                  o.default true
+                end
 
                 # Minimum number of finished spans required in a single unfinished trace before
                 # the tracer will consider that trace for partial flushing.
@@ -291,7 +295,11 @@ module Datadog
                 #
                 # @default 500
                 # @return [Integer]
-                option :min_spans_threshold, default: 500, type: :int
+                option :min_spans_threshold do |o|
+                  o.type :int
+                  o.env Tracing::Configuration::Ext::PartialFlush::ENV_MIN_SPANS_THRESHOLD
+                  o.default 500
+                end
               end
 
               option :report_hostname do |o|
