@@ -44,7 +44,11 @@ module Datadog
               return unless queue
 
               messages = response.data&.messages || []
+              caller_context = Datadog::DataStreams.pathway_context
               messages.each { |message| consume(queue, message) }
+              # Only the sole message's context can be safely left active for the
+              # caller; a batch's last one would misattribute the others' downstream work.
+              Datadog::DataStreams.pathway_context = caller_context unless messages.size == 1
             rescue => e
               Datadog.logger.debug { "Error setting DSM consume checkpoint: #{e.class}: #{e.message}" }
             end
@@ -58,6 +62,8 @@ module Datadog
               Datadog::DataStreams.set_consume_checkpoint(type: "sqs", source: queue, auto_instrumentation: true) do |_key|
                 pathway
               end
+            rescue => e
+              Datadog.logger.debug { "Error setting DSM consume checkpoint: #{e.class}: #{e.message}" }
             end
 
             def inject_sqs(message, queue)

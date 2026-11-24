@@ -157,6 +157,34 @@ RSpec.describe "AWS Data Streams instrumentation" do
 
       expect(context.parent_hash).to eq(0)
     end
+
+    it "restores the caller's context after consuming a batch" do
+      sqs.send_message(queue_url: queue_url, message_body: "hi")
+      carrier = sent_params(sqs, :send_message)[:message_attributes]["_datadog"][:string_value]
+      caller_context = Datadog::DataStreams.pathway_context
+      attribute = {data_type: "String", string_value: carrier}
+
+      context = consume_messages([
+        {message_id: "1", body: "a", message_attributes: {"_datadog" => attribute}},
+        {message_id: "2", body: "b", message_attributes: {"_datadog" => attribute}},
+      ])
+
+      expect(context).to equal(caller_context)
+    end
+
+    it "keeps consuming when an earlier message in the batch is malformed" do
+      sqs.send_message(queue_url: queue_url, message_body: "hi")
+      carrier = sent_params(sqs, :send_message)[:message_attributes]["_datadog"][:string_value]
+      Datadog::DataStreams.pathway_context = nil
+      malformed = JSON.generate("Type" => "Notification", "MessageAttributes" => "not-a-hash")
+
+      consume_messages([
+        {message_id: "1", body: malformed},
+        {message_id: "2", body: "hi", message_attributes: {"_datadog" => {data_type: "String", string_value: carrier}}},
+      ])
+
+      expect(spans.last.get_tag("pathway.hash")).to match(/\A\d+\z/)
+    end
   end
 
   describe "SNS" do
