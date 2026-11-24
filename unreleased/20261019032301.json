@@ -2,5 +2,6 @@
   "type": "Fixed",
   "product": "Tracing",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6510",
-  "message": "Resolve AWS SDK target names safely from request ARNs instead of reporting ARN fragments as DynamoDB, Kinesis, SNS, Step Functions, or Lambda identity."
+  "message": "Fix AWS SDK spans that reported a DynamoDB table ARN whole as `tablename`, or the execution `name` of Step Functions `start_execution` as `statemachinename`. `peer.service` now names the table or state machine.",
+  "author": "@pedramsafaei"
 }
