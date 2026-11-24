@@ -1199,6 +1199,8 @@ RSpec.describe "AWS instrumentation" do
           expect(span.resource).to eq("lambda.invoke")
           expect(span.get_tag("aws_service")).to eq("lambda")
           expect(span.get_tag("aws.function.arn")).to eq("arn:aws:lambda:us-east-1:123456789012:function:my-function")
+          expect(span.get_tag("aws.function.name")).to eq("my-function")
+          expect(span.get_tag("aws_account")).to eq("123456789012")
         end
       end
 
@@ -1208,6 +1210,185 @@ RSpec.describe "AWS instrumentation" do
         it "generates a span without a function ARN" do
           expect(span.resource).to eq("lambda.invoke")
           expect(span.get_tag("aws.function.arn")).to be_nil
+        end
+      end
+    end
+
+    describe "#invoke with a bare function name" do
+      subject!(:invoke) { client.invoke(function_name: "my-function") }
+
+      it_behaves_like "schema version span"
+      it_behaves_like "environment service name", "DD_TRACE_AWS_SERVICE_NAME"
+      it_behaves_like "configured peer service span", "DD_TRACE_AWS_PEER_SERVICE"
+      it_behaves_like "a peer service span" do
+        let(:peer_service_val) { "lambda.us-stubbed-1.amazonaws.com" }
+        let(:peer_service_source) { "peer.hostname" }
+      end
+
+      it "generates a span" do
+        expect(span.name).to eq("aws.command")
+        expect(span.service).to eq("aws")
+        expect(span.type).to eq("http")
+        expect(span.resource).to eq("lambda.invoke")
+
+        expect(span.get_tag("aws.agent")).to eq("aws-sdk-ruby")
+        expect(span.get_tag("aws.operation")).to eq("invoke")
+        expect(span.get_tag("aws_service")).to eq("lambda")
+        expect(span.get_tag("region")).to eq("us-stubbed-1")
+        expect(span.get_tag("aws.function.name")).to eq("my-function")
+        expect(span.get_tag("host")).to eq("lambda.us-stubbed-1.amazonaws.com")
+        expect(span.get_tag("http.method")).to eq("POST")
+        expect(span.get_tag("span.kind")).to eq("client")
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("aws")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("command")
+      end
+
+      it "reports no ARN and no account, because the request carries none" do
+        expect(span.get_tag("aws.function.arn")).to be_nil
+        expect(span.get_tag("aws_account")).to be_nil
+      end
+    end
+
+    describe "#invoke with a qualified function name" do
+      subject!(:invoke) { client.invoke(function_name: "my-function:PROD") }
+
+      it "reports the function rather than the alias" do
+        expect(span.get_tag("aws.function.name")).to eq("my-function")
+        expect(span.get_tag("aws.function.arn")).to be_nil
+      end
+    end
+
+    describe "#invoke with a full ARN" do
+      subject!(:invoke) do
+        client.invoke(function_name: "arn:aws:lambda:us-west-2:123456789012:function:my-function")
+      end
+
+      it "reports the function name, ARN and account" do
+        expect(span.get_tag("aws.function.name")).to eq("my-function")
+        expect(span.get_tag("aws.function.arn"))
+          .to eq("arn:aws:lambda:us-west-2:123456789012:function:my-function")
+        expect(span.get_tag("aws_account")).to eq("123456789012")
+      end
+
+      it_behaves_like "a peer service span" do
+        let(:peer_service_val) { "lambda.us-stubbed-1.amazonaws.com" }
+        let(:peer_service_source) { "peer.hostname" }
+      end
+    end
+
+    describe "#invoke with a partial ARN" do
+      subject!(:invoke) { client.invoke(function_name: "123456789012:function:my-function") }
+
+      it "reports the function name and account but no ARN" do
+        expect(span.get_tag("aws.function.name")).to eq("my-function")
+        expect(span.get_tag("aws_account")).to eq("123456789012")
+        expect(span.get_tag("aws.function.arn")).to be_nil
+      end
+    end
+
+    describe "#invoke with a malformed partial ARN" do
+      subject!(:invoke) { client.invoke(function_name: "123456789012:function:") }
+
+      it "reports neither a name nor an account" do
+        expect(span.get_tag("aws.function.name")).to be_nil
+        expect(span.get_tag("aws_account")).to be_nil
+        expect(span.get_tag("aws.function.arn")).to be_nil
+      end
+
+      it "still generates the span" do
+        expect(span.resource).to eq("lambda.invoke")
+        expect(span.get_tag("aws_service")).to eq("lambda")
+      end
+    end
+
+    describe "#invoke with a layer ARN" do
+      subject!(:invoke) do
+        client.invoke(function_name: "arn:aws:lambda:us-west-2:123456789012:layer:my-layer:1")
+      end
+
+      it "claims no function identity" do
+        expect(span.get_tag("aws.function.name")).to be_nil
+        expect(span.get_tag("aws.function.arn")).to be_nil
+        expect(span.get_tag("aws_account")).to be_nil
+      end
+    end
+
+    describe "#invoke with a dotted function name" do
+      subject!(:invoke) { client.invoke(function_name: "my.function.v2") }
+
+      it "resolves the whole dotted name" do
+        expect(span.get_tag("aws.function.name")).to eq("my.function.v2")
+        expect(span.get_tag("aws.function.arn")).to be_nil
+      end
+    end
+
+    describe "#invoke with a $LATEST.PUBLISHED qualifier" do
+      let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my-function:$LATEST.PUBLISHED" }
+
+      subject!(:invoke) { client.invoke(function_name: function_name) }
+
+      it "drops the qualifier from the name and the ARN" do
+        expect(span.get_tag("aws.function.name")).to eq("my-function")
+        expect(span.get_tag("aws.function.arn")).to eq("arn:aws:lambda:us-west-2:123456789012:function:my-function")
+        expect(span.get_tag("aws_account")).to eq("123456789012")
+      end
+    end
+
+    describe "#invoke with a Region-prefixed partial ARN" do
+      subject!(:invoke) { client.invoke(function_name: "us-west-2:123456789012:function:my-function") }
+
+      it "reports the function name and account but no ARN" do
+        expect(span.get_tag("aws.function.name")).to eq("my-function")
+        expect(span.get_tag("aws_account")).to eq("123456789012")
+        expect(span.get_tag("aws.function.arn")).to be_nil
+      end
+    end
+
+    describe "#invoke with a value that cannot name a function" do
+      [
+        ["an account number with a qualifier", "123456789012:PROD"],
+        ["a layer in place of the function", "123456789012:layer:my-layer:1"],
+        ["a wrong-sized account", "12345:function:my-function"],
+        ["a segment beyond the qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:PROD:extra"],
+      ].each do |description, value|
+        context "with #{description}" do
+          subject!(:invoke) { client.invoke(function_name: value) }
+
+          it "claims no function identity and no account" do
+            expect(span.get_tag("aws.function.name")).to be_nil
+            expect(span.get_tag("aws.function.arn")).to be_nil
+            expect(span.get_tag("aws_account")).to be_nil
+          end
+
+          it "still generates the span" do
+            expect(span.resource).to eq("lambda.invoke")
+            expect(span.get_tag("aws_service")).to eq("lambda")
+          end
+        end
+      end
+    end
+
+    describe "peer.service across every FunctionName form" do
+      [
+        ["a bare name", "my-function"],
+        ["a qualified name", "my-function:PROD"],
+        ["a dotted name", "my.function.v2"],
+        ["a name qualified by $LATEST.PUBLISHED", "my-function:$LATEST.PUBLISHED"],
+        ["a partial ARN", "123456789012:function:my-function"],
+        ["a Region-prefixed partial ARN", "us-west-2:123456789012:function:my-function"],
+        ["a full ARN", "arn:aws:lambda:us-west-2:123456789012:function:my-function"],
+        ["a qualified full ARN", "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD"],
+        ["a malformed partial ARN", "123456789012:function:"],
+        ["a twelve-digit name", "123456789012"],
+      ].each do |description, value|
+        context "with #{description}" do
+          subject!(:invoke) { client.invoke(function_name: value) }
+
+          it_behaves_like "a peer service span" do
+            let(:peer_service_val) { "lambda.us-stubbed-1.amazonaws.com" }
+            let(:peer_service_source) { "peer.hostname" }
+          end
         end
       end
     end
@@ -1249,8 +1430,6 @@ RSpec.describe "AWS instrumentation" do
   end
 
   context "with a dynamodb client addressing a table in another Region and account" do
-    # The client is pinned to a Region the target ARN does not name, which is
-    # what a cross-Region, cross-account table request looks like.
     let(:client) do
       ::Aws::DynamoDB::Client.new(
         stub_responses: responses,
@@ -1289,8 +1468,6 @@ RSpec.describe "AWS instrumentation" do
         expect(span.get_tag("host")).to eq("dynamodb.us-west-2.amazonaws.com")
       end
 
-      # The target Region is not dropped and does not need a tag of its own:
-      # the complete ARN carries it.
       it "retains the target Region inside the complete ARN" do
         expect(span.get_tag("aws.table.arn"))
           .to eq("arn:aws:dynamodb:eu-central-1:999999999999:table/CrossRegionTable")
@@ -1313,8 +1490,6 @@ RSpec.describe "AWS instrumentation" do
         {get_item: {item: {"AlbumTitle" => "Songs About Life"}}}
       end
 
-      # `TableName` does not accept a global table ARN, so resolving one would
-      # claim identity for a request the API would have rejected.
       it "keeps the value in the legacy tag and claims no identity" do
         expect(span.get_tag("tablename")).to eq("arn:aws:dynamodb::123456789012:global-table/MyTable")
         expect(span.get_tag("aws.table.name")).to be_nil
@@ -1335,9 +1510,6 @@ RSpec.describe "AWS instrumentation" do
         {get_item: {item: {"AlbumTitle" => "Songs About Life"}}}
       end
 
-      # A stream ARN extends the `table/<name>` resource with further
-      # segments, so it is not a value `TableName` accepts and must not be
-      # resolved to the table it belongs to.
       it "keeps the value in the legacy tag and claims no identity" do
         expect(span.get_tag("tablename")).to eq(stream_arn)
         expect(span.get_tag("aws.table.name")).to be_nil
@@ -1357,9 +1529,6 @@ RSpec.describe "AWS instrumentation" do
         {get_item: {item: {"AlbumTitle" => "Songs About Life"}}}
       end
 
-      # The legacy tag keeps its pre-existing unconditional write, which
-      # `peer.service` resolution depends on. `aws.table.name` is new, and an
-      # empty one would publish a target identity the request never named.
       it "writes the legacy tag but not the new one" do
         expect(span.get_tag("tablename")).to eq("")
         expect(span.get_tag("aws.table.name")).to be_nil
@@ -1424,8 +1593,6 @@ RSpec.describe "AWS instrumentation" do
 
       it "does not label the endpoint as a topic" do
         expect(span.resource).to eq("sns.publish")
-        # The legacy tag is always written, so an unresolved topic leaves it
-        # empty rather than absent.
         expect(span.get_tag("topicname")).to eq("")
         expect(span.get_tag("aws.topic.name")).to be_nil
         expect(span.get_tag("aws.sns.topic_arn")).to be_nil
@@ -1468,8 +1635,6 @@ RSpec.describe "AWS instrumentation" do
       end
 
       it "reads the request, not the response" do
-        # The response carries a state machine ARN in another account; only the
-        # request's own parameters describe what this span called.
         expect(span.get_tag("aws.state_machine.arn")).to be_nil
         expect(span.get_tag("aws_account")).not_to eq("999999999999")
       end
@@ -1537,11 +1702,6 @@ RSpec.describe "AWS instrumentation" do
       end
     end
 
-    # `name` on `StartExecution` is the EXECUTION's name. It used to be
-    # reported as `statemachinename` -- and therefore as `peer.service` --
-    # whenever the ARN beside it could not be resolved. Nothing is reported
-    # now, so `peer.service` falls back to the hostname instead of naming the
-    # dependency after one execution.
     describe "#start_execution with a malformed state machine ARN" do
       subject!(:start_execution) do
         client.start_execution(
@@ -1572,13 +1732,6 @@ RSpec.describe "AWS instrumentation" do
   end
 
   context "with the Step Functions API model" do
-    # No Step Functions operation accepts `stateMachineArn` and `executionArn`
-    # in the same request, so a conflicting pair cannot be built through the
-    # SDK's own operations. The handler's conflict handling is a guard against
-    # a params hash that carries both, and is covered at the handler level in
-    # `service/states_spec.rb`. This assertion pins that assumption, so an
-    # operation that does carry both surfaces here instead of silently making
-    # the guard reachable in production untested.
     it "has no operation that supplies both ARNs" do
       carrying_both = []
       ::Aws::States::Client.api.operations.each do |name, operation|
@@ -1587,217 +1740,6 @@ RSpec.describe "AWS instrumentation" do
       end
 
       expect(carrying_both).to be_empty
-    end
-  end
-
-  context "with a lambda client" do
-    let(:client) { ::Aws::Lambda::Client.new(stub_responses: responses) }
-
-    let(:responses) do
-      {invoke: {status_code: 200, payload: "{}"}}
-    end
-
-    describe "#invoke with a bare function name" do
-      subject!(:invoke) { client.invoke(function_name: "my-function") }
-
-      it_behaves_like "schema version span"
-      it_behaves_like "environment service name", "DD_TRACE_AWS_SERVICE_NAME"
-      it_behaves_like "configured peer service span", "DD_TRACE_AWS_PEER_SERVICE"
-      it_behaves_like "a peer service span" do
-        let(:peer_service_val) { "lambda.us-stubbed-1.amazonaws.com" }
-        let(:peer_service_source) { "peer.hostname" }
-      end
-
-      it "generates a span" do
-        expect(span.name).to eq("aws.command")
-        expect(span.service).to eq("aws")
-        expect(span.type).to eq("http")
-        expect(span.resource).to eq("lambda.invoke")
-
-        expect(span.get_tag("aws.agent")).to eq("aws-sdk-ruby")
-        expect(span.get_tag("aws.operation")).to eq("invoke")
-        expect(span.get_tag("aws_service")).to eq("lambda")
-        expect(span.get_tag("region")).to eq("us-stubbed-1")
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("host")).to eq("lambda.us-stubbed-1.amazonaws.com")
-        expect(span.get_tag("http.method")).to eq("POST")
-        expect(span.get_tag("span.kind")).to eq("client")
-
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("aws")
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("command")
-      end
-
-      it "reports no ARN and no account, because the request carries none" do
-        expect(span.get_tag("aws.function.arn")).to be_nil
-        expect(span.get_tag("aws_account")).to be_nil
-      end
-    end
-
-    describe "#invoke with a qualified function name" do
-      subject!(:invoke) { client.invoke(function_name: "my-function:PROD") }
-
-      it "reports the function rather than the alias" do
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("aws.function.arn")).to be_nil
-      end
-    end
-
-    describe "#invoke with a full ARN" do
-      subject!(:invoke) do
-        client.invoke(function_name: "arn:aws:lambda:us-west-2:123456789012:function:my-function")
-      end
-
-      it "reports the function name, ARN and account" do
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("aws.function.arn"))
-          .to eq("arn:aws:lambda:us-west-2:123456789012:function:my-function")
-        expect(span.get_tag("aws_account")).to eq("123456789012")
-      end
-
-      it_behaves_like "a peer service span" do
-        let(:peer_service_val) { "lambda.us-stubbed-1.amazonaws.com" }
-        let(:peer_service_source) { "peer.hostname" }
-      end
-    end
-
-    describe "#invoke with a qualified full ARN" do
-      subject!(:invoke) do
-        client.invoke(
-          function_name: "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD",
-        )
-      end
-
-      it "reports the name and the ARN without the qualifier" do
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("aws.function.arn"))
-          .to eq("arn:aws:lambda:us-west-2:123456789012:function:my-function")
-        expect(span.get_tag("aws_account")).to eq("123456789012")
-      end
-    end
-
-    describe "#invoke with a partial ARN" do
-      subject!(:invoke) { client.invoke(function_name: "123456789012:function:my-function") }
-
-      it "reports the function name and account but no ARN" do
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("aws_account")).to eq("123456789012")
-        expect(span.get_tag("aws.function.arn")).to be_nil
-      end
-    end
-
-    describe "#invoke with a malformed partial ARN" do
-      subject!(:invoke) { client.invoke(function_name: "123456789012:function:") }
-
-      # An account with no function to attach it to is worse than no identity
-      # at all, so a partial ARN that does not fully validate yields nothing.
-      it "reports neither a name nor an account" do
-        expect(span.get_tag("aws.function.name")).to be_nil
-        expect(span.get_tag("aws_account")).to be_nil
-        expect(span.get_tag("aws.function.arn")).to be_nil
-      end
-
-      it "still generates the span" do
-        expect(span.resource).to eq("lambda.invoke")
-        expect(span.get_tag("aws_service")).to eq("lambda")
-      end
-    end
-
-    describe "#invoke with a layer ARN" do
-      subject!(:invoke) do
-        client.invoke(function_name: "arn:aws:lambda:us-west-2:123456789012:layer:my-layer:1")
-      end
-
-      it "claims no function identity" do
-        expect(span.get_tag("aws.function.name")).to be_nil
-        expect(span.get_tag("aws.function.arn")).to be_nil
-        expect(span.get_tag("aws_account")).to be_nil
-      end
-    end
-
-    describe "#invoke with a dotted function name" do
-      subject!(:invoke) { client.invoke(function_name: "my.function.v2") }
-
-      it "resolves the whole dotted name" do
-        expect(span.get_tag("aws.function.name")).to eq("my.function.v2")
-        expect(span.get_tag("aws.function.arn")).to be_nil
-      end
-    end
-
-    describe "#invoke with a $LATEST.PUBLISHED qualifier" do
-      let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my-function:$LATEST.PUBLISHED" }
-
-      subject!(:invoke) { client.invoke(function_name: function_name) }
-
-      it "drops the qualifier from the name and the ARN" do
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("aws.function.arn")).to eq("arn:aws:lambda:us-west-2:123456789012:function:my-function")
-        expect(span.get_tag("aws_account")).to eq("123456789012")
-      end
-    end
-
-    describe "#invoke with a Region-prefixed partial ARN" do
-      subject!(:invoke) { client.invoke(function_name: "us-west-2:123456789012:function:my-function") }
-
-      it "reports the function name and account but no ARN" do
-        expect(span.get_tag("aws.function.name")).to eq("my-function")
-        expect(span.get_tag("aws_account")).to eq("123456789012")
-        expect(span.get_tag("aws.function.arn")).to be_nil
-      end
-    end
-
-    # Each value below used to be reported as a function called
-    # `123456789012`, because the handler read the first colon-delimited
-    # segment of anything it could not parse.
-    describe "#invoke with a value that cannot name a function" do
-      [
-        ["an account number with a qualifier", "123456789012:PROD"],
-        ["a layer in place of the function", "123456789012:layer:my-layer:1"],
-        ["a wrong-sized account", "12345:function:my-function"],
-        ["a segment beyond the qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:PROD:extra"],
-      ].each do |description, value|
-        context "with #{description}" do
-          subject!(:invoke) { client.invoke(function_name: value) }
-
-          it "claims no function identity and no account" do
-            expect(span.get_tag("aws.function.name")).to be_nil
-            expect(span.get_tag("aws.function.arn")).to be_nil
-            expect(span.get_tag("aws_account")).to be_nil
-          end
-
-          it "still generates the span" do
-            expect(span.resource).to eq("lambda.invoke")
-            expect(span.get_tag("aws_service")).to eq("lambda")
-          end
-        end
-      end
-    end
-
-    # Lambda `peer.service` comes from `peer.hostname` on every form a
-    # `FunctionName` can take. This is the cross-tracer compatible behavior
-    # the other Datadog tracers implement, so it is asserted for each form
-    # rather than only for the bare name.
-    describe "peer.service across every FunctionName form" do
-      [
-        ["a bare name", "my-function"],
-        ["a qualified name", "my-function:PROD"],
-        ["a dotted name", "my.function.v2"],
-        ["a name qualified by $LATEST.PUBLISHED", "my-function:$LATEST.PUBLISHED"],
-        ["a partial ARN", "123456789012:function:my-function"],
-        ["a Region-prefixed partial ARN", "us-west-2:123456789012:function:my-function"],
-        ["a full ARN", "arn:aws:lambda:us-west-2:123456789012:function:my-function"],
-        ["a qualified full ARN", "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD"],
-        ["a malformed partial ARN", "123456789012:function:"],
-        ["a twelve-digit name", "123456789012"],
-      ].each do |description, value|
-        context "with #{description}" do
-          subject!(:invoke) { client.invoke(function_name: value) }
-
-          it_behaves_like "a peer service span" do
-            let(:peer_service_val) { "lambda.us-stubbed-1.amazonaws.com" }
-            let(:peer_service_source) { "peer.hostname" }
-          end
-        end
-      end
     end
   end
 end
