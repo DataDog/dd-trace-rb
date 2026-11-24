@@ -37,7 +37,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
     let(:host) { "my-bucket-name.s3.us-east-1.amazonaws.com" }
     let(:params) { {bucket: "my-bucket-name", expected_bucket_owner: "123456789012"} }
 
+    let(:operation) { :get_object }
+
     before do
+      allow(context).to receive(:safely).with(:input_shape)
+        .and_return(Aws::S3::Client.api.operation(operation).input.shape)
       allow(context).to receive(:safely).with(:status_code).and_return(status_code)
       allow(context).to receive(:safely).with(:host).and_return(host)
     end
@@ -47,6 +51,17 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
         add_owner_tags
         expect(span).to have_received(:set_tag)
           .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    # S3 ignores the owner condition on these, and the SDK never sends an undefined param.
+    context "when the operation does not define the parameter" do
+      let(:operation) { :create_bucket }
+
+      it "does not set the aws_account tag" do
+        add_owner_tags
+        expect(span).not_to have_received(:set_tag)
+          .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
       end
     end
 

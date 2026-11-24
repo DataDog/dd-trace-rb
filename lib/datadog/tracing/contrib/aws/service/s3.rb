@@ -10,7 +10,7 @@ module Datadog
         module Service
           # S3 tag handlers.
           class S3 < Base
-            ENDPOINT_LABEL = /\As3(?:-fips|-accesspoint(?:-fips)?|-[a-z]{2}(?:-[a-z]+)+-\d+)?\z/
+            ENDPOINT_LABEL = /\As3(?:-fips|-accelerate|-external-1|-accesspoint(?:-fips)?|-[a-z]{2}(?:-[a-z]+)+-\d+)?\z/
 
             def add_tags(span, params)
               bucket_name = params[:bucket]
@@ -21,7 +21,8 @@ module Datadog
             # @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-owner-condition.html
             def add_owner_tags(span, params, context)
               account_id = valid_account_id(params[:expected_bucket_owner])
-              return unless account_id && aws_confirmed_response?(context, ENDPOINT_LABEL)
+              return unless account_id && input_member?(context, :expected_bucket_owner)
+              return unless aws_confirmed_response?(context, ENDPOINT_LABEL)
 
               span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id)
             end

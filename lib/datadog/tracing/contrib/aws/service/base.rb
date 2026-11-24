@@ -72,6 +72,13 @@ module Datadog
               value if value.is_a?(String) && ACCOUNT_ID_FORMAT.match?(value)
             end
 
+            # With `validate_params: false` the SDK drops a param the operation does not define,
+            # so it is never sent.
+            def input_member?(context, name)
+              shape = context.safely(:input_shape)
+              shape.respond_to?(:member?) && shape.member?(name)
+            end
+
             # A 2xx from a compatible service such as MinIO or LocalStack says nothing about an AWS account.
             def aws_confirmed_response?(context, endpoint_label)
               status_code = context.safely(:status_code)

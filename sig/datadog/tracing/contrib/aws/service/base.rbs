@@ -30,6 +30,8 @@ module Datadog
 
             def valid_account_id: (any value) -> String?
 
+            def input_member?: (ParsedContext context, Symbol name) -> bool
+
             def aws_confirmed_response?: (ParsedContext context, Regexp endpoint_label) -> bool
           end
         end

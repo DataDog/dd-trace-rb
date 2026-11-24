@@ -25,6 +25,7 @@ module Datadog
             def add_owner_tags(span, params, context)
               table_name = params[:table_name]
               return unless table_name.is_a?(String) && BARE_TABLE_NAME_FORMAT.match?(table_name)
+              return unless input_member?(context, :table_name)
 
               account_id = valid_account_id(context.safely(:assumed_role_account_id))
               return unless account_id && aws_confirmed_response?(context, ENDPOINT_LABEL)

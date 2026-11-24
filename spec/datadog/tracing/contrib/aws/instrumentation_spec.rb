@@ -317,6 +317,32 @@ RSpec.describe "AWS instrumentation" do
         end
       end
 
+      context "over a Transfer Acceleration endpoint" do
+        let(:client) { ::Aws::S3::Client.new(stub_responses: true, use_accelerate_endpoint: true) }
+
+        before { client.stub_responses(:get_object, status_code: 200, body: "data", headers: {}) }
+
+        it "tags the verified bucket owner" do
+          get_object
+
+          expect(span.get_tag("aws_account")).to eq("123456789012")
+          expect(span.get_tag("peer.hostname")).to eq("my-bucket.s3-accelerate.amazonaws.com")
+        end
+      end
+
+      context "on an operation that does not define the parameter" do
+        subject(:create_bucket) { client.create_bucket(bucket: "my-bucket", **owner_params) }
+
+        let(:client) { ::Aws::S3::Client.new(stub_responses: true, validate_params: false) }
+
+        it "does not tag an account" do
+          create_bucket
+
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("http.status_code")).to eq("200")
+        end
+      end
+
       context "over HTTP against an AWS endpoint", webmock: true do
         before { WebMock.disable_net_connect! }
         after { WebMock.allow_net_connect! }
@@ -857,6 +883,61 @@ RSpec.describe "AWS instrumentation" do
         it "tags the assumed-role account" do
           expect(span.get_tag("aws_account")).to eq("111122223333")
           expect(span.get_tag("tablename")).to eq("my-table-name")
+        end
+      end
+
+      context "with a configured SDK signer using other credentials" do
+        let(:client) do
+          ::Aws::DynamoDB::Client.new(
+            stub_responses: responses,
+            credentials: credentials,
+            sigv4_signer: ::Aws::Sigv4::Signer.new(
+              service: "dynamodb",
+              region: "us-stubbed-1",
+              credentials_provider: assume_role_provider(account_id: "444455556666"),
+            ),
+          )
+        end
+
+        it "tags the signing account, not the client's" do
+          expect(span.get_tag("aws_account")).to eq("444455556666")
+        end
+      end
+
+      context "with a configured custom signer" do
+        let(:client) do
+          ::Aws::DynamoDB::Client.new(
+            stub_responses: responses,
+            credentials: credentials,
+            sigv4_signer: Class.new(::Aws::Sigv4::Signer).new(
+              service: "dynamodb",
+              region: "us-stubbed-1",
+              credentials_provider: credentials,
+            ),
+          )
+        end
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("tablename")).to eq("my-table-name")
+        end
+      end
+
+      context "on an operation that does not define a table name" do
+        let(:unvalidated_client) do
+          ::Aws::DynamoDB::Client.new(
+            stub_responses: true,
+            credentials: credentials,
+            simple_attributes: false,
+            validate_params: false,
+          )
+        end
+        let(:span) { spans.find { |candidate| candidate.resource == "dynamodb.list_tables" } }
+
+        before { unvalidated_client.list_tables(table_name: table_name) }
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
         end
       end
 

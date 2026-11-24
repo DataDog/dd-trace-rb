@@ -54,7 +54,17 @@ module Datadog
           # `@credentials` is read because `RefreshingCredentials#credentials`
           # can refresh and call STS.
           def assumed_role_account_id
-            provider = context[:sigv4_credentials] || context.client.config.credentials
+            config = context.client.config
+            # A configured signer signs instead of the client credentials. Only the SDK's own
+            # signer is known to sign with the provider it exposes.
+            signer = config.sigv4_signer
+            provider = if signer
+              return unless signer.instance_of?(::Aws::Sigv4::Signer)
+
+              signer.credentials_provider
+            else
+              context[:sigv4_credentials] || config.credentials
+            end
             return unless PROVEN_ACCOUNT_ID_PROVIDERS.include?(provider.class.name)
             return unless provider.instance_variable_defined?(:@credentials)
 
@@ -72,6 +82,10 @@ module Datadog
 
           def host
             context.http_request.endpoint.host
+          end
+
+          def input_shape
+            context.operation.input.shape
           end
 
           private

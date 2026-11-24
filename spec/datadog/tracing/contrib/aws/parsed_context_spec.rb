@@ -7,7 +7,8 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
 
   let(:credentials) { nil }
   let(:metadata) { {} }
-  let(:client_config) { double(region: "us-west-2", credentials: credentials) }
+  let(:sigv4_signer) { nil }
+  let(:client_config) { double(region: "us-west-2", credentials: credentials, sigv4_signer: sigv4_signer) }
 
   let(:context) do
     Seahorse::Client::RequestContext.new(
@@ -86,6 +87,10 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
         .to be(Aws::RefreshingCredentials)
       expect(Aws::RefreshingCredentials.private_instance_methods(false))
         .to include(:refresh_if_near_expiration!)
+    end
+
+    it "lets the SDK signer expose the provider it signs with" do
+      expect(Aws::Sigv4::Signer.public_method_defined?(:credentials_provider)).to be true
     end
 
     shared_examples "a proven account id provider" do |provider_name|
@@ -399,6 +404,59 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       end
     end
 
+    context "with a configured signer" do
+      let(:credentials) do
+        Aws::AssumeRoleCredentials.new(
+          client: stub_sts_client(:assume_role),
+          role_arn: "arn:aws:iam::999988887777:role/example-role",
+          role_session_name: "example-session",
+        )
+      end
+      let(:signer_credentials) do
+        Aws::AssumeRoleCredentials.new(
+          client: stub_sts_client(:assume_role, account_id: "444455556666"),
+          role_arn: "arn:aws:iam::444455556666:role/example-role",
+          role_session_name: "example-session",
+        )
+      end
+      let(:signer_class) { Aws::Sigv4::Signer }
+      let(:sigv4_signer) do
+        signer_class.new(service: "dynamodb", region: "us-west-2", credentials_provider: signer_credentials)
+      end
+
+      context "that is the SDK signer with a proven provider" do
+        it "reports the signing account, not the client's" do
+          is_expected.to eq("444455556666")
+        end
+
+        context "and request-scoped credentials" do
+          let(:metadata) { {sigv4_credentials: credentials} }
+
+          it "follows the signer, which the SDK signs with instead" do
+            is_expected.to eq("444455556666")
+          end
+        end
+      end
+
+      context "that is the SDK signer with an untrusted provider" do
+        let(:signer_credentials) { Aws::Credentials.new("akid", "secret", nil, account_id: "123456789012") }
+
+        it { is_expected.to be_nil }
+      end
+
+      context "that is a subclass of the SDK signer" do
+        let(:signer_class) { Class.new(Aws::Sigv4::Signer) }
+
+        it { is_expected.to be_nil }
+      end
+
+      context "that is a custom signer" do
+        let(:sigv4_signer) { double("custom signer", credentials_provider: credentials) }
+
+        it { is_expected.to be_nil }
+      end
+    end
+
     context "when the client config does not expose credentials" do
       let(:client_config) { Struct.new(:region).new("us-west-2") }
 
@@ -419,6 +477,16 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       it "is swallowed by #safely" do
         expect(parsed_context.safely(:assumed_role_account_id)).to be_nil
       end
+    end
+  end
+
+  describe "#input_shape" do
+    let(:operation) { Aws::S3::Client.api.operation(:get_object) }
+
+    before { context.operation = operation }
+
+    it "is the operation's input structure" do
+      expect(parsed_context.input_shape).to be(operation.input.shape)
     end
   end
 

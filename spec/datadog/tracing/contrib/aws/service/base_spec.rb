@@ -36,6 +36,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         "a FIPS dual-stack endpoint" => "my-bucket.s3-fips.dualstack.us-west-2.amazonaws.com",
         "an access point endpoint" => "ap-123456789012.s3-accesspoint.us-east-1.amazonaws.com",
         "a FIPS access point endpoint" => "ap-123456789012.s3-accesspoint-fips.us-east-1.amazonaws.com",
+        "a dual-stack access point endpoint" => "ap-123456789012.s3-accesspoint.dualstack.us-east-1.amazonaws.com",
+        "a Transfer Acceleration endpoint" => "my-bucket.s3-accelerate.amazonaws.com",
+        "a dual-stack Transfer Acceleration endpoint" => "my-bucket.s3-accelerate.dualstack.amazonaws.com",
+        "a regional dual-stack Transfer Acceleration endpoint" => "my-bucket.s3-accelerate.dualstack.us-east-1.amazonaws.com",
+        "the legacy external endpoint" => "s3-external-1.amazonaws.com",
         "a VPC endpoint" => "bucket.vpce-0a1b-c2d3.s3.us-east-1.vpce.amazonaws.com",
         "a China endpoint" => "s3.cn-north-1.amazonaws.com.cn",
         "a GovCloud endpoint" => "s3.us-gov-west-1.amazonaws.com",
@@ -304,6 +309,30 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
 
         expect(described_class.aws_dotted_dns_suffixes).to eq([".amazonaws.com", ".api.aws"])
       end
+    end
+  end
+
+  describe "#input_member?" do
+    subject(:input_member?) { base.send(:input_member?, context, :expected_bucket_owner) }
+
+    before { allow(context).to receive(:safely).with(:input_shape).and_return(input_shape) }
+
+    context "when the operation defines the param" do
+      let(:input_shape) { Aws::S3::Client.api.operation(:get_object).input.shape }
+
+      it { is_expected.to be true }
+    end
+
+    context "when the operation does not define the param" do
+      let(:input_shape) { Aws::S3::Client.api.operation(:create_bucket).input.shape }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the input shape is unavailable" do
+      let(:input_shape) { nil }
+
+      it { is_expected.to be false }
     end
   end
 

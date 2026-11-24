@@ -55,7 +55,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     let(:host) { "dynamodb.us-east-1.amazonaws.com" }
     let(:params) { {table_name: "example-table"} }
 
+    let(:operation) { :get_item }
+
     before do
+      allow(context).to receive(:safely).with(:input_shape)
+        .and_return(Aws::DynamoDB::Client.api.operation(operation).input.shape)
       allow(context).to receive(:safely).with(:assumed_role_account_id).and_return(account_id)
       allow(context).to receive(:safely).with(:status_code).and_return(status_code)
       allow(context).to receive(:safely).with(:host).and_return(host)
@@ -66,6 +70,17 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
         add_owner_tags
         expect(span).to have_received(:set_tag)
           .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    context "with an operation that does not define a table name" do
+      let(:operation) { :list_tables }
+
+      it "does not set the aws_account tag" do
+        add_owner_tags
+        expect(span).not_to have_received(:set_tag)
+          .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
+        expect(context).not_to have_received(:safely).with(:assumed_role_account_id)
       end
     end
 

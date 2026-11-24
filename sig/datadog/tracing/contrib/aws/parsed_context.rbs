@@ -29,6 +29,8 @@ module Datadog
 
           def host: () -> untyped
 
+          def input_shape: () -> untyped
+
           private
 
           attr_reader context: untyped
