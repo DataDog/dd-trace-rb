@@ -4,13 +4,13 @@ module Datadog
       module Aws
         module Service
           class SNS < Base
-            SERVICE: ::String
+            SERVICE: String
 
-            def add_tags: (untyped span, untyped params) -> untyped
+            def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 
             private
 
-            def parse_topic_arn: (any value) -> [::String, ::String, ::String?]?
+            def parse_topic_arn: (any value) -> [String, String, String?]?
           end
         end
       end
