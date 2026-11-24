@@ -61,7 +61,8 @@ module Datadog
           end
 
           def self.repush?(job)
-            return false unless job.key?(Datadog::DataStreams::Processor::PROPAGATION_KEY)
+            key = Datadog::DataStreams::Processor::PROPAGATION_KEY
+            return false unless job.key?(key) || wrapped_payload(job)&.key?(key)
 
             running_jid = Thread.current[RUNNING_JID_KEY]
             running_jid.nil? || running_jid == job["jid"]

@@ -324,6 +324,15 @@ RSpec.describe "Sidekiq Data Streams" do
           .with(type: "sidekiq", source: "audit", auto_instrumentation: true)
       end
 
+      it "keeps the ActiveJob payload's pathway when a stored wrapped job is pushed again" do
+        job = wrapped_job.merge("args" => [{pathway_key => "inner-context"}])
+
+        in_fresh_thread { Datadog::Tracing::Contrib::Sidekiq::DataStreams.produce(job) }
+
+        expect(job).not_to have_key(pathway_key)
+        expect(Datadog::DataStreams).not_to have_received(:set_produce_checkpoint)
+      end
+
       it "consumes the pathway an ActiveJob-instrumented producer put in the ActiveJob payload" do
         producer_context = nil
         in_fresh_thread do
