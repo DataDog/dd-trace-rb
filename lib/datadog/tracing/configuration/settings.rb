@@ -579,6 +579,17 @@ module Datadog
                 o.type :bool
               end
 
+              # Whether SQL database spans are tagged with the Amazon RDS identity
+              # their endpoint hostname encodes.
+              #
+              # @default `DD_TRACE_RDS_TAGS_ENABLED` environment variable, otherwise `true`.
+              # @return [Boolean]
+              option :rds_tags_enabled do |o|
+                o.env Tracing::Configuration::Ext::ENV_RDS_TAGS_ENABLED
+                o.default true
+                o.type :bool
+              end
+
               # HTTP error statuses configuration
               # @public_api
               settings :http_error_statuses do

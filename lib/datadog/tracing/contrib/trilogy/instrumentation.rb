@@ -52,7 +52,9 @@ module Datadog
                 span.set_tag(Ext::TAG_DB_NAME, connection_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, connection_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, connection_options[:port])
-                Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(connection_options[:host]))
+                if Datadog.configuration.tracing.rds_tags_enabled
+                  Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(connection_options[:host]))
+                end
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 

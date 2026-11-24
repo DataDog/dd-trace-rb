@@ -99,7 +99,9 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
-              Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(query_options[:host]))
+              if Datadog.configuration.tracing.rds_tags_enabled
+                Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(query_options[:host]))
+              end
             end
           end
         end

@@ -65,7 +65,9 @@ module Datadog
               span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
               if config[:host]
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host])
-                Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(config[:host]))
+                if Datadog.configuration.tracing.rds_tags_enabled
+                  Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(config[:host]))
+                end
               end
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
             rescue => e

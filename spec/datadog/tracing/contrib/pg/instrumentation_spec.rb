@@ -25,7 +25,12 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
 
   let(:connection) { connection_class.new(host: host) }
 
-  before { connection.exec("SELECT 1") }
+  let(:rds_tags_enabled) { true }
+
+  before do
+    allow(Datadog.configuration.tracing).to receive(:rds_tags_enabled).and_return(rds_tags_enabled)
+    connection.exec("SELECT 1")
+  end
 
   context "with an RDS instance endpoint" do
     let(:host) { "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" }
@@ -130,6 +135,18 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
       expect(span.get_tag("aws.region")).to be_nil
       expect(span.get_tag("dbclusteridentifier")).to be_nil
       expect(span.get_tag("dbinstanceidentifier")).to be_nil
+    end
+  end
+
+  context "with RDS tags disabled" do
+    let(:host) { "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" }
+    let(:rds_tags_enabled) { false }
+
+    it "leaves the span unchanged" do
+      expect(span.get_tag("out.host")).to eq(host)
+      expect(span.get_tag("dbinstanceidentifier")).to be_nil
+      expect(span.get_tag("aws.rds.endpoint_type")).to be_nil
+      expect(span.get_tag("aws.region")).to be_nil
     end
   end
 

@@ -54,6 +54,19 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Events::SQL do
           expect(span.get_tag("dbinstanceidentifier")).to be_nil
           expect(span.get_tag("aws.rds.identifier")).to be_nil
         end
+
+        context "with RDS tags disabled" do
+          before { allow(Datadog.configuration.tracing).to receive(:rds_tags_enabled).and_return(false) }
+
+          it "adds no RDS tags" do
+            on_start
+
+            expect(span.get_tag("out.host")).to eq(host)
+            expect(span.get_tag("dbclusteridentifier")).to be_nil
+            expect(span.get_tag("aws.rds.endpoint_type")).to be_nil
+            expect(span.get_tag("aws.region")).to be_nil
+          end
+        end
       end
 
       context "with an RDS instance endpoint" do
