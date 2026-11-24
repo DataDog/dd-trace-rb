@@ -3,7 +3,10 @@ module Datadog
     module Contrib
       module ActiveRecord
         module Configuration
-          class Resolver < Contrib::Configuration::Resolver
+          type matcher = ::Symbol | ::String | ::Hash[untyped, untyped] | ::ActiveRecord::DatabaseConfigurations::DatabaseConfig
+          type key = ::Hash[::Symbol, untyped]
+
+          class Resolver < Contrib::Configuration::Resolver[matcher, key, untyped]
             prepend MakaraResolver
 
             def initialize: (?untyped? active_record_configuration) -> void

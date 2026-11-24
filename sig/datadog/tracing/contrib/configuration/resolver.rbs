@@ -2,14 +2,15 @@ module Datadog
   module Tracing
     module Contrib
       module Configuration
-        class Resolver
-          attr_reader configurations: untyped
+        class Resolver[Matcher, Key, Config]
+          attr_reader configurations: Hash[Key, Config]
 
           def initialize: () -> void
-          def add: (untyped matcher, untyped value) -> untyped
-          def get: (untyped matcher) -> untyped
-          def resolve: (untyped value) -> untyped
-          def parse_matcher: (untyped matcher) -> untyped
+          def add: (Matcher matcher, Config value) -> Config?
+          def get: (Matcher matcher) -> Config?
+          def resolve: (Key value) -> Config?
+          def parse_matcher: (Matcher matcher) -> Key
+          def ordered_config: () -> Array[[Key, Config]]
         end
       end
     end

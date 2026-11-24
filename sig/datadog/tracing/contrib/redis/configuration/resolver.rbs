@@ -4,7 +4,10 @@ module Datadog
       module Redis
         module Configuration
           UNIX_SCHEME: "unix"
-          class Resolver < Contrib::Configuration::Resolver
+          type matcher = ::String | ::Hash[untyped, untyped]
+          type key = { url: untyped } | { host: untyped, port: untyped, db: untyped, scheme: untyped }
+
+          class Resolver < Contrib::Configuration::Resolver[matcher, key, untyped]
             def resolve: (untyped hash) -> untyped
 
             def parse_matcher: (untyped matcher) -> untyped
