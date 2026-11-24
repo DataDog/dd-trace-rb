@@ -40,6 +40,15 @@ RSpec.describe Datadog::Core::TokenBucket do
         end
       end
     end
+
+    context "when max_tokens is given with a fractional rate" do
+      let(:rate) { 0.5 }
+      let(:max_tokens) { 2 }
+
+      it "keeps the explicit capacity" do
+        expect(bucket.max_tokens).to eq(2)
+      end
+    end
   end
 
   describe "#allow?" do
@@ -135,10 +144,6 @@ RSpec.describe Datadog::Core::TokenBucket do
         allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(10)
         bucket.allow?(0)
         expect(bucket.available_tokens).to eq(1)
-      end
-
-      it "still honors an explicit max_tokens" do
-        expect(described_class.new(rate, 2).max_tokens).to eq(2)
       end
     end
 
