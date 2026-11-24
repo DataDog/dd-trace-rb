@@ -3189,13 +3189,22 @@ Symbol Database requires MRI Ruby 2.7+ and Remote Configuration (enabled by defa
 
 ### Payload too large
 
-By default, Datadog limits the size of trace payloads to prevent memory overhead within instrumented applications. As a result, traces containing thousands of operations may not be sent to Datadog.
+Oversized trace payloads can be dropped by the tracer or rejected by the Datadog Agent. This can affect traces with many spans or spans containing large tags.
 
-If traces are missing, enable [debug mode](#debugging-and-diagnostics) to check if messages containing `"Dropping trace. Payload too large"` are logged.
+If traces are missing, check the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for payload-size rejections or HTTP `413` errors. [Debug mode](#debugging-and-diagnostics) can also reveal tracer-side drops, such as `"Dropping trace. Payload too large"`.
 
-Since debug mode is verbose, **Datadog does not recommend leaving this enabled or enabling this in production.** Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+Since debug mode is verbose, **Datadog does not recommend leaving this enabled or enabling this in production.** Disable it after confirming.
 
-Partial flushing is enabled by default and splits large traces into smaller chunks after 500 spans finish. If traces are still dropped due to large payloads, lower [`tracing.partial_flush.min_spans_threshold`](#additional-configuration). If you have disabled partial flushing, re-enable it by setting `c.tracing.partial_flush.enabled = true` in `Datadog.configure`.
+Partial flushing is enabled by default and flushes completed portions of an unfinished trace after 500 spans finish. If traces are still dropped due to large payloads, lower [`tracing.partial_flush.min_spans_threshold`](#additional-configuration). If you have disabled partial flushing, re-enable it. For example:
+
+```ruby
+Datadog.configure do |c|
+  c.tracing.partial_flush.enabled = true
+  c.tracing.partial_flush.min_spans_threshold = 100
+end
+```
+
+The threshold counts spans, not bytes, so partial flushing does not guarantee that every payload fits. If a single span is too large, reduce the size of its tags or captured data. Lower thresholds can increase flushing overhead; check both trace delivery and application performance after tuning.
 
 ### Stack level too deep
 
