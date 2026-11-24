@@ -185,6 +185,17 @@ RSpec.describe "AWS Data Streams instrumentation" do
 
       expect(spans.last.get_tag("pathway.hash")).to match(/\A\d+\z/)
     end
+
+    it "clears the pathway when the sole message is malformed" do
+      sqs.send_message(queue_url: queue_url, message_body: "hi")
+      carrier = sent_params(sqs, :send_message)[:message_attributes]["_datadog"][:string_value]
+      Datadog::DataStreams.pathway_context = nil
+      good = {data_type: "String", string_value: carrier}
+      malformed = JSON.generate("Type" => "Notification", "MessageAttributes" => "not-a-hash")
+
+      expect(consume_messages([{message_id: "1", body: "a", message_attributes: {"_datadog" => good}}])).not_to be_nil
+      expect(consume_messages([{message_id: "2", body: malformed}])).to be_nil
+    end
   end
 
   describe "SNS" do

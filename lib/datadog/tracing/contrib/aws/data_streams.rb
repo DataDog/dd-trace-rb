@@ -56,9 +56,9 @@ module Datadog
             private
 
             def consume(queue, message)
+              Datadog::DataStreams.pathway_context = nil
               carrier = extract_carrier(message)
               pathway = carrier && unwrap_double_encoding(carrier[Datadog::DataStreams::Processor::PROPAGATION_KEY])
-              Datadog::DataStreams.pathway_context = nil
               Datadog::DataStreams.set_consume_checkpoint(type: "sqs", source: queue, auto_instrumentation: true) do |_key|
                 pathway
               end
