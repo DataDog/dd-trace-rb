@@ -20,18 +20,16 @@ module Datadog
               span.set_tag(Aws::Ext::TAG_TABLE_ARN, table_name) if table_name.is_a?(String) && table_name.start_with?("arn:")
             end
 
-            # DynamoDB resolves a bare table name, unlike a table ARN, in the
-            # account of the requestor, so on a confirmed response the assumed
-            # role account owns the table.
-            #
+            # DynamoDB resolves a bare table name in the account of the requestor.
             # @see https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/rbac-cross-account-access.html
             def add_owner_tags(span, params, context)
               table_name = params[:table_name]
               return unless table_name.is_a?(String) && BARE_TABLE_NAME_FORMAT.match?(table_name)
-              return unless aws_confirmed_response?(context, ENDPOINT_LABEL)
 
               account_id = valid_account_id(context.safely(:assumed_role_account_id))
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
+              return unless account_id && aws_confirmed_response?(context, ENDPOINT_LABEL)
+
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id)
             end
           end
         end

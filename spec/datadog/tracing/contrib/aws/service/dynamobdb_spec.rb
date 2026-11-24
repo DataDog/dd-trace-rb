@@ -139,10 +139,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
       end
     end
 
-    # A bare name only names a table in the signing account once DynamoDB has
-    # resolved it there, so the response has to be a success from AWS. The full
-    # status and endpoint matrix lives with the shared gate, in the spec for
-    # `Service::Base#aws_confirmed_response?`.
+    # The full status and endpoint matrix is in the `Service::Base` spec.
     context "when the request failed" do
       let(:status_code) { 400 }
 
@@ -150,11 +147,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
         add_owner_tags
         expect(span).not_to have_received(:set_tag)
           .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
-      end
-
-      it "does not read the credentials" do
-        add_owner_tags
-        expect(context).not_to have_received(:safely).with(:assumed_role_account_id)
       end
     end
 
@@ -168,8 +160,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
       end
     end
 
-    # DynamoDB Local and LocalStack resolve the same bare name in a local store
-    # that has no AWS account behind it.
     context "when a DynamoDB-compatible endpoint answers 2xx" do
       let(:host) { "localhost" }
 
@@ -177,11 +167,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
         add_owner_tags
         expect(span).not_to have_received(:set_tag)
           .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
-      end
-
-      it "does not read the credentials" do
-        add_owner_tags
-        expect(context).not_to have_received(:safely).with(:assumed_role_account_id)
       end
     end
 
@@ -222,6 +207,12 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
         add_owner_tags
         expect(span).not_to have_received(:set_tag)
           .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
+      end
+
+      it "does not read the response" do
+        add_owner_tags
+        expect(context).not_to have_received(:safely).with(:status_code)
+        expect(context).not_to have_received(:safely).with(:host)
       end
     end
 

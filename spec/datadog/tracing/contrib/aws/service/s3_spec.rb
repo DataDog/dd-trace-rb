@@ -50,9 +50,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
       end
     end
 
-    # The full status and endpoint matrix lives with the shared gate, in the
-    # spec for `Service::Base#aws_confirmed_response?`. These three cover that
-    # S3 actually applies it.
+    # The full status and endpoint matrix is in the `Service::Base` spec.
     context "when the bucket owner does not match" do
       let(:status_code) { 403 }
 
@@ -110,6 +108,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
         add_owner_tags
         expect(span).not_to have_received(:set_tag)
           .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
+      end
+
+      it "does not read the response" do
+        add_owner_tags
+        expect(context).not_to have_received(:safely)
       end
     end
 
