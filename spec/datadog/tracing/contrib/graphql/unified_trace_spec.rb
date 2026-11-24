@@ -24,6 +24,8 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
     let(:field_options) { {} }
     let(:trace_options) { {} }
     let(:lazy_field) { false }
+    let(:lazy_authorization) { false }
+    let(:authorization_result) { true }
     let(:item_return_type) { item_type }
 
     let(:enum_type) do
@@ -35,9 +37,17 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
     let(:item_type) do
       type = field_type
       options = field_options
-      stub_const("SpanSelectionItem", Class.new(::GraphQL::Schema::Object) do
+      item = stub_const("SpanSelectionItem", Class.new(::GraphQL::Schema::Object) do
         field :value, type, null: false, **options
       end)
+
+      allowed = authorization_result
+      lazy = lazy_authorization
+      item.define_singleton_method(:authorized?) do |_object, _context|
+        lazy ? ::GraphQL::Execution::Lazy.new { allowed } : allowed
+      end
+
+      item
     end
 
     let(:query_type) do
@@ -59,6 +69,10 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
 
     def span_names_for_resource(resource)
       spans.select { |span| span.resource == resource }.map(&:name)
+    end
+
+    def span_name_resource_pairs(*names)
+      spans.select { |span| names.include?(span.name) }.map { |span| [span.name, span.resource] }
     end
 
     shared_examples "leaf field span selection" do
@@ -133,6 +147,51 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
           let(:resolved_value) { ["EXAMPLE"] }
 
           include_examples "leaf field span selection"
+        end
+      end
+    end
+
+    describe "authorization spans" do
+      [false, true].each do |lazy|
+        context "with #{lazy ? "lazy" : "synchronous"} authorization" do
+          let(:lazy_authorization) { lazy }
+
+          context "when authorization is denied with its spans disabled" do
+            let(:authorization_result) { false }
+            let(:trace_options) { {trace_authorized: false} }
+
+            it "still denies access to the object" do
+              expect(result.to_h["data"]).to be_nil
+              expect(span_name_resource_pairs("graphql.authorized", "graphql.authorized_lazy")).to be_empty
+            end
+          end
+
+          [true, false].each do |enabled|
+            context "with trace_authorized: #{enabled}" do
+              let(:trace_options) { {trace_authorized: enabled} }
+
+              it "#{enabled ? "creates" : "skips"} authorization spans" do
+                expect(result.to_h).to eq("data" => {"item" => {"value" => resolved_value}})
+
+                expected_spans = if !enabled
+                  []
+                elsif lazy
+                  [
+                    ["graphql.authorized", "SpanSelectionQuery.authorized"],
+                    ["graphql.authorized", "SpanSelectionItem.authorized"],
+                    ["graphql.authorized_lazy", "SpanSelectionItem.authorized"],
+                  ]
+                else
+                  [
+                    ["graphql.authorized", "SpanSelectionQuery.authorized"],
+                    ["graphql.authorized", "SpanSelectionItem.authorized"],
+                  ]
+                end
+
+                expect(span_name_resource_pairs("graphql.authorized", "graphql.authorized_lazy")).to match_array(expected_spans)
+              end
+            end
+          end
         end
       end
     end

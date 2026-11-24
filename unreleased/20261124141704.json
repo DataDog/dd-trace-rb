@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6736",
+  "message": "Fix GraphQL authorization spans being created when `UnifiedTrace` is configured with `trace_authorized: false`."
+}

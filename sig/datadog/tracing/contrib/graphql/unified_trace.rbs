@@ -5,6 +5,8 @@ module Datadog
         module UnifiedTrace
           @has_prepare_span: bool
 
+          @trace_authorized: bool
+
           @service_name: String?
 
           @analytics_enabled: bool?
@@ -31,7 +33,7 @@ module Datadog
 
           include ::GraphQL::Tracing::PlatformTrace
 
-          def initialize: (*untyped args, **untyped kwargs) -> void
+          def initialize: (*untyped args, ?trace_authorized: bool, **untyped kwargs) -> void
 
           private
 

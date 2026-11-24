@@ -13,8 +13,9 @@ module Datadog
         module UnifiedTrace
           include ::GraphQL::Tracing::PlatformTrace
 
-          def initialize(*args, **kwargs)
+          def initialize(*args, trace_authorized: true, **kwargs)
             @has_prepare_span = respond_to?(:prepare_span)
+            @trace_authorized = trace_authorized
 
             # Cache configuration values to avoid repeated lookups
             config = Datadog.configuration.tracing[:graphql]
@@ -145,6 +146,8 @@ module Datadog
           end
 
           def authorized_span(callable, span_key, **kwargs)
+            return callable.call unless @trace_authorized
+
             platform_key = @platform_key_cache[UnifiedTrace].platform_authorized_key_cache[kwargs[:type]]
             trace(callable, span_key, platform_key, **kwargs)
           end
