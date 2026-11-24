@@ -26,6 +26,7 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
     let(:lazy_field) { false }
     let(:lazy_authorization) { false }
     let(:authorization_result) { true }
+    let(:lazy_type_resolution) { false }
     let(:item_return_type) { item_type }
 
     let(:enum_type) do
@@ -189,6 +190,53 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
                 end
 
                 expect(span_name_resource_pairs("graphql.authorized", "graphql.authorized_lazy")).to match_array(expected_spans)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    describe "type resolution spans" do
+      let(:query) { "{ item { ... on SpanSelectionItem { value } } }" }
+      let(:item_return_type) do
+        type = item_type
+        stub_const("SpanSelectionUnion", Class.new(::GraphQL::Schema::Union) do
+          possible_types type
+        end)
+      end
+
+      before do
+        type = item_type
+        lazy = lazy_type_resolution
+        schema.define_singleton_method(:resolve_type) do |_abstract_type, _object, _context|
+          lazy ? ::GraphQL::Execution::Lazy.new { type } : type
+        end
+      end
+
+      [false, true].each do |lazy|
+        context "with #{lazy ? "lazy" : "synchronous"} type resolution" do
+          let(:lazy_type_resolution) { lazy }
+
+          [true, false].each do |enabled|
+            context "with trace_resolve_type: #{enabled}" do
+              let(:trace_options) { {trace_resolve_type: enabled} }
+
+              it "#{enabled ? "creates" : "skips"} type resolution spans" do
+                expect(result.to_h).to eq("data" => {"item" => {"value" => resolved_value}})
+
+                expected_spans = if !enabled
+                  []
+                elsif lazy
+                  [
+                    ["graphql.resolve_type", "SpanSelectionUnion.resolve_type"],
+                    ["graphql.resolve_type_lazy", "SpanSelectionUnion.resolve_type"],
+                  ]
+                else
+                  [["graphql.resolve_type", "SpanSelectionUnion.resolve_type"]]
+                end
+
+                expect(span_name_resource_pairs("graphql.resolve_type", "graphql.resolve_type_lazy")).to match_array(expected_spans)
               end
             end
           end

@@ -7,6 +7,8 @@ module Datadog
 
           @trace_authorized: bool
 
+          @trace_resolve_type: bool
+
           @service_name: String?
 
           @analytics_enabled: bool?
@@ -33,7 +35,7 @@ module Datadog
 
           include ::GraphQL::Tracing::PlatformTrace
 
-          def initialize: (*untyped args, ?trace_authorized: bool, **untyped kwargs) -> void
+          def initialize: (*untyped args, ?trace_authorized: bool, ?trace_resolve_type: bool, **untyped kwargs) -> void
 
           private
 
