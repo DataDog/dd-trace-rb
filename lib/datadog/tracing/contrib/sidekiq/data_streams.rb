@@ -15,12 +15,18 @@ module Datadog
             return if active_job_handles?(job)
             return if repush?(job)
 
-            Datadog::DataStreams.set_produce_checkpoint(
-              type: Ext::TAG_COMPONENT,
-              destination: job["queue"],
-              auto_instrumentation: true,
-            ) do |key, value|
-              job[key] = value
+            context = Datadog::DataStreams.pathway_context
+            processor = Datadog::DataStreams.send(:processor)
+            begin
+              Datadog::DataStreams.set_produce_checkpoint(
+                type: Ext::TAG_COMPONENT,
+                destination: job["queue"],
+                auto_instrumentation: true,
+              ) do |key, value|
+                job[key] = value
+              end
+            ensure
+              Datadog::DataStreams.pathway_context = context if Datadog::DataStreams.send(:processor).equal?(processor)
             end
           rescue => e
             Datadog.logger.debug { "Error setting Sidekiq DSM produce checkpoint: #{e.class}: #{e.message}" }
@@ -28,7 +34,11 @@ module Datadog
 
           def self.consume(job, queue)
             return yield unless Datadog::DataStreams.enabled?
-            return yield if active_job_handles?(job)
+
+            if active_job_handles?(job)
+              hand_over_to_active_job(job)
+              return yield
+            end
 
             saved = save_state(job)
             begin
@@ -37,7 +47,7 @@ module Datadog
                 source: queue,
                 auto_instrumentation: true,
               ) do |key|
-                job[key]
+                job[key] || wrapped_payload(job)&.[](key)
               end
             rescue => e
               Datadog.logger.debug { "Error setting Sidekiq DSM consume checkpoint: #{e.class}: #{e.message}" }
@@ -53,7 +63,24 @@ module Datadog
           def self.repush?(job)
             return false unless job.key?(Datadog::DataStreams::Processor::PROPAGATION_KEY)
 
-            Datadog::DataStreams.pathway_context.nil? || job["jid"] == Thread.current[RUNNING_JID_KEY]
+            running_jid = Thread.current[RUNNING_JID_KEY]
+            running_jid.nil? || running_jid == job["jid"]
+          end
+
+          def self.hand_over_to_active_job(job)
+            key = Datadog::DataStreams::Processor::PROPAGATION_KEY
+            context = job[key]
+            payload = wrapped_payload(job)
+            payload[key] = context if context && payload && !payload.key?(key)
+          rescue => e
+            Datadog.logger.debug { "Error handing Sidekiq DSM pathway context to ActiveJob: #{e.class}: #{e.message}" }
+          end
+
+          def self.wrapped_payload(job)
+            return unless job["wrapped"]
+
+            payload = job["args"]&.first
+            payload if payload.is_a?(Hash)
           end
 
           def self.active_job_handles?(job)

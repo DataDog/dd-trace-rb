@@ -13,6 +13,10 @@ module Datadog
 
           def self.repush?: (Hash[String, untyped] job) -> bool
 
+          def self.hand_over_to_active_job: (Hash[String, untyped] job) -> void
+
+          def self.wrapped_payload: (Hash[String, untyped] job) -> Hash[String, untyped]?
+
           def self.active_job_handles?: (Hash[String, untyped] job) -> bool
 
           def self.save_state: (Hash[String, untyped] job) -> saved_state?

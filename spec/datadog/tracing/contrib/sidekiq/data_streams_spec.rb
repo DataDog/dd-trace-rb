@@ -24,8 +24,6 @@ RSpec.describe "Sidekiq Data Streams" do
           in_context = Datadog::DataStreams.pathway_context
           self.class.observed = {in_hash: in_context.hash, in_parent_hash: in_context.parent_hash}
           NotifyWorker.perform_async(id)
-          out_context = Datadog::DataStreams.pathway_context
-          self.class.observed.merge!(out_hash: out_context.hash, out_parent_hash: out_context.parent_hash)
         end
       end,
     )
@@ -38,7 +36,12 @@ RSpec.describe "Sidekiq Data Streams" do
         include Sidekiq::Worker
         sidekiq_options queue: "notify"
 
+        class << self
+          attr_accessor :observed_parent_hash
+        end
+
         def perform(_id)
+          self.class.observed_parent_hash = Datadog::DataStreams.pathway_context&.parent_hash
         end
       end,
     )
@@ -148,10 +151,28 @@ RSpec.describe "Sidekiq Data Streams" do
 
       in_fresh_thread do
         Datadog::DataStreams.set_consume_checkpoint(type: "sidekiq", source: "upstream")
+        Thread.current[running_jid_key] = "forwarder-jid"
         Sidekiq::Client.push(stored.merge("jid" => "other-jid", "queue" => "notify"))
       end
 
       expect(Sidekiq::Queues["notify"].first[pathway_key]).not_to eq(stored[pathway_key])
+    end
+
+    it "keeps stored payloads' contexts after the same thread pushed a payload without one" do
+      in_fresh_thread { OrdersWorker.perform_async("1") }
+      stored = OrdersWorker.jobs.first.dup
+      Sidekiq::Worker.clear_all
+      headerless = stored.reject { |key, _| key == pathway_key }.merge("jid" => "headerless-jid")
+      context_after_headerless_push = :unset
+
+      in_fresh_thread do
+        Sidekiq::Client.push(headerless)
+        context_after_headerless_push = Datadog::DataStreams.pathway_context
+        Sidekiq::Client.push(stored)
+      end
+
+      expect(context_after_headerless_push).to be_nil
+      expect(OrdersWorker.jobs.map { |job| job[pathway_key] }).to include(stored[pathway_key])
     end
 
     context "when Data Streams is disabled" do
@@ -167,16 +188,22 @@ RSpec.describe "Sidekiq Data Streams" do
 
   describe "running a job" do
     it "links the forwarder's checkpoints to the producer and to the next job" do
+      produce_parent_hashes = []
+      allow(Datadog::DataStreams).to receive(:set_produce_checkpoint).and_wrap_original do |original, **kwargs, &block|
+        result = original.call(**kwargs, &block)
+        produce_parent_hashes << Datadog::DataStreams.pathway_context.parent_hash
+        result
+      end
+
       in_fresh_thread { OrdersWorker.perform_async("1") }
       produced = decode(OrdersWorker.jobs.first)
-
       in_fresh_thread { OrdersWorker.drain }
-      observed = OrdersWorker.observed
       forwarded = decode(NotifyWorker.jobs.first)
+      in_fresh_thread { NotifyWorker.drain }
 
-      expect(observed[:in_parent_hash]).to eq(produced.hash)
-      expect(observed[:out_parent_hash]).to eq(observed[:in_hash])
-      expect(forwarded.hash).to eq(observed[:out_hash])
+      expect(OrdersWorker.observed[:in_parent_hash]).to eq(produced.hash)
+      expect(produce_parent_hashes.last).to eq(OrdersWorker.observed[:in_hash])
+      expect(NotifyWorker.observed_parent_hash).to eq(forwarded.hash)
     end
 
     it "sets a consume checkpoint on the queue the job was fetched from" do
@@ -266,6 +293,22 @@ RSpec.describe "Sidekiq Data Streams" do
         expect(Datadog::DataStreams).not_to have_received(:set_produce_checkpoint)
         expect(Datadog::DataStreams).not_to have_received(:set_consume_checkpoint)
       end
+
+      it "hands a pathway pushed by a producer without ActiveJob support to the ActiveJob payload" do
+        job = wrapped_job.merge("args" => [{}], pathway_key => "outer-context")
+
+        Datadog::Tracing::Contrib::Sidekiq::DataStreams.consume(job, "audit") {}
+
+        expect(job["args"].first).to include(pathway_key => "outer-context")
+      end
+
+      it "keeps the ActiveJob payload's own pathway" do
+        job = wrapped_job.merge("args" => [{pathway_key => "inner-context"}], pathway_key => "outer-context")
+
+        Datadog::Tracing::Contrib::Sidekiq::DataStreams.consume(job, "audit") {}
+
+        expect(job["args"].first).to include(pathway_key => "inner-context")
+      end
     end
 
     context "when ActiveJob Data Streams support is not active" do
@@ -279,6 +322,23 @@ RSpec.describe "Sidekiq Data Streams" do
         expect(job).to have_key(pathway_key)
         expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint)
           .with(type: "sidekiq", source: "audit", auto_instrumentation: true)
+      end
+
+      it "consumes the pathway an ActiveJob-instrumented producer put in the ActiveJob payload" do
+        producer_context = nil
+        in_fresh_thread do
+          Datadog::DataStreams.set_produce_checkpoint(type: "active_job", destination: "audit") { |_key, value| producer_context = value }
+        end
+        job = wrapped_job.merge("args" => [{pathway_key => producer_context}])
+        parent_hash = nil
+
+        in_fresh_thread do
+          Datadog::Tracing::Contrib::Sidekiq::DataStreams.consume(job, "audit") do
+            parent_hash = Datadog::DataStreams.pathway_context.parent_hash
+          end
+        end
+
+        expect(parent_hash).to eq(Datadog::DataStreams::PathwayContext.decode_b64(producer_context).hash)
       end
     end
   end
