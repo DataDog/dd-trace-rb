@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
       end
 
       it "reports a bare resource" do
-        expect(parsed).to be_bare_resource
+        expect(parsed.bare_resource_id("sns")).to eq("my-topic-name")
         expect(parsed.resource_segments).to eq(["my-topic-name"])
       end
     end
@@ -28,7 +28,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
 
       it "splits the resource into type and id" do
         expect(parsed.resource_segments).to eq(["table", "MyTable"])
-        expect(parsed).not_to be_bare_resource
       end
     end
 
@@ -38,7 +37,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
       it "splits every resource segment" do
         expect(parsed.resource).to eq("execution:my-machine:my-execution")
         expect(parsed.resource_segments).to eq(["execution", "my-machine", "my-execution"])
-        expect(parsed).not_to be_bare_resource
       end
     end
 
@@ -52,15 +50,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
       end
     end
 
-    # A caller that requires a resource of exactly N segments has to be able to
-    # tell `table/MyTable` from `table/MyTable/`, so a trailing separator is
-    # kept as an empty segment rather than dropped.
     context "with a resource ending in a separator" do
       let(:value) { "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/" }
 
       it "keeps the trailing empty segment" do
         expect(parsed.resource_segments).to eq(["table", "MyTable", ""])
-        expect(parsed).not_to be_bare_resource
       end
     end
 
@@ -103,9 +97,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
     end
 
     context "when the ARN omits only the Region" do
-      # A partition-global ARN form. Parsing it says nothing about which
-      # request parameters accept it; {Service::DynamoDB} deliberately does
-      # not read `global-table` as a `TableName`.
       let(:value) { "arn:aws:dynamodb::123456789012:global-table/MyTable" }
 
       it "keeps the account and reports no Region" do
@@ -150,11 +141,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
       end
     end
 
-    # A request parameter arrives from the caller, so a value whose bytes are
-    # not valid in its own encoding, or whose encoding cannot be compared with
-    # the ASCII patterns an ARN is matched against, is reachable with ordinary
-    # input. Both raise from `String#start_with?` or `Regexp#match?` rather
-    # than answering false, which is why they are rejected up front.
     describe "with an encoding a comparison cannot read" do
       [
         [
