@@ -44,13 +44,6 @@ if [[ "$actual_checksum" != "$EXPECTED_CHECKSUM" ]]; then
 fi
 
 printf 'Checksum verified. Generating zstd.c...\n'
-# @ivoanjo: zstd includes freestanding_lib to adapt its sources for environments with custom runtime dependencies; we reuse its partial preprocessor.
-# @ivoanjo: Upstream xxhash.h defines XXH_NO_XXH3; remove the disabled sections before amalgamation to reduce zstd.c size.
-(
-  cd -- "$source_dir/contrib/freestanding_lib"
-  python3 -c 'from freestanding import PartialPreprocessor; PartialPreprocessor(defs=[("XXH_NO_XXH3", None)], replaces=[], undefs=[]).preprocess("../../lib/common/xxhash.h")' > /dev/null
-)
-
 (
   cd -- "$source_dir/build/single_file_libs"
   python3 combine.py -r ../../lib -x legacy/zstd_legacy.h \
@@ -58,8 +51,20 @@ printf 'Checksum verified. Generating zstd.c...\n'
     -o "$temp_dir/zstd.c" "$script_dir/zstd-in.c"
 )
 
-# @ivoanjo: Strip standalone comments to further reduce zstd.c size
-ruby -0777 -i -pe '$_.gsub!(%r{^[[:blank:]]*/\*(?!\*\*).*?\*/}m) { |comment| comment.match?(/copyright|license|SPDX|@ivoanjo/i) ? comment : "" }' "$temp_dir/zstd.c"
+# @ivoanjo: zstd includes freestanding_lib to adapt its sources for environments with custom runtime dependencies; we reuse its partial preprocessor to remove stuff that's being ifdef'd out.
+# @ivoanjo: Upstream xxhash.h defines XXH_NO_XXH3, so it was already going to be ignored. We additionally strip multithreading support and compressor code that was being disabled in zstd-in.c.
+(
+  cd -- "$source_dir/contrib/freestanding_lib"
+  python3 - "$temp_dir/zstd.c" > /dev/null <<'PY'
+import sys, freestanding
+freestanding.PartialPreprocessor(
+    defs=[(name, None) for name in ["XXH_NO_XXH3", "ZSTD_EXCLUDE_DFAST_BLOCK_COMPRESSOR", "ZSTD_EXCLUDE_GREEDY_BLOCK_COMPRESSOR", "ZSTD_EXCLUDE_LAZY_BLOCK_COMPRESSOR", "ZSTD_EXCLUDE_LAZY2_BLOCK_COMPRESSOR", "ZSTD_EXCLUDE_BTLAZY2_BLOCK_COMPRESSOR", "ZSTD_EXCLUDE_BTOPT_BLOCK_COMPRESSOR", "ZSTD_EXCLUDE_BTULTRA_BLOCK_COMPRESSOR"]],
+    replaces=[], undefs=["ZSTD_MULTITHREAD"]).preprocess(sys.argv[1])
+PY
+)
+
+# @ivoanjo: Strip standalone comments, trailing block comments and extra blank lines to reduce zstd.c size.
+ruby -0777 -i -pe 'gsub(%r{^[ \t]*/\*.*?\*/|(?<=[,;])[ \t]+/\*(?:(?!\*/).)*\*/[ \t]*$}m) { |c| c if c =~ /copyright|license|SPDX|@ivoanjo|\*{4} \w+ inlining /i }; gsub(/\n([ \t]*\n){2,}/, "\n\n")' "$temp_dir/zstd.c"
 
 install -m 644 "$temp_dir/zstd.c" "$output_path"
 install -m 644 "$source_dir/LICENSE" "$license_path"
