@@ -85,11 +85,63 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
           {identifier: "orders-proxy", endpoint_type: "proxy", region: "us-east-2"},
         "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" =>
           {identifier: "orders-sg", endpoint_type: "shardgrp", region: "us-east-1"},
+        "orders.limitless-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" =>
+          {identifier: "orders", endpoint_type: "limitless", region: "us-east-1"},
+        "readonly.endpoint.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" =>
+          {identifier: "readonly", endpoint_type: "proxy", region: "us-east-1"},
+        "orders-global.global-cdbfa1b2c3d4.global.rds.amazonaws.com" =>
+          {identifier: "orders-global", endpoint_type: "global", region: nil},
       }.each do |host, expected|
         context "with #{host}" do
           let(:hostname) { host }
 
           it { is_expected.to eq(expected) }
+        end
+      end
+
+      context "with a global writer endpoint outside the commercial partition" do
+        let(:hostname) { "orders-global.global-cdbfa1b2c3d4.global.rds.amazonaws.com.cn" }
+
+        it { is_expected.to eq(identifier: "orders-global", endpoint_type: "global", region: nil) }
+      end
+
+      context "with a global writer endpoint in upper case, with a trailing dot and a port" do
+        let(:hostname) { "ORDERS-GLOBAL.GLOBAL-CDBFA1B2C3D4.GLOBAL.RDS.AMAZONAWS.COM.:5432" }
+
+        it { is_expected.to eq(identifier: "orders-global", endpoint_type: "global", region: nil) }
+      end
+
+      context "with a malformed global writer endpoint" do
+        [
+          # the global label is only read with the global hash label in front of it
+          "orders-global.cdbfa1b2c3d4.global.rds.amazonaws.com",
+          "orders-global.global-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          "orders-global.global-cdbfa1b2c3d4.rds.global.amazonaws.com.cn",
+          "orders-global.global-cdbfa1-b2c3d4.global.rds.amazonaws.com",
+          "orders-global.cluster-global-cdbfa1b2c3d4.global.rds.amazonaws.com",
+          "orders-global.endpoint.global-cdbfa1b2c3d4.global.rds.amazonaws.com",
+        ].each do |host|
+          context "with #{host}" do
+            let(:hostname) { host }
+
+            it { is_expected.to be_nil }
+          end
+        end
+      end
+
+      context "with a malformed proxy endpoint" do
+        [
+          # only a proxy hash label can follow the endpoint label
+          "readonly.endpoint.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          "readonly.endpoint.cluster-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          "readonly.endpoint.endpoint.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+          "readonly.proxy.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+        ].each do |host|
+          context "with #{host}" do
+            let(:hostname) { host }
+
+            it { is_expected.to be_nil }
+          end
         end
       end
 
@@ -159,6 +211,10 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
             {identifier: "orders-proxy", endpoint_type: "proxy", region: "cn-north-1"},
           "orders-sg.shardgrp-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
             {identifier: "orders-sg", endpoint_type: "shardgrp", region: "cn-north-1"},
+          "orders.limitless-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
+            {identifier: "orders", endpoint_type: "limitless", region: "cn-north-1"},
+          "readonly.endpoint.proxy-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
+            {identifier: "readonly", endpoint_type: "proxy", region: "cn-north-1"},
         }.each do |host, expected|
           context "with #{host}" do
             let(:hostname) { host }
@@ -207,30 +263,15 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
       end
     end
 
-    # Each of these is a real endpoint form whose current grammar is not pinned well
-    # enough to tag without guessing, so the parser reports no identity at all rather
-    # than a wrong one. Pinned here so that adding support is a deliberate change.
-    context "with an endpoint form that is deliberately not read" do
-      {
-        "Aurora global cluster" => "global-orders.global-cdbfa1b2c3d4.global.rds.amazonaws.com",
-        "RDS Proxy custom endpoint" => "readonly.endpoint.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
-      }.each do |description, host|
-        context "with a #{description} endpoint" do
-          let(:hostname) { host }
-
-          it { is_expected.to be_nil }
-        end
-      end
-    end
-
-    context "with trailing dots, ports, case, and whitespace" do
+    context "with trailing dots, ports, and case" do
       {
         "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com." => "trailing dot",
         "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:3306" => "port",
+        "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com.:5432" => "trailing dot before the port",
+        "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:5432." => "trailing dot after the port",
+        "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com.:5432." => "trailing dot on both sides of the port",
         "ORDERS-DB.CDBFA1B2C3D4.US-EAST-1.RDS.AMAZONAWS.COM" => "upper case",
         "Orders-Db.Cdbfa1b2c3d4.Us-East-1.Rds.Amazonaws.Com" => "mixed case",
-        "  orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com\n" => "surrounding whitespace",
-        "\torders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com.:5432 " => "all of them at once",
       }.each do |host, description|
         context "with #{description}" do
           let(:hostname) { host }
@@ -259,20 +300,18 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         it { is_expected.to eq(identifier: "cn-db", endpoint_type: "instance", region: "cn-north-1") }
       end
 
-      # Normalization order is whitespace, then port, then the root label's trailing dot,
-      # and that order is observable: the root dot terminates the hostname, so a port may
-      # follow it, but a dot is never part of a port. Both directions are pinned so the
-      # asymmetry cannot change unnoticed.
-      context "with a trailing dot before the port" do
-        let(:hostname) { "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com.:5432" }
+      # One root dot at most on each side of the port, and no surrounding whitespace.
+      [
+        "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com..:5432",
+        "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:5432..",
+        "  orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+        "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com\n",
+      ].each do |host|
+        context "with #{host.inspect}" do
+          let(:hostname) { host }
 
-        it { is_expected.to include(identifier: "orders-db") }
-      end
-
-      context "with a trailing dot after the port" do
-        let(:hostname) { "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:5432." }
-
-        it { is_expected.to be_nil }
+          it { is_expected.to be_nil }
+        end
       end
     end
 
@@ -329,6 +368,9 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         # an unrecognized account-label prefix
         "orders-db.writer-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
         "orders.cluster-cdbfa1-b2c3d4.us-east-1.rds.amazonaws.com",
+        # an account label shorter or longer than RDS hands out
+        "orders-db.cdbfa1b.us-east-1.rds.amazonaws.com",
+        "orders-db.cdbfa1b2c3d4e5f6g.us-east-1.rds.amazonaws.com",
         # the wrong number of labels
         "extra.orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
         "orders-db.us-east-1.rds.amazonaws.com",
@@ -542,9 +584,8 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
   end
 
   # The gate in front of the parser exists so that a database that is not on RDS -- the
-  # common case -- costs nothing per span. These pin that: a regression that reintroduces
-  # a `strip`, a downcased copy, or a `MatchData`-building match on this path shows up as
-  # allocations.
+  # common case -- costs nothing per span. These pin that: a regression that adds a
+  # downcased copy or a `MatchData`-building match to this path shows up as allocations.
   describe "allocations" do
     let(:iterations) { 1_000 }
 
@@ -566,6 +607,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
       "isoe-db.cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk",
       "cn-db.cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn",
       "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
+      "orders-global.global-cdbfa1b2c3d4.global.rds.amazonaws.com",
       "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:5432",
     ].each do |host|
       it "allocates nothing re-parsing the known endpoint #{host.inspect}" do

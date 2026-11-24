@@ -3,11 +3,11 @@ module Datadog
     module Contrib
       module Aws
         module RDSEndpoint
-          type endpoint = { identifier: String, endpoint_type: String, region: String }
+          type endpoint = { identifier: String, endpoint_type: String, region: String? }
 
-          self.@cache: ::Hash[String, untyped]
+          self.@cache: Hash[String, untyped]
 
-          self.@cache_mutex: ::Thread::Mutex
+          self.@cache_mutex: Thread::Mutex
 
           TYPE_INSTANCE: "instance"
 
@@ -17,39 +17,39 @@ module Datadog
 
           TYPE_CLUSTER_CUSTOM: "cluster-custom"
 
+          TYPE_LIMITLESS: "limitless"
+
           TYPE_PROXY: "proxy"
 
           TYPE_SHARD_GROUP: "shardgrp"
+
+          TYPE_GLOBAL: "global"
 
           MAX_INPUT_BYTES: Integer
 
           MAX_CACHE_ENTRIES: Integer
 
-          PORT_PATTERN: Regexp
-
           RDS_LABEL_PATTERN: Regexp
+
+          CHINA_DNS_SUFFIX: String
 
           REGION_PATTERNS_BY_DNS_SUFFIX: Hash[String, Regexp]
 
           DNS_SUFFIX_ALTERNATION: String
 
-          CHINA_DNS_SUFFIX: String
+          TYPES_BY_PREFIX: Hash[String?, String]
 
           ENDPOINT_PATTERN: Regexp
 
-          TYPES_BY_PREFIX: Hash[String?, String]
-
           NOT_AN_ENDPOINT: Object
 
-          def self.parse: (untyped hostname) -> endpoint?
+          def self.parse: (any hostname) -> endpoint?
 
           private
 
           def self.fetch_or_parse: (String hostname) -> endpoint?
 
           def self.parse_endpoint: (String hostname) -> endpoint?
-
-          def self.strip_port: (String hostname) -> String?
         end
       end
     end

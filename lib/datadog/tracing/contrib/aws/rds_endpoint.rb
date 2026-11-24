@@ -6,40 +6,42 @@ module Datadog
       module Aws
         # Parses the identity Amazon RDS encodes in a DB endpoint hostname.
         #
-        # Reads instance, cluster, cluster-ro, cluster-custom, RDS Proxy default, and
-        # Aurora Limitless DB shard group endpoints in every AWS partition. Any other
-        # form, including Aurora global and RDS Proxy custom endpoints, is not parsed.
-        # The account-specific label is matched but never returned.
+        # Reads instance, cluster, cluster-ro, cluster-custom, Aurora Limitless, RDS Proxy,
+        # Aurora Limitless DB shard group, and Aurora global writer endpoints in every AWS
+        # partition. The account-specific label is matched but never returned.
         #
-        # The identifier is the first label, so what it names depends on the endpoint
-        # type. An instance endpoint names the DB instance. A cluster or cluster-ro
-        # endpoint names the DB cluster, not the writer or reader instance it currently
-        # resolves to. A cluster-custom endpoint names the custom endpoint, a proxy
-        # endpoint names the proxy, and a shard group endpoint names the shard group.
+        # The identifier is the first label, so what it names depends on the endpoint type.
+        # An instance endpoint names the DB instance. A cluster, cluster-ro, or limitless
+        # endpoint names the DB cluster, not the instance it currently resolves to. A
+        # cluster-custom endpoint names the custom endpoint, a proxy endpoint names the proxy
+        # or the proxy endpoint, a shard group endpoint names the shard group, and a global
+        # writer endpoint names the global database. A global writer endpoint follows the
+        # writer across Regions, so it has no Region.
         #
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html#USER_VPC.Endpoint
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.Endpoints.html
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/limitless-shard.html
+        # @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-global-database-connecting.html
         # @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy-endpoints.html
         module RDSEndpoint
           TYPE_INSTANCE = "instance"
           TYPE_CLUSTER = "cluster"
           TYPE_CLUSTER_RO = "cluster-ro"
           TYPE_CLUSTER_CUSTOM = "cluster-custom"
+          TYPE_LIMITLESS = "limitless"
           TYPE_PROXY = "proxy"
           TYPE_SHARD_GROUP = "shardgrp"
+          TYPE_GLOBAL = "global"
 
-          # The longest DNS name, its root label's trailing dot, and a `:65535` port.
-          MAX_INPUT_BYTES = 253 + 1 + 6
+          # The longest DNS name, a trailing dot on each side of a `:65535` port.
+          MAX_INPUT_BYTES = 253 + 2 + 6
           MAX_CACHE_ENTRIES = 512
-          PORT_PATTERN = /\A\d{1,5}\z/
           RDS_LABEL_PATTERN = /\.rds\./i
 
-          # The China partition's suffix, which also allows a second label order below.
+          # The only partition that also puts the Region after `rds`.
           CHINA_DNS_SUFFIX = "amazonaws.com.cn"
 
-          # Each partition's DNS suffix only serves that partition's Regions. This is the
-          # only list of suffixes, and everything else that needs one is derived from it.
+          # Each partition's DNS suffix only serves that partition's Regions.
           #
           # @see https://github.com/aws/aws-sdk-ruby/blob/version-3/gems/aws-partitions/partitions.json
           REGION_PATTERNS_BY_DNS_SUFFIX = {
@@ -66,42 +68,50 @@ module Datadog
             .map { |suffix| Regexp.escape(suffix) }
             .join("|")
 
-          # `identifier.[prefix-]accountlabel.region.rds.<partition dns suffix>`, where the
-          # identifier follows the RDS naming rules. The China partition also uses
-          # `identifier.[prefix-]accountlabel.rds.region.amazonaws.com.cn`.
-          ENDPOINT_PATTERN = /
-            \A
-            (?<identifier>[a-z](?:[a-z\d]|-(?!-)){0,61}[a-z\d]|[a-z])
-            \.
-            (?<prefix>cluster-ro-|cluster-custom-|cluster-|proxy-|shardgrp-)?
-            [a-z\d]{1,63}
-            \.
-            (?:
-              (?<region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})
-              \.rds\.
-              (?<dns_suffix>#{DNS_SUFFIX_ALTERNATION})
-              |
-              rds\.
-              (?<china_region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})
-              \.#{Regexp.escape(CHINA_DNS_SUFFIX)}
-            )
-            \z
-          /xi
-
           TYPES_BY_PREFIX = {
             nil => TYPE_INSTANCE,
             "cluster-" => TYPE_CLUSTER,
             "cluster-ro-" => TYPE_CLUSTER_RO,
             "cluster-custom-" => TYPE_CLUSTER_CUSTOM,
+            "limitless-" => TYPE_LIMITLESS,
             "proxy-" => TYPE_PROXY,
+            "endpoint.proxy-" => TYPE_PROXY,
             "shardgrp-" => TYPE_SHARD_GROUP,
           }.freeze
 
+          # `identifier.[prefix-]hash.region.rds.<partition dns suffix>`, or in the China
+          # partition also `identifier.[prefix-]hash.rds.region.amazonaws.com.cn`, where the
+          # identifier follows the RDS naming rules. A global writer endpoint is
+          # `identifier.global-hash.global.rds.<partition dns suffix>`. A trailing dot is
+          # allowed on either side of a port, but only one without a port.
+          ENDPOINT_PATTERN = /
+            \A
+            (?<identifier>[a-z](?:[a-z\d]|-(?!-)){0,61}[a-z\d]|[a-z])
+            \.
+            (?:
+              global-[a-z\d]{8,16}\.global\.rds
+              |
+              (?<prefix>#{TYPES_BY_PREFIX.keys.compact.map { |prefix| Regexp.escape(prefix) }.join("|")})?
+              [a-z\d]{8,16}
+              \.
+              (?:
+                (?<region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})\.rds
+                |
+                rds\.(?<china_region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})
+              )
+            )
+            \.
+            (?<dns_suffix>#{DNS_SUFFIX_ALTERNATION})
+            \.?
+            (?::\d{1,5}\.?)?
+            \z
+          /xi
+
           NOT_AN_ENDPOINT = Object.new.freeze
 
-          private_constant :MAX_INPUT_BYTES, :MAX_CACHE_ENTRIES, :PORT_PATTERN,
-            :RDS_LABEL_PATTERN, :REGION_PATTERNS_BY_DNS_SUFFIX, :DNS_SUFFIX_ALTERNATION,
-            :CHINA_DNS_SUFFIX, :ENDPOINT_PATTERN, :TYPES_BY_PREFIX, :NOT_AN_ENDPOINT
+          private_constant :MAX_INPUT_BYTES, :MAX_CACHE_ENTRIES, :RDS_LABEL_PATTERN,
+            :CHINA_DNS_SUFFIX, :REGION_PATTERNS_BY_DNS_SUFFIX, :DNS_SUFFIX_ALTERNATION,
+            :TYPES_BY_PREFIX, :ENDPOINT_PATTERN, :NOT_AN_ENDPOINT
 
           # Keyed by the hostname as given, so a cache hit allocates nothing.
           # `Core::Utils::LRUCache` is not used because it re-inserts the key on every hit.
@@ -137,36 +147,23 @@ module Datadog
               end
             end
 
-            # Removes surrounding whitespace, then a `:port` suffix, then the root label's
-            # trailing dot, in that order.
             def parse_endpoint(hostname)
-              host = strip_port(hostname.strip)
-              return unless host
-
-              match = ENDPOINT_PATTERN.match(host.chomp("."))
+              match = ENDPOINT_PATTERN.match(hostname)
               return unless match
 
-              # Without a match on the first form's suffix, only the China form matched.
-              dns_suffix = match[:dns_suffix]&.downcase || CHINA_DNS_SUFFIX
-              region = (match[:region] || match[:china_region]).to_s.downcase
-              return unless REGION_PATTERNS_BY_DNS_SUFFIX.fetch(dns_suffix).match?(region)
+              dns_suffix = match[:dns_suffix].to_s.downcase
+              china_region = match[:china_region]
+              return if china_region && dns_suffix != CHINA_DNS_SUFFIX
+
+              region = (match[:region] || china_region)&.downcase
+              return if region && !REGION_PATTERNS_BY_DNS_SUFFIX.fetch(dns_suffix).match?(region)
 
               # Span tags keep these strings as they are, so they are frozen before being shared.
               {
                 identifier: match[:identifier].to_s.downcase.freeze,
-                endpoint_type: TYPES_BY_PREFIX.fetch(match[:prefix]&.downcase),
-                region: region.freeze,
+                endpoint_type: region ? TYPES_BY_PREFIX.fetch(match[:prefix]&.downcase) : TYPE_GLOBAL,
+                region: region&.freeze,
               }
-            end
-
-            def strip_port(hostname)
-              host, separator, port = hostname.rpartition(":")
-              return hostname if separator.empty?
-              return unless PORT_PATTERN.match?(port)
-              # A remaining colon means an IPv6 literal, which is never an RDS endpoint.
-              return if host.include?(":")
-
-              host
             end
           end
         end

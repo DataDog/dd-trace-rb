@@ -97,14 +97,15 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
     end
   end
 
-  context "with an RDS Proxy custom endpoint, which is deliberately not read" do
+  context "with an RDS Proxy custom endpoint" do
     let(:host) { "readonly.endpoint.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" }
 
-    it "leaves the span unchanged rather than guessing at the identity" do
-      expect(span.get_tag("out.host")).to eq(host)
-      expect(span.get_tag("aws.rds.identifier")).to be_nil
-      expect(span.get_tag("aws.rds.endpoint_type")).to be_nil
-      expect(span.get_tag("aws.region")).to be_nil
+    it "tags the proxy endpoint name without naming the target it routes to" do
+      expect(span.get_tag("aws.rds.identifier")).to eq("readonly")
+      expect(span.get_tag("aws.rds.endpoint_type")).to eq("proxy")
+      expect(span.get_tag("aws.region")).to eq("us-east-1")
+      expect(span.get_tag("dbclusteridentifier")).to be_nil
+      expect(span.get_tag("dbinstanceidentifier")).to be_nil
     end
   end
 
