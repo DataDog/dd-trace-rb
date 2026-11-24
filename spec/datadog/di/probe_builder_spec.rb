@@ -46,26 +46,13 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         expect(probe.line?).to be true
         expect(probe.method?).to be false
       end
-    end
 
-    context "fractional snapshotsPerSecond" do
-      let(:rc_probe_spec) do
-        {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
-         "version" => 0,
-         "type" => "LOG_PROBE",
-         "language" => "python",
-         "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]},
-         "tags" => [],
-         "template" => "In aaa, line 1",
-         "segments" => [{"str" => "In aaa, line 1"}],
-         "captureSnapshot" => false,
-         "capture" => {"maxReferenceDepth" => 33, "maxFieldCount" => 34},
-         "sampling" => {"snapshotsPerSecond" => 0.5},
-         "evaluateAt" => "EXIT"}
-      end
+      context "fractional snapshotsPerSecond" do
+        let(:rc_probe_spec) { super().merge("sampling" => {"snapshotsPerSecond" => 0.5}) }
 
-      it "stores the fractional rate limit" do
-        expect(probe.rate_limit).to eq 0.5
+        it "stores the fractional rate limit" do
+          expect(probe.rate_limit).to eq 0.5
+        end
       end
     end
 
