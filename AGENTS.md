@@ -179,6 +179,11 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 - Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.agents/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
 - Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
 - Add `--label "AI Generated"` when creating PRs; the label is sufficient, so do not mention AI in the description.
+- Run `/sdk-review` on the committed changes before pushing; see [Code Review Rules](#code-review-rules).
+
+# Code Review Rules
+
+Before pushing code or creating a pull request, you must run the [sdk-review](.agents/skills/sdk-review/SKILL.md) skill on the committed changes unless the user specifically says not to. You must also do a standard self review (using the /review skill if available). All other required publication checks still apply.
 
 # GitHub Actions
 
@@ -248,6 +253,7 @@ Skills live under `.agents/skills/` and are harness-agnostic. Read them before t
 - Before editing `sig/**/*.rbs`, `vendor/rbs/**`, or any inline `#:` annotation: `.agents/skills/write-rbs/SKILL.md`
 - Before writing any code comment: `.agents/skills/write-comment/SKILL.md`
 - Before writing a changelog fragment: `.agents/skills/write-changelog/SKILL.md`
+- Before pushing or marking a PR ready, run `/sdk-review` over the committed branch changes unless the user says not to: `.agents/skills/sdk-review/SKILL.md`. It runs one read-only review per lens (correctness, security, design, performance, maintainability, conventions, cross-SDK consistency).
 
 `.claude/` holds only Claude Code registration: `settings.json` (hook wiring) and `hooks/`, a Claude-only hard guard enforcing the first two skills above. Other harnesses rely on the pointers in this section.
 
