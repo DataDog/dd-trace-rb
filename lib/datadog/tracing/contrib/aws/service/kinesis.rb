@@ -13,15 +13,11 @@ module Datadog
           class Kinesis < Base
             SERVICE = "kinesis"
 
-            # The stream is the second resource segment of a stream ARN
-            # (`stream/my-stream`) and of a consumer ARN
-            # (`stream/my-stream/consumer/<name>/<timestamp>`).
+            # Also matches consumer ARNs, `stream/my-stream/consumer/my-consumer:1699999999`.
             STREAM_RESOURCE_TYPES = %w[stream].freeze
 
             def add_tags(span, params)
               stream_name, stream_arn, account_id = parse_stream_arn(params[:stream_arn])
-              # A stream ARN carries the account and Region the bare name lacks,
-              # so it wins when a request supplies both.
               stream_name ||= params[:stream_name]
 
               span.set_tag(Aws::Ext::TAG_STREAM_ARN, stream_arn) if stream_arn
@@ -34,8 +30,6 @@ module Datadog
 
             private
 
-            # Returns the stream name, ARN and account of a stream or consumer
-            # ARN, or `nil` when `value` is not one.
             def parse_stream_arn(value)
               arn = Aws::Arn.parse(value)
               name = arn&.typed_resource_id(SERVICE, STREAM_RESOURCE_TYPES)

@@ -75,9 +75,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     end
   end
 
-  # The target's Region lives in `aws.table.arn`. `aws.region` is set by the
-  # instrumentation handler from the client, not here, and is unaffected by
-  # ARN resolution, so no separate target-Region tag is emitted.
   context "with a table ARN whose Region differs from the client's" do
     let(:table_name) { "arn:aws:dynamodb:eu-central-1:999999999999:table/CrossRegionTable" }
     let(:params) { {table_name: table_name} }
@@ -122,8 +119,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     end
   end
 
-  # `TableName` does not accept a global table ARN, so reading one as a table
-  # would resolve identity for a request the API would reject.
   context "with a global table ARN provided as table_name" do
     let(:table_name) { "arn:aws:dynamodb::123456789012:global-table/MyTable" }
     let(:params) { {table_name: table_name} }
@@ -171,10 +166,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     end
   end
 
-  # `TableName` accepts a table ARN and nothing built on top of one. A stream
-  # or index ARN extends the same `table/<name>` resource with further
-  # segments, so resolving it to the table it belongs to would claim identity
-  # for a request the API would have rejected.
   describe "with an ARN carrying a subresource beyond the table" do
     [
       ["a stream ARN", "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/stream/2024-01-01T00:00:00.000"],
@@ -200,9 +191,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     end
   end
 
-  # The legacy tag keeps its pre-existing unconditional write, which
-  # `peer.service` resolution depends on. `aws.table.name` is new, and an
-  # empty one would publish a target identity the request never named.
   context "with an empty table_name" do
     let(:params) { {table_name: ""} }
 
@@ -225,17 +213,12 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
       expect(span).not_to have_received(:set_tag).with(ext::TAG_TABLE_ARN, anything)
     end
 
-    # The value is still recognizably ARN-prefixed, so it must not be reported
-    # as a table name even though it cannot be parsed.
     it "reports no table name" do
       dynamodb.add_tags(span, params)
       expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_TABLE_NAME, anything)
     end
   end
 
-  # The legacy tag is written for every value, so a non-string is unchanged
-  # from base. The new tag is skipped only for ARN-like values, and a
-  # non-string is not one.
   context "with a non-string table_name" do
     let(:params) { {table_name: :orders} }
 
@@ -247,9 +230,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
     end
   end
 
-  # Only the `arn:` prefix suppresses the new tag. A legal table name may
-  # contain the letters `arn`, and DynamoDB names cannot contain `:`, so no
-  # real table name can be mistaken for an ARN.
   describe "with a bare name that resembles the ARN prefix" do
     ["arn", "arn-table", "arnold", "arn.orders"].each do |value|
       context "with #{value.inspect}" do

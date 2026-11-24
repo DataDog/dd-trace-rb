@@ -105,11 +105,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
     end
   end
 
-  # Both parameters describe the same state machine, so the pair is reported
-  # only when they agree. A disagreement has no single target to name, and
-  # emitting part of each would attribute the span to a state machine neither
-  # parameter identified, so neither ARN, the account, nor the name either one
-  # resolves is emitted.
   describe "with two consistent ARNs" do
     let(:execution_arn) { "arn:aws:states:us-east-1:123456789012:execution:MyStateMachine:my-execution" }
     let(:state_machine_arn) { "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine" }
@@ -152,10 +147,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
         expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, anything)
       end
 
-      # Neither an ARN-derived name nor the request's own `name`. The pair
-      # names no single target, and the `name` of the one operation that
-      # supplies an ARN beside it is the execution's name, not the state
-      # machine's.
       it "emits no name at all" do
         step_functions.add_tags(span, params)
         expect(span).not_to have_received(:set_tag).with(ext::TAG_STATE_MACHINE_NAME, anything)
@@ -224,10 +215,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
     end
   end
 
-  # A parameter that was supplied and did not resolve leaves the request
-  # naming a target this handler cannot read. Reporting the other parameter's
-  # identity would be a guess about which one the caller meant, so nothing is
-  # reported at all.
   describe "with one ARN that does not resolve" do
     shared_examples "an unreadable request" do
       it "sets no tags whatsoever" do
@@ -274,8 +261,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
     end
   end
 
-  # `name` is the state machine's own name on `CreateStateMachine`, which
-  # carries no ARN. That is the only shape in which it is read.
   context "with name provided and no ARN" do
     let(:params) { {name: "MyStateMachine"} }
 
@@ -292,11 +277,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
     end
   end
 
-  # `StartExecution` is the one operation that supplies a `name` beside an
-  # ARN, and there the `name` is the EXECUTION's. Reporting it as
-  # `statemachinename` named the wrong target, and `statemachinename` is a
-  # `peer.service` source, so this is the correction that changes
-  # `StartExecution`'s `peer.service`.
   describe "with a state machine ARN and an execution name" do
     context "when the ARN resolves" do
       let(:state_machine_arn) { "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine" }
@@ -382,8 +362,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
     end
   end
 
-  # An explicit nil is not a supplied parameter, so the request is read as
-  # carrying no ARN and `name` still applies.
   context "with nil ARNs and a name" do
     let(:params) { {state_machine_arn: nil, execution_arn: nil, name: "MyStateMachine"} }
 

@@ -9,25 +9,19 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # States (Step Functions) tag handlers.
+          # States tag handlers.
           class States < Base
             SERVICE = "states"
 
-            # `arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine`
             STATE_MACHINE_RESOURCE_TYPES = %w[stateMachine].freeze
 
-            # The state machine is the second segment of an execution ARN
-            # (`execution:MyStateMachine:MyExecution`) and of an Express
-            # workflow ARN (`express:MyStateMachine:MyExecution:<uuid>`).
             EXECUTION_RESOURCE_TYPES = %w[execution express].freeze
 
             def add_tags(span, params)
               execution_arn = params[:execution_arn]
               state_machine_arn = params[:state_machine_arn]
 
-              # With no ARN, `name` is the state machine's own name on a create
-              # operation. On `StartExecution` it is the execution name and a
-              # `peer.service` source, so it is read only when no ARN is present.
+              # `name` is the execution name on `StartExecution`, so only an ARN-less request reads it.
               if execution_arn.nil? && state_machine_arn.nil?
                 span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, params[:name])
                 return
@@ -44,9 +38,6 @@ module Datadog
 
             private
 
-            # Returns the state machine name and account named by the given
-            # ARNs, or `nil` when a supplied ARN does not resolve or the two
-            # name different targets.
             def parse_state_machine(execution_arn, state_machine_arn)
               execution = Aws::Arn.parse(execution_arn)
               execution_name = execution&.typed_resource_id(SERVICE, EXECUTION_RESOURCE_TYPES)
@@ -56,9 +47,7 @@ module Datadog
               state_machine_name = state_machine&.typed_resource_id(SERVICE, STATE_MACHINE_RESOURCE_TYPES)
               return if state_machine_arn && state_machine_name.nil?
 
-              # The state machine ARN names the target directly, so it is
-              # preferred when both resolved. A field one ARN omits and the
-              # other supplies counts as a disagreement.
+              # Two ARNs that name different state machines resolve to nothing.
               if state_machine && state_machine_name
                 if execution && execution_name
                   execution_target = [execution_name, execution.account_id, execution.partition, execution.region]

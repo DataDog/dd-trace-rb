@@ -138,9 +138,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
     end
   end
 
-  # The legacy tag keeps its pre-existing unconditional write, which
-  # `peer.service` resolution depends on. `aws.stream.name` is new, and an
-  # empty one would publish a target identity the request never named.
   context "with an empty stream_name" do
     let(:params) { {stream_name: ""} }
 

@@ -115,9 +115,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
     end
   end
 
-  # `Publish` takes either a topic ARN or a mobile platform endpoint ARN in
-  # `TargetArn`. An endpoint is not a topic, so it must never reach the topic
-  # tags.
   context "with a mobile platform endpoint target_arn" do
     let(:params) { {target_arn: "arn:aws:sns:us-west-2:123456789012:endpoint/APNS/my-app/1234-5678"} }
 
@@ -163,9 +160,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
     end
   end
 
-  # The legacy tag keeps its pre-existing unconditional write, which
-  # `peer.service` resolution depends on. `aws.topic.name` is new, and an
-  # empty one would publish a target identity the request never named.
   context "with an empty name" do
     let(:params) { {name: ""} }
 

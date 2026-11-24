@@ -172,9 +172,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # A wrong-sized account prefix matches neither the partial-ARN grammar nor
-  # the bare-name grammar, which accepts at most one qualifier after the name.
-  # The previous handler reported the account segment as the function name.
   describe "with a wrong-sized account prefix" do
     [
       ["too few digits", "12345:function:my-function"],
@@ -191,8 +188,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # A function may be named with twelve digits. With no colon after it, the
-  # value cannot be an account id, so it is the function name.
   context "with a function_name of exactly twelve digits" do
     let(:params) { {function_name: "123456789012"} }
 
@@ -203,10 +198,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # Lambda lets a Region, an account and `function:` each stand alone ahead
-  # of a name, so `123456789012:PROD` reads equally as a qualified
-  # twelve-digit name or as a function `PROD` in that account. No reading
-  # is reported for these.
   describe "with a qualified name that opens like a partial ARN" do
     [
       ["an account", "123456789012:PROD"],
@@ -224,8 +215,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # `$LATEST` and a qualifier longer than a name can never be a function
-  # name, so these can only be a qualified name.
   describe "with a qualifier that cannot be a name" do
     [
       ["123456789012:$LATEST", "123456789012"],
@@ -302,9 +291,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # A value shaped like a partial ARN is judged only as one. Each case below
-  # would otherwise leave an account on the span with no function to attach it
-  # to, or promote a fragment of the value to `aws.function.name`.
   describe "with a malformed partial ARN" do
     [
       ["no function name after the type", "123456789012:function:"],
@@ -375,9 +361,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
       end
     end
 
-    # The published pattern lets a partial ARN carry the target Region ahead
-    # of the account. It still names no partition, so there is still no ARN to
-    # report.
     describe "with a Region ahead of the account" do
       [
         ["a commercial Region", "us-west-2:123456789012:function:my-function"],
@@ -398,8 +381,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # The published name class is `[a-zA-Z0-9-_\.]`, so a dot belongs to the
-  # name in every form. The handler previously rejected any name carrying one.
   describe "with a dot in the function name" do
     context "in a bare name" do
       let(:params) { {function_name: "my.function.v2"} }
@@ -442,9 +423,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # `$LATEST.PUBLISHED` is one of the two qualifier alternatives the published
-  # pattern names, alongside `$LATEST` itself. The handler previously accepted
-  # only the latter.
   describe "with a $LATEST.PUBLISHED qualifier" do
     context "on a bare name" do
       let(:params) { {function_name: "my-function:$LATEST.PUBLISHED"} }
@@ -500,10 +478,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # The whole parameter is capped at 256 characters. The name and qualifier
-  # grammars cap their own segments far more tightly, so what the overall
-  # limit still catches is a partition or Region long enough to push an
-  # otherwise structurally valid ARN past it.
   describe "with a full ARN at the overall length limit" do
     context "with the longest ARN the segment grammars accept" do
       let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:#{"a" * 64}:#{"b" * 128}" }
@@ -536,9 +510,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # A full ARN's resource is validated as strictly as a bare name: the literal
-  # `function` type, then a name and at most one qualifier. The previous
-  # handler read the second resource segment and ignored everything after it.
   describe "with a full ARN whose resource does not validate" do
     [
       ["a segment beyond the qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:PROD:extra"],
@@ -561,9 +532,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # A function may be named `arn`. A full ARN needs `:lambda:` after the
-  # partition, so `arn:PROD` and `arn:aws` can only be that function with a
-  # qualifier.
   describe "with a qualified function named arn" do
     ["arn:PROD", "arn:aws", "arn:$LATEST"].each do |value|
       context "given #{value}" do
@@ -608,11 +576,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # Lambda `peer.service` is sourced from `peer.hostname`, which is what the
-  # other Datadog tracers report for the same call. Adding the function name
-  # to the source list would rename the same dependency differently depending
-  # on which tracer observed it, so this is asserted as a decision rather than
-  # left implicit.
   describe "peer.service compatibility" do
     it "keeps aws.function.name out of the peer.service sources" do
       expect(ext::PEER_SERVICE_SOURCES).not_to include(ext::TAG_AWS_FUNCTION_NAME)

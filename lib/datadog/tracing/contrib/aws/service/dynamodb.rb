@@ -29,8 +29,6 @@ module Datadog
 
             private
 
-            # Returns the table name, ARN and account of a table ARN, or `nil`
-            # when `value` is not one.
             def parse_table_arn(value)
               arn = Aws::Arn.parse(value)
               name = arn&.typed_resource_id(SERVICE, TABLE_RESOURCE_TYPES, segments: TABLE_RESOURCE_SEGMENTS)

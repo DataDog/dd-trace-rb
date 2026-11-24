@@ -44,7 +44,7 @@ module Datadog
           TAG_AWS_TOPIC_NAME = "aws.topic.name"
           TAG_AWS_STREAM_NAME = "aws.stream.name"
           TAG_AWS_FUNCTION_NAME = "aws.function.name"
-          # Lambda spans keep `peer.hostname` as their `peer.service` source, as in the other tracers.
+          # `aws.function.name` is left out so Lambda `peer.service` stays `peer.hostname`, as in the other tracers.
           PEER_SERVICE_SOURCES = [TAG_QUEUE_NAME,
             TAG_TOPIC_NAME,
             TAG_STREAM_NAME,

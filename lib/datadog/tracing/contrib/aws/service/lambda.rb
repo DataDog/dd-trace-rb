@@ -13,61 +13,24 @@ module Datadog
           class Lambda < Base
             SERVICE = "lambda"
 
-            # Every form `FunctionName` accepts, as the Invoke API publishes it:
-            #
-            #   (arn:(aws[a-zA-Z-]*)?:lambda:)?
-            #   ([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\d{1}:)?
-            #   (\d{12}:)?(function:)?
-            #   ([a-zA-Z0-9-_\.]+)
-            #   (:(\$LATEST(\.PUBLISHED)?|[a-zA-Z0-9-_]+))?
-            #
-            # Transcribed below as three fully anchored grammars (bare name,
-            # partial ARN, full {Aws::Arn}) so a value matches one in full or
-            # contributes no tags.
-            #
+            # The `FunctionName` grammar of the Invoke API, split into a bare
+            # name, a partial ARN and a full ARN.
             # @see https://docs.aws.amazon.com/lambda/latest/api/API_Invoke.html
-
-            # The documented maximum for the whole parameter (full-ARN form).
             MAX_FUNCTION_NAME_LENGTH = 256
-
-            # A function name: 1-64 characters of letters, digits, hyphens,
-            # underscores and dots.
             NAME_FORMAT = /[a-zA-Z0-9_.-]{1,64}/
-
-            # A version number, an alias, `$LATEST`, or `$LATEST.PUBLISHED`.
             QUALIFIER_FORMAT = /(?:\$LATEST(?:\.PUBLISHED)?|[a-zA-Z0-9_-]{1,128})/
-
-            # A name with an optional qualifier, which is not reported.
             QUALIFIED_NAME = /(?<name>#{NAME_FORMAT})(?::#{QUALIFIER_FORMAT})?/
-
-            # The `function:my-function:PROD` tail shared by a partial ARN and
-            # the resource of a full ARN.
             FUNCTION_RESOURCE = /function:#{QUALIFIED_NAME}/
-
-            # The Region segment a partial ARN may carry ahead of the account.
-            # Matched but not captured, since it cannot complete an ARN alone.
             REGION_FORMAT = /[a-z]{2}(?:-gov|-iso[a-z]?)?-[a-z]+-\d/
-
-            # `my-function`, `my.function:PROD`, `my-function:$LATEST.PUBLISHED`.
             BARE_NAME_FORMAT = /\A#{QUALIFIED_NAME}\z/
-
-            # `123456789012:function:my-function`, optionally preceded by the
-            # target Region and optionally qualified.
             PARTIAL_ARN_FORMAT = /\A(?:#{REGION_FORMAT}:)?(?<account_id>\d{12}):#{FUNCTION_RESOURCE}\z/
-
-            # A name behind a Region, account or `function` segment, each of
-            # which Lambda lets stand alone. `123456789012:PROD` is then
-            # either function `PROD` in that account or a qualified
-            # twelve-digit name, so a bare name shaped like this is not read.
-            PREFIXED_NAME_FORMAT = /\A(?:#{REGION_FORMAT}|\d{12}|function):#{NAME_FORMAT}\z/
-
-            # The resource of a full Lambda function ARN. A layer, an event
-            # source mapping, and anything beyond the qualifier fail here.
             FUNCTION_RESOURCE_FORMAT = /\A#{FUNCTION_RESOURCE}\z/
 
-            # `aws.function.name` is absent from {Ext::PEER_SERVICE_SOURCES},
-            # so Lambda keeps sourcing `peer.service` from `peer.hostname`, as
-            # the other tracers do.
+            # Lambda lets the Region, the account and `function:` each stand
+            # alone before the name, so `123456789012:PROD` is either function
+            # `PROD` or a qualified function `123456789012`.
+            AMBIGUOUS_NAME_FORMAT = /\A(?:#{REGION_FORMAT}|\d{12}|function):#{NAME_FORMAT}\z/
+
             def add_tags(span, params)
               name, arn, account_id = parse_function_name(params[:function_name])
               return unless name
@@ -79,9 +42,6 @@ module Datadog
 
             private
 
-            # Returns the function name, ARN and account of a `FunctionName`
-            # value, or `nil` when it is not one. Only a full ARN has an ARN,
-            # and a bare name has no account.
             def parse_function_name(function_name)
               return unless Aws::Arn.scannable?(function_name)
               return if function_name.empty? || function_name.length > MAX_FUNCTION_NAME_LENGTH
@@ -97,7 +57,7 @@ module Datadog
               elsif (match = PARTIAL_ARN_FORMAT.match(function_name))
                 [match[:name], nil, match[:account_id]]
               elsif (match = BARE_NAME_FORMAT.match(function_name))
-                [match[:name], nil, nil] unless PREFIXED_NAME_FORMAT.match?(function_name)
+                [match[:name], nil, nil] unless AMBIGUOUS_NAME_FORMAT.match?(function_name)
               end
             end
           end

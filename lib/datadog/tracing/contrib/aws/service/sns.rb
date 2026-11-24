@@ -27,11 +27,7 @@ module Datadog
 
             private
 
-            # Returns the topic name, ARN and account of a topic ARN
-            # (`arn:aws:sns:us-west-2:123456789012:my-topic`), or `nil` when
-            # `value` is not one. Endpoint, platform application and
-            # subscription ARNs carry a further resource segment, so they are
-            # not topic ARNs.
+            # Endpoint, platform application and subscription ARNs are not topics.
             def parse_topic_arn(value)
               arn = Aws::Arn.parse(value)
               name = arn&.bare_resource_id(SERVICE)
