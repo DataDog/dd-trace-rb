@@ -40,11 +40,11 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         set_common_tags
 
         expect(span.get_tag("out.host")).to eq("orders.cluster-ro-cdbfa1b2c3d4.eu-west-1.rds.amazonaws.com")
-        expect(span.get_tag("aws.rds.identifier")).to eq("orders")
+        expect(span.get_tag("dbclusteridentifier")).to eq("orders")
         expect(span.get_tag("aws.rds.endpoint_type")).to eq("cluster-ro")
         expect(span.get_tag("aws.region")).to eq("eu-west-1")
-        expect(span.get_tag("dbclusteridentifier")).to eq("orders")
         expect(span.get_tag("dbinstanceidentifier")).to be_nil
+        expect(span.get_tag("aws.rds.identifier")).to be_nil
       end
     end
 
@@ -61,10 +61,10 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       it "tags the RDS identity parsed out of the connection string" do
         set_common_tags
 
-        expect(span.get_tag("aws.rds.identifier")).to eq("orders-db")
+        expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
         expect(span.get_tag("aws.rds.endpoint_type")).to eq("instance")
         expect(span.get_tag("aws.region")).to eq("us-east-1")
-        expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
+        expect(span.get_tag("aws.rds.identifier")).to be_nil
       end
     end
 

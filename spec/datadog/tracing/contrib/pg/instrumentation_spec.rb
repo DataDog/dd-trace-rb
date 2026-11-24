@@ -32,11 +32,11 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
 
     it "tags the RDS identity alongside the existing host tags" do
       expect(span.get_tag("out.host")).to eq(host)
-      expect(span.get_tag("aws.rds.identifier")).to eq("orders-db")
+      expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
       expect(span.get_tag("aws.rds.endpoint_type")).to eq("instance")
       expect(span.get_tag("aws.region")).to eq("us-east-1")
-      expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
       expect(span.get_tag("dbclusteridentifier")).to be_nil
+      expect(span.get_tag("aws.rds.identifier")).to be_nil
     end
   end
 
@@ -79,10 +79,10 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
 
     it "tags the RDS identity the same way as in any other partition" do
       expect(span.get_tag("out.host")).to eq(host)
-      expect(span.get_tag("aws.rds.identifier")).to eq("orders-db")
+      expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
       expect(span.get_tag("aws.rds.endpoint_type")).to eq("instance")
       expect(span.get_tag("aws.region")).to eq("eu-isoe-west-1")
-      expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
+      expect(span.get_tag("aws.rds.identifier")).to be_nil
     end
   end
 
@@ -109,11 +109,36 @@ RSpec.describe Datadog::Tracing::Contrib::Pg::Instrumentation do
     end
   end
 
+  context "with an Aurora Limitless Database endpoint" do
+    let(:host) { "orders.limitless-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" }
+
+    it "tags the DB cluster identity" do
+      expect(span.get_tag("dbclusteridentifier")).to eq("orders")
+      expect(span.get_tag("aws.rds.endpoint_type")).to eq("limitless")
+      expect(span.get_tag("aws.region")).to eq("us-east-1")
+      expect(span.get_tag("aws.rds.identifier")).to be_nil
+      expect(span.get_tag("dbinstanceidentifier")).to be_nil
+    end
+  end
+
+  context "with an Aurora global writer endpoint" do
+    let(:host) { "orders-global.global-cdbfa1b2c3d4.global.rds.amazonaws.com" }
+
+    it "tags the global database name without a Region" do
+      expect(span.get_tag("aws.rds.identifier")).to eq("orders-global")
+      expect(span.get_tag("aws.rds.endpoint_type")).to eq("global")
+      expect(span.get_tag("aws.region")).to be_nil
+      expect(span.get_tag("dbclusteridentifier")).to be_nil
+      expect(span.get_tag("dbinstanceidentifier")).to be_nil
+    end
+  end
+
   context "with a non-RDS host" do
     let(:host) { "postgres.internal.example.com" }
 
     it "leaves the span unchanged" do
       expect(span.get_tag("out.host")).to eq(host)
+      expect(span.get_tag("dbinstanceidentifier")).to be_nil
       expect(span.get_tag("aws.rds.identifier")).to be_nil
       expect(span.get_tag("aws.rds.endpoint_type")).to be_nil
       expect(span.get_tag("aws.region")).to be_nil

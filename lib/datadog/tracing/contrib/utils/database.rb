@@ -27,22 +27,32 @@ module Datadog
           end
 
           # Sets the tags of an endpoint returned by {Contrib::Aws::RDSEndpoint.parse},
-          # and nothing when `rds_endpoint` is `nil`. Only an instance endpoint sets the
-          # DB instance id, and only a cluster or cluster-ro endpoint sets the DB cluster
-          # id. Cluster-custom, proxy, and shard group endpoints name neither.
+          # and nothing when `rds_endpoint` is `nil`.
+          #
+          # The identifier is set under exactly one tag. Instance endpoints use
+          # `dbinstanceidentifier`, and cluster, cluster-ro, and limitless endpoints use
+          # `dbclusteridentifier`, the tags of the RDS integration metrics, so spans and
+          # metrics join on them. Every other endpoint type names something else and uses
+          # `aws.rds.identifier`.
           def self.set_rds_endpoint_tags(span, rds_endpoint)
             return unless rds_endpoint
 
-            span.set_tag(Contrib::Ext::RDS::TAG_IDENTIFIER, rds_endpoint[:identifier])
-            span.set_tag(Contrib::Ext::RDS::TAG_ENDPOINT_TYPE, rds_endpoint[:endpoint_type])
-            span.set_tag(Contrib::Ext::RDS::TAG_REGION, rds_endpoint[:region])
+            identifier_tag =
+              case rds_endpoint[:endpoint_type]
+              when Contrib::Aws::RDSEndpoint::TYPE_INSTANCE
+                Contrib::Ext::RDS::TAG_DB_INSTANCE_IDENTIFIER
+              when Contrib::Aws::RDSEndpoint::TYPE_CLUSTER,
+                Contrib::Aws::RDSEndpoint::TYPE_CLUSTER_RO,
+                Contrib::Aws::RDSEndpoint::TYPE_LIMITLESS
+                Contrib::Ext::RDS::TAG_DB_CLUSTER_IDENTIFIER
+              else
+                Contrib::Ext::RDS::TAG_IDENTIFIER
+              end
 
-            case rds_endpoint[:endpoint_type]
-            when Contrib::Aws::RDSEndpoint::TYPE_INSTANCE
-              span.set_tag(Contrib::Ext::RDS::TAG_DB_INSTANCE_IDENTIFIER, rds_endpoint[:identifier])
-            when Contrib::Aws::RDSEndpoint::TYPE_CLUSTER, Contrib::Aws::RDSEndpoint::TYPE_CLUSTER_RO
-              span.set_tag(Contrib::Ext::RDS::TAG_DB_CLUSTER_IDENTIFIER, rds_endpoint[:identifier])
-            end
+            span.set_tag(identifier_tag, rds_endpoint[:identifier])
+            span.set_tag(Contrib::Ext::RDS::TAG_ENDPOINT_TYPE, rds_endpoint[:endpoint_type])
+            region = rds_endpoint[:region]
+            span.set_tag(Contrib::Ext::RDS::TAG_REGION, region) if region
           end
         end
       end

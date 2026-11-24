@@ -59,23 +59,30 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
 
     {
       "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" => {
-        identifier: "orders-db",
+        identifier: nil,
         endpoint_type: "instance",
         region: "us-east-1",
         dbinstanceidentifier: "orders-db",
         dbclusteridentifier: nil,
       },
       "orders.cluster-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" => {
-        identifier: "orders",
+        identifier: nil,
         endpoint_type: "cluster",
         region: "us-east-1",
         dbinstanceidentifier: nil,
         dbclusteridentifier: "orders",
       },
       "orders.cluster-ro-cdbfa1b2c3d4.eu-west-1.rds.amazonaws.com" => {
-        identifier: "orders",
+        identifier: nil,
         endpoint_type: "cluster-ro",
         region: "eu-west-1",
+        dbinstanceidentifier: nil,
+        dbclusteridentifier: "orders",
+      },
+      "orders.limitless-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" => {
+        identifier: nil,
+        endpoint_type: "limitless",
+        region: "us-east-1",
         dbinstanceidentifier: nil,
         dbclusteridentifier: "orders",
       },
@@ -93,7 +100,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
         dbinstanceidentifier: nil,
         dbclusteridentifier: nil,
       },
-      # A shard group is neither a DB instance nor a DB cluster, so neither id is set.
+      "readonly.endpoint.proxy-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" => {
+        identifier: "readonly",
+        endpoint_type: "proxy",
+        region: "us-east-1",
+        dbinstanceidentifier: nil,
+        dbclusteridentifier: nil,
+      },
       "orders-sg.shardgrp-cdbfa1b2c3d4.us-east-1.rds.amazonaws.com" => {
         identifier: "orders-sg",
         endpoint_type: "shardgrp",
@@ -101,15 +114,22 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
         dbinstanceidentifier: nil,
         dbclusteridentifier: nil,
       },
+      "orders-global.global-cdbfa1b2c3d4.global.rds.amazonaws.com" => {
+        identifier: "orders-global",
+        endpoint_type: "global",
+        region: nil,
+        dbinstanceidentifier: nil,
+        dbclusteridentifier: nil,
+      },
       "isoe-db.cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk" => {
-        identifier: "isoe-db",
+        identifier: nil,
         endpoint_type: "instance",
         region: "eu-isoe-west-1",
         dbinstanceidentifier: "isoe-db",
         dbclusteridentifier: nil,
       },
       "orders.cluster-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" => {
-        identifier: "orders",
+        identifier: nil,
         endpoint_type: "cluster",
         region: "cn-north-1",
         dbinstanceidentifier: nil,
@@ -123,6 +143,12 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
           set_rds_endpoint_tags
 
           expect(rds_tags).to eq(expected)
+        end
+
+        it "sets the identifier under one tag only" do
+          set_rds_endpoint_tags
+
+          expect(span.tags.values.count(host.split(".").first)).to eq(1)
         end
 
         it "never sets the account label" do

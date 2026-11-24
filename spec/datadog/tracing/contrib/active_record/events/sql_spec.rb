@@ -48,11 +48,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Events::SQL do
           on_start
 
           expect(span.get_tag("out.host")).to eq(host)
-          expect(span.get_tag("aws.rds.identifier")).to eq("orders")
+          expect(span.get_tag("dbclusteridentifier")).to eq("orders")
           expect(span.get_tag("aws.rds.endpoint_type")).to eq("cluster")
           expect(span.get_tag("aws.region")).to eq("us-east-1")
-          expect(span.get_tag("dbclusteridentifier")).to eq("orders")
           expect(span.get_tag("dbinstanceidentifier")).to be_nil
+          expect(span.get_tag("aws.rds.identifier")).to be_nil
         end
       end
 
@@ -62,11 +62,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Events::SQL do
         it "tags the instance identity" do
           on_start
 
-          expect(span.get_tag("aws.rds.identifier")).to eq("orders-db")
+          expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
           expect(span.get_tag("aws.rds.endpoint_type")).to eq("instance")
           expect(span.get_tag("aws.region")).to eq("eu-central-1")
-          expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
           expect(span.get_tag("dbclusteridentifier")).to be_nil
+          expect(span.get_tag("aws.rds.identifier")).to be_nil
         end
       end
 
