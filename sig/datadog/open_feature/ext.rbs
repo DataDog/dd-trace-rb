@@ -1,35 +1,49 @@
 module Datadog
   module OpenFeature
     module Ext
-      INITIALIZING: ::String
+      PROVIDER_NAME: String
 
-      ERROR: ::String
+      INITIALIZING: String
 
-      DEFAULT: ::String
+      ERROR: String
 
-      UNKNOWN_TYPE: ::String
+      DEFAULT: String
 
-      PARSE_ERROR: ::String
+      UNKNOWN_TYPE: String
 
-      GENERAL: ::String
+      PARSE_ERROR: String
 
-      PROVIDER_FATAL: ::String
+      GENERAL: String
 
-      PROVIDER_NOT_READY: ::String
+      PROVIDER_FATAL: String
 
-      FLAG_NOT_FOUND: ::String
+      PROVIDER_NOT_READY: String
 
-      TYPE_MISMATCH: ::String
+      FLAG_NOT_FOUND: String
 
-      TARGETING_KEY_MISSING: ::String
+      TYPE_MISMATCH: String
 
-      INVALID_CONTEXT: ::String
+      TARGETING_KEY_MISSING: String
 
-      STANDARD_ERROR_CODES: ::Array[::String]
+      INVALID_CONTEXT: String
 
-      METADATA_ALLOCATION_KEY: ::String
+      STANDARD_ERROR_CODES: Array[String]
 
-      METADATA_OBSERVE_FULL_EVALUATION_DATA: ::String
+      METADATA_ALLOCATION_KEY: String
+
+      METADATA_OBSERVE_FULL_EVALUATION_DATA: String
+
+      METADATA_DO_LOG: String
+
+      METADATA_SPLIT_SERIAL_ID: String
+
+      METADATA_EXPOSURE_CACHE_HIT: String
+
+      METADATA_FEATURE_PREFIX: String
+
+      METADATA_EXPOSURE_FEATURE_PREFIX: String
+
+      METADATA_EVALUATION_FEATURE_PREFIX: String
     end
   end
 end

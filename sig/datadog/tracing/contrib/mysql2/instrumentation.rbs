@@ -5,7 +5,7 @@ module Datadog
         module Instrumentation
           def self.included: (untyped base) -> untyped
           module InstanceMethods
-            def query: (untyped sql, ?::Hash[untyped, untyped] options) -> untyped
+            def query: (untyped sql, ?Hash[untyped, untyped] options) -> untyped
 
             private
 

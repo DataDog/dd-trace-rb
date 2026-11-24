@@ -16,7 +16,7 @@ RSpec.describe "Tracer configuration" do
         chain.add(
           Datadog::Tracing::Contrib::Sidekiq::ServerTracer,
           service_name: "my-service",
-          on_error: on_error
+          on_error: on_error,
         )
       end
     end
@@ -48,7 +48,7 @@ RSpec.describe "Tracer configuration" do
             def perform
               raise ZeroDivisionError, "job error"
             end
-          end
+          end,
         )
       end
 

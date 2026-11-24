@@ -20,7 +20,7 @@ RSpec.describe Datadog::AppSec::Event do
 
           context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           context.events.push(
-            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span),
           )
 
           described_class.record(context, request: rack_request)
@@ -34,7 +34,7 @@ RSpec.describe Datadog::AppSec::Event do
           headers: {"unknown-header" => "hello", "user-agent" => "Ruby/0.0"},
           host: "example.com",
           user_agent: "Ruby/0.0",
-          remote_addr: "127.0.0.1"
+          remote_addr: "127.0.0.1",
         )
       end
 
@@ -49,16 +49,16 @@ RSpec.describe Datadog::AppSec::Event do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
       it "keeps allowed HTTP request headers and discards the rest" do
         expect(top_level_span.meta).to include(
-          "http.request.headers.user-agent" => "Ruby/0.0"
+          "http.request.headers.user-agent" => "Ruby/0.0",
         )
         expect(top_level_span.meta).not_to include(
-          "http.request.headers.unknown-header"
+          "http.request.headers.unknown-header",
         )
       end
 
@@ -66,14 +66,14 @@ RSpec.describe Datadog::AppSec::Event do
         expect(top_level_span.meta).to include(
           "http.host" => "example.com",
           "http.useragent" => "Ruby/0.0",
-          "network.client.ip" => "127.0.0.1"
+          "network.client.ip" => "127.0.0.1",
         )
       end
 
       it "sets origin and AppSec trigger information" do
         expect(top_level_span.meta).to include(
           "_dd.origin" => "appsec",
-          "_dd.appsec.json" => '{"triggers":[1]}'
+          "_dd.appsec.json" => '{"triggers":[1]}',
         )
       end
 
@@ -111,7 +111,7 @@ RSpec.describe Datadog::AppSec::Event do
           headers: {"user-agent" => "Ruby/0.0"},
           host: "example.com",
           user_agent: "Ruby/0.0",
-          remote_addr: "127.0.0.1"
+          remote_addr: "127.0.0.1",
         )
       end
 
@@ -136,7 +136,7 @@ RSpec.describe Datadog::AppSec::Event do
           headers: {"user-agent" => "Ruby/0.0"},
           host: "example.com",
           user_agent: "Ruby/0.0",
-          remote_addr: "127.0.0.1"
+          remote_addr: "127.0.0.1",
         )
       end
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::AppSec::Event do
           headers: {"user-agent" => "Ruby/0.0"},
           host: "example.com",
           user_agent: "Ruby/0.0",
-          remote_addr: "127.0.0.1"
+          remote_addr: "127.0.0.1",
         )
       end
 
@@ -180,7 +180,7 @@ RSpec.describe Datadog::AppSec::Event do
             timeout: false,
             duration_ns: 0,
             duration_ext_ns: 0,
-            input_truncated: false
+            input_truncated: false,
           )
         end
 
@@ -190,7 +190,7 @@ RSpec.describe Datadog::AppSec::Event do
             trace_op.measure("request") do |span|
               context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
               context.events.push(
-                Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+                Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span),
               )
 
               described_class.record(context, request: rack_request)
@@ -219,7 +219,7 @@ RSpec.describe Datadog::AppSec::Event do
             timeout: false,
             duration_ns: 0,
             duration_ext_ns: 0,
-            input_truncated: false
+            input_truncated: false,
           )
         end
 
@@ -229,7 +229,7 @@ RSpec.describe Datadog::AppSec::Event do
             trace_op.measure("request") do |span|
               context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
               context.events.push(
-                Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+                Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span),
               )
 
               described_class.record(context, request: rack_request)
@@ -260,7 +260,7 @@ RSpec.describe Datadog::AppSec::Event do
 
           context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           context.events.push(
-            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span),
           )
 
           described_class.record(context, request: rack_request)
@@ -274,7 +274,7 @@ RSpec.describe Datadog::AppSec::Event do
           headers: {"user-agent" => "Ruby/0.0"},
           host: "example.com",
           user_agent: "Ruby/0.0",
-          remote_addr: "127.0.0.1"
+          remote_addr: "127.0.0.1",
         )
       end
 
@@ -287,7 +287,7 @@ RSpec.describe Datadog::AppSec::Event do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -296,7 +296,7 @@ RSpec.describe Datadog::AppSec::Event do
           "http.host",
           "http.useragent",
           "network.client.ip",
-          "http.request.headers.user-agent"
+          "http.request.headers.user-agent",
         )
       end
 
@@ -304,7 +304,7 @@ RSpec.describe Datadog::AppSec::Event do
         expect(top_level_span.meta).not_to include("_dd.appsec.json")
 
         expect(top_level_span.meta).to include(
-          "dd.appsec.fp.http.endpoint" => "http-post-c1525143-2d711642-1234567890"
+          "dd.appsec.fp.http.endpoint" => "http-post-c1525143-2d711642-1234567890",
         )
       end
 
@@ -334,7 +334,7 @@ RSpec.describe Datadog::AppSec::Event do
 
           context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           context.events.push(
-            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span),
           )
 
           described_class.record(context, request: rack_request)
@@ -348,7 +348,7 @@ RSpec.describe Datadog::AppSec::Event do
           headers: {"user-agent" => "Ruby/0.0"},
           host: "example.com",
           user_agent: "Ruby/0.0",
-          remote_addr: "127.0.0.1"
+          remote_addr: "127.0.0.1",
         )
       end
 
@@ -363,7 +363,7 @@ RSpec.describe Datadog::AppSec::Event do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -372,7 +372,7 @@ RSpec.describe Datadog::AppSec::Event do
           "http.host" => "example.com",
           "http.useragent" => "Ruby/0.0",
           "network.client.ip" => "127.0.0.1",
-          "http.request.headers.user-agent" => "Ruby/0.0"
+          "http.request.headers.user-agent" => "Ruby/0.0",
         )
       end
 

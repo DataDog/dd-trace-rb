@@ -5,7 +5,7 @@ module Datadog
         module Event
           def self.included: (untyped base) -> untyped
           module ClassMethods
-            def span_options: () -> ({ service: untyped } | ::Hash[untyped, untyped])
+            def span_options: () -> ({ service: untyped } | Hash[untyped, untyped])
 
             def configuration: () -> untyped
           end

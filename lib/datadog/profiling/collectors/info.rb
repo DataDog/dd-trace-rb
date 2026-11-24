@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require "libdatadog"
 require_relative "../../core/utils/time"
 
@@ -9,11 +10,11 @@ module Datadog
       # Collects information of relevance for profiler. This will get sent alongside
       # the profile and show up in the UI or potentially influence processing in some way.
       #
-      # Information is currently collected and frozen at construction time. A full collector
-      # could be seen as overkill for this case but it allows us to centralize information
-      # gathering and easily support more flexible/dynamic info collection in the future.
+      # Most information is static: collected and frozen at construction time. The exception is
+      # what `collect_dynamic_info` collects, which can change during the process lifetime.
       class Info
-        # @rbs @info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        # @rbs @static_info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        # @rbs @info_json_cache: [::Hash[::Symbol, bool], ::String]?
         # @rbs @platform_info: ::Hash[::Symbol, untyped]
         # @rbs @runtime_info: ::Hash[::Symbol, untyped]
         # @rbs @application_info: ::Hash[::Symbol, untyped]
@@ -24,17 +25,47 @@ module Datadog
         def initialize(settings)
           @profiler_info = nil
 
-          @info = {
+          @static_info = {
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info(settings),
             profiler: collect_profiler_info(settings),
           }.freeze
+          @info_json_cache = nil
         end
 
-        attr_reader :info #: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        #: () -> ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        def info
+          build_info(collect_dynamic_info)
+        end
+
+        # Serializing the same info on every flush would be wasteful, so the latest result is
+        # cached and reused for as long as the dynamic info is unchanged.
+        #: () -> ::String
+        def info_json
+          dynamic_info = collect_dynamic_info
+          cached_dynamic_info, cached_json = @info_json_cache
+          return cached_json if cached_json && cached_dynamic_info == dynamic_info
+
+          json = JSON.generate(build_info(dynamic_info)).freeze
+          @info_json_cache = [dynamic_info, json].freeze #: [::Hash[::Symbol, bool], ::String]
+          json
+        end
 
         private
+
+        #: (::Hash[::Symbol, bool]) -> ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        def build_info(dynamic_info)
+          @static_info.merge(runtime: @static_info.fetch(:runtime).merge(dynamic_info))
+        end
+
+        #: () -> ::Hash[::Symbol, bool]
+        def collect_dynamic_info
+          {
+            yjit_enabled: defined?(::RubyVM::YJIT) ? ::RubyVM::YJIT.enabled? : false,
+            zjit_enabled: defined?(::RubyVM::ZJIT) ? ::RubyVM::ZJIT.enabled? : false,
+          }
+        end
 
         # Ruby GC tuning environment variables
         RUBY_GC_TUNING_ENV_VARS = [

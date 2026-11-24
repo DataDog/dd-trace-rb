@@ -22,7 +22,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
               "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.patch
                     :patched
                   end
-                end
+                end,
               )
             end
 
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.patch
                     raise StandardError, "Patch error!"
                   end
-                end
+                end,
               )
             end
 
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
               "TestPatcher",
               Class.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
@@ -170,7 +170,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                 def self.patch
                   :patched
                 end
-              end
+              end,
             )
           end
 
@@ -219,7 +219,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                 def self.target_version
                   Gem::Version.new(1.0)
                 end
-              end
+              end,
             )
           end
 
@@ -245,7 +245,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           "TestPatcher",
           Class.new do
             include Datadog::Tracing::Contrib::Patcher
-          end
+          end,
         )
       end
 
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                 def patch
                   :patched
                 end
-              end
+              end,
             )
           end
 
@@ -308,7 +308,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                 def target_version
                   Gem::Version.new(1.0)
                 end
-              end
+              end,
             )
           end
 
@@ -340,7 +340,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
               "TestPatcher",
               Module.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
@@ -358,7 +358,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.patch
                     :patched
                   end
-                end
+                end,
               )
             end
 
@@ -383,7 +383,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
@@ -406,7 +406,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.patch
                     raise StandardError, "Patch error!"
                   end
-                end
+                end,
               )
             end
 
@@ -436,7 +436,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                   def self.target_version
                     Gem::Version.new(1.0)
                   end
-                end
+                end,
               )
             end
 
@@ -463,7 +463,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
               "TestPatcher",
               Module.new do
                 include Datadog::Tracing::Contrib::Patcher
-              end
+              end,
             )
           end
 
@@ -488,7 +488,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                 def self.patch
                   :patched
                 end
-              end
+              end,
             )
           end
 
@@ -538,7 +538,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
                 def self.target_version
                   Gem::Version.new(1.0)
                 end
-              end
+              end,
             )
           end
 

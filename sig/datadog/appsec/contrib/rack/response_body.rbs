@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Rack
         module ResponseBody
-          def self.content_length: (::Rack::Response::_Body body) -> ::Integer?
+          def self.content_length: (::Rack::Response::_Body body) -> Integer?
         end
       end
     end

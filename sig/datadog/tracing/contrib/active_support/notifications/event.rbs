@@ -14,7 +14,7 @@ module Datadog
 
               def supported?: () -> true
 
-              def span_options: () -> ::Hash[untyped, untyped]
+              def span_options: () -> Hash[untyped, untyped]
 
               def report_if_exception: (untyped span, untyped payload) -> untyped
 

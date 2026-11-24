@@ -13,8 +13,6 @@ module Datadog
       # TruffleRuby does not have a global runtime cache invalidation cache.
       # @see http://archive.today/2021.09.10-205702/https://medium.com/graalvm/precise-method-and-constant-invalidation-in-truffleruby-4dd56c6bac1a
       module VMCache
-        module_function
-
         # Global constant cache "generation" counter.
         #
         # Whenever a constant creation busts the global constant cache
@@ -23,7 +21,7 @@ module Datadog
         #
         # This was removed in Ruby 3.2.
         # @see https://github.com/ruby/ruby/blob/master/doc/NEWS/NEWS-3.2.0.md#implementation-improvements
-        def global_constant_state
+        def self.global_constant_state
           ::RubyVM.stat[:global_constant_state]
         end
 
@@ -37,25 +35,25 @@ module Datadog
         # largely mitigating global method cache busting. `global_method_state`
         # is thus not available since Ruby 3.0.
         # @see https://bugs.ruby-lang.org/issues/16614
-        def global_method_state
+        def self.global_method_state
           ::RubyVM.stat[:global_method_state]
         end
 
         # Introduced in Ruby 3.2 to match an improved cache implementation.
         #
         # @see https://bugs.ruby-lang.org/issues/18589
-        def constant_cache_invalidations
+        def self.constant_cache_invalidations
           ::RubyVM.stat[:constant_cache_invalidations]
         end
 
         # Introduced in Ruby 3.2 to match an improved cache implementation.
         #
         # @see https://bugs.ruby-lang.org/issues/18589
-        def constant_cache_misses
+        def self.constant_cache_misses
           ::RubyVM.stat[:constant_cache_misses]
         end
 
-        def available?
+        def self.available?
           !!(defined?(::RubyVM) && ::RubyVM.respond_to?(:stat))
         end
       end

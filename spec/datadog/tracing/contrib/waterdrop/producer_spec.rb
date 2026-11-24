@@ -38,7 +38,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 1,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "some_topic",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1",
       )
     end
   end
@@ -54,7 +54,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 1,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "some_topic",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1",
       )
     end
   end
@@ -75,7 +75,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 3,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "other_topic,topic_name",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1",
       )
     end
   end
@@ -96,8 +96,39 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 3,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "other_topic,topic_name",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1",
       )
+    end
+  end
+
+  describe "span kind and bootstrap servers" do
+    it "sets span.kind to producer" do
+      producer.produce_sync(topic: "some_topic", payload: "hello")
+
+      expect(span.get_tag("span.kind")).to eq("producer")
+    end
+
+    context "when the producer has no bootstrap.servers configured" do
+      it "does not set the bootstrap servers tag" do
+        producer.produce_sync(topic: "some_topic", payload: "hello")
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to be_nil
+      end
+    end
+
+    context "when the producer has bootstrap.servers configured" do
+      let(:producer) do
+        WaterDrop::Producer.new do |config|
+          config.client_class = WaterDrop::Clients::Buffered
+          config.kafka = {"bootstrap.servers": "kafka-1:9092,kafka-2:9092"}
+        end
+      end
+
+      it "sets the bootstrap servers tag" do
+        producer.produce_sync(topic: "some_topic", payload: "hello")
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to eq("kafka-1:9092,kafka-2:9092")
+      end
     end
   end
 end

@@ -65,7 +65,7 @@ module Datadog
             end
           end
 
-          error = nil
+          error = nil #: Exception?
           callbacks.each do |callback|
             next if started && callback.group && !started.key?(callback.group)
 
@@ -97,7 +97,7 @@ module Datadog
           AT_FORK_REGISTRY_MUTEX.synchronize do
             current = @at_fork_blocks
             @at_fork_blocks = current.merge(
-              stage => (blocks_for(current, stage) + [Callback.new(block)]).freeze
+              stage => (blocks_for(current, stage) + [Callback.new(block)]).freeze,
             ).freeze
           end
 
@@ -129,7 +129,7 @@ module Datadog
             current = @at_fork_blocks
             callbacks = blocks_for(current, stage)
             @at_fork_blocks = current.merge(
-              stage => callbacks.reject { |callback| callback.block.equal?(block) }.freeze
+              stage => callbacks.reject { |callback| callback.block.equal?(block) }.freeze,
             ).freeze
           end
 
@@ -170,7 +170,7 @@ module Datadog
                 # Invoke original block
                 yield
               end
-            end
+            end #: (^() -> void)?
 
             begin
               # Run pre-fork callbacks in the parent, just before forking.

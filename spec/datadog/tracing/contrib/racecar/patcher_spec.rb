@@ -139,6 +139,16 @@ RSpec.describe "Racecar patcher" do
       end
     end
 
+    context "with brokers configured" do
+      before { allow(Racecar.config).to receive(:brokers).and_return(["kafka-1:9092", "kafka-2:9092"]) }
+
+      it "sets the bootstrap servers tag from the brokers config" do
+        ActiveSupport::Notifications.instrument("process_message.racecar", payload)
+
+        expect(span.get_tag("messaging.kafka.bootstrap.servers")).to eq("kafka-1:9092,kafka-2:9092")
+      end
+    end
+
     context "that raises an error" do
       let(:error_class) { Class.new(StandardError) }
 

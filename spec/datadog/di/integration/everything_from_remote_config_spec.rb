@@ -204,15 +204,14 @@ RSpec.describe "DI integration from remote config" do
       duration: Integer,
       host: nil,
       logger: {
-        method: "target_method",
+        method_name: "target_method",
         name: nil,
         thread_id: nil,
         thread_name: "Thread.main",
-        version: 2,
       },
       message: nil,
       process_tags: String,
-      runtime_id: String,
+      runtime_id: be_valid_uuid,
       service: "rspec",
       timestamp: Integer,
     }
@@ -250,9 +249,9 @@ RSpec.describe "DI integration from remote config" do
     end
     allow(input_transport).to receive(:send_input) do |notify_payload|
       expect(notify_payload).to be_a(Array)
-      notify_payload.each do |payload|
+      notify_payload.each do |event|
         # Quick hack to deep stringify keys
-        payload = JSON.parse(payload.to_json)
+        payload = JSON.parse(event.payload.to_json)
         payloads << payload.merge(path: "/debugger/v1/input")
       end
     end
@@ -409,7 +408,7 @@ RSpec.describe "DI integration from remote config" do
               parentId: nil,
               probeId: "11",
               probeVersion: 0,
-              runtimeId: String,
+              runtimeId: be_valid_uuid,
               status: "ERROR",
               exception: {
                 type: "Datadog::DI::Error::InvalidExpression",
@@ -477,17 +476,16 @@ RSpec.describe "DI integration from remote config" do
           duration: Integer,
           host: nil,
           logger: {
-            method: "target_method",
+            method_name: "target_method",
             name: nil,
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           # false is the result of first expression evaluation
           # second expression fails evaluation
           message: "hello false[evaluation error]",
           process_tags: String,
-          runtime_id: String,
+          runtime_id: be_valid_uuid,
           service: "rspec",
           timestamp: Integer,
         }
@@ -593,7 +591,7 @@ RSpec.describe "DI integration from remote config" do
       it "marks RC payload as errored" do
         expect_lazy_log_many(logger, :debug,
           /received log probe at .+ via RC/,
-          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/,)
+          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/)
 
         do_rc(expect_hook: false)
         assert_received_and_errored
@@ -656,16 +654,15 @@ RSpec.describe "DI integration from remote config" do
           duration: Integer,
           host: nil,
           logger: {
-            method: nil,
+            method_name: nil,
             name: "instrumentation_integration_test_class.rb",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           # No message since we stopped execution at condition evaluation.
           message: nil,
           process_tags: String,
-          runtime_id: String,
+          runtime_id: be_valid_uuid,
           service: "rspec",
           timestamp: Integer,
         }
@@ -743,15 +740,14 @@ RSpec.describe "DI integration from remote config" do
             duration: Integer,
             host: nil,
             logger: {
-              method: nil,
+              method_name: nil,
               name: "instrumentation_integration_test_class.rb",
               thread_id: nil,
               thread_name: "Thread.main",
-              version: 2,
             },
             message: nil,
             process_tags: String,
-            runtime_id: String,
+            runtime_id: be_valid_uuid,
             service: "rspec",
             timestamp: Integer,
           }

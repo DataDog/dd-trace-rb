@@ -34,12 +34,17 @@ module Datadog
                 span.service = service_name(host, request_options, client_config)
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
-                span.resource = req.method
+                quantize_resource = Datadog.configuration.tracing.http_client_resource_name_quantize
+                span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                  req.method,
+                  quantize_resource ? request_uri_path(req) : nil,
+                  enabled: quantize_resource,
+                )
 
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   pin_config: client_config,
                   global_config: request_options,
-                  trace: trace
+                  trace: trace,
                 )
                   Contrib::HTTP.inject(trace, req)
                 end
@@ -60,7 +65,7 @@ module Datadog
               if request_options[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  request_options[:peer_service]
+                  request_options[:peer_service],
                 )
               end
 
@@ -70,7 +75,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
               span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_URL,
-                Contrib::Utils::Quantization::HTTP.url(request.path, {query: {exclude: :all}})
+                Contrib::Utils::Quantization::HTTP.url(request.path, {query: {exclude: :all}}),
               )
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request.method)
 
@@ -84,7 +89,7 @@ module Datadog
               set_analytics_sample_rate(span, request_options)
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.request_tags(request)
+                Datadog.configuration.tracing.header_tags.request_tags(request),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -101,7 +106,7 @@ module Datadog
               span.set_error(response) if request_options[:error_status_codes].include? response.code.to_i
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.response_tags(response)
+                Datadog.configuration.tracing.header_tags.response_tags(response),
               )
             rescue => e
               Datadog.logger.error("error preparing span from http response: #{e.class}: #{e.message}")
@@ -115,6 +120,16 @@ module Datadog
             end
 
             private
+
+            def request_uri_path(request)
+              uri = request.uri if request.respond_to?(:uri)
+              return uri.path if uri
+              return request.path.split(/[?#]/, 2).first if request.path.start_with?("/")
+
+              URI.parse(request.path).path
+            rescue URI::InvalidURIError
+              nil
+            end
 
             def host_and_port(request)
               if request.respond_to?(:uri) && request.uri

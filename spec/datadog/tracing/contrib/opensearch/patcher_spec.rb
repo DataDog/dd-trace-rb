@@ -21,7 +21,7 @@ RSpec.describe "OpenSearch instrumentation" do
       host: base_url,
       user: "admin",
       password: "admin",
-      transport_options: {ssl: {verify: false}} # For testing only. Use certificate for validation.
+      transport_options: {ssl: {verify: false}}, # For testing only. Use certificate for validation.
     )
   end
   let(:index_name) { "ruby-test-index" }
@@ -52,7 +52,7 @@ RSpec.describe "OpenSearch instrumentation" do
     unless client.indices.exists?(index: index_name)
       client.indices.create(
         index: index_name,
-        body: index_body
+        body: index_body,
       )
     end
 
@@ -71,7 +71,7 @@ RSpec.describe "OpenSearch instrumentation" do
   after do
     if client.indices.exists?(index: index_name)
       client.indices.delete(
-        index: index_name
+        index: index_name,
       )
     end
   end
@@ -79,7 +79,7 @@ RSpec.describe "OpenSearch instrumentation" do
   context "deleting an index" do
     subject(:delete_indices) do
       client.indices.delete(
-        index: index_name
+        index: index_name,
       )
     end
 
@@ -127,7 +127,7 @@ RSpec.describe "OpenSearch instrumentation" do
   context "creating an index" do
     before do
       client.indices.delete(
-        index: index_name
+        index: index_name,
       )
 
       clear_traces!
@@ -136,7 +136,7 @@ RSpec.describe "OpenSearch instrumentation" do
     subject(:create_indices) do
       client.indices.create(
         index: index_name,
-        body: index_body
+        body: index_body,
       )
     end
 
@@ -196,7 +196,7 @@ RSpec.describe "OpenSearch instrumentation" do
         index: index_name,
         body: document,
         id: id,
-        refresh: true
+        refresh: true,
       )
     end
 
@@ -246,7 +246,7 @@ RSpec.describe "OpenSearch instrumentation" do
         index: index_name,
         body: document,
         id: id,
-        refresh: true
+        refresh: true,
       )
 
       clear_traces!
@@ -269,7 +269,7 @@ RSpec.describe "OpenSearch instrumentation" do
     subject(:search) do
       client.search(
         body: query,
-        index: index_name
+        index: index_name,
       )
     end
 
@@ -318,7 +318,7 @@ RSpec.describe "OpenSearch instrumentation" do
         index: index_name,
         body: document,
         id: id,
-        refresh: true
+        refresh: true,
       )
 
       clear_traces!
@@ -327,7 +327,7 @@ RSpec.describe "OpenSearch instrumentation" do
     subject(:delete) do
       client.delete(
         index: index_name,
-        id: id
+        id: id,
       )
     end
 
@@ -373,7 +373,7 @@ RSpec.describe "OpenSearch instrumentation" do
     subject(:test_error) do
       client.indices.create(
         index: index_name,
-        body: index_body
+        body: index_body,
       )
     end
 

@@ -17,8 +17,6 @@ module Datadog
     #
     # @api private
     module FileHash
-      module_function
-
       # Compute Git-style SHA-1 hash of a file.
       # Uses Git's blob hash algorithm: SHA1("blob <size>\0<content>")
       # Returns nil on any error (file not found, permission denied, etc.)
@@ -26,7 +24,7 @@ module Datadog
       # @param file_path [String] Path to the file
       # @param logger [#debug] Logger for error reporting
       # @return [String, nil] 40-character hex-encoded SHA-1 hash, or nil if error
-      def compute(file_path, logger:)
+      def self.compute(file_path, logger:)
         return nil unless file_path
         return nil unless File.exist?(file_path)
 

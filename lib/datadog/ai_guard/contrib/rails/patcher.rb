@@ -15,28 +15,26 @@ module Datadog
         module Patcher
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
-          module_function
-
-          def patched?
+          def self.patched?
             !!Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             patch_before_initialize
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_before_initialize
+          def self.patch_before_initialize
             ::ActiveSupport.on_load(:before_initialize) do
               Datadog::AIGuard::Contrib::Rails::Patcher.before_initialize(self)
             end
           end
 
-          def before_initialize(app)
+          def self.before_initialize(app)
             BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
@@ -44,18 +42,18 @@ module Datadog
             end
           end
 
-          def add_middleware(app)
+          def self.add_middleware(app)
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
               app.middleware.insert_after(
                 Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-                Datadog::AIGuard::Contrib::Rack::RequestMiddleware
+                Datadog::AIGuard::Contrib::Rack::RequestMiddleware,
               )
             else
               app.middleware.insert_before(0, Datadog::AIGuard::Contrib::Rack::RequestMiddleware)
             end
           end
 
-          def include_middleware?(middleware, app)
+          def self.include_middleware?(middleware, app)
             found = false
 
             # find tracer middleware reference in Rails::Configuration::MiddlewareStackProxy

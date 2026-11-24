@@ -4,7 +4,7 @@ module Datadog
       module WaterDrop
         module Middleware
           # Takes a message hash and returns it (potentially modified)
-          def self.call: (::Hash[::Symbol, untyped] message) -> ::Hash[::Symbol, untyped]
+          def self.call: (Hash[Symbol, untyped] message) -> Hash[Symbol, untyped]
 
           private
 

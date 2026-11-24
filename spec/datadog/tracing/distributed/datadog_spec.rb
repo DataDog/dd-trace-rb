@@ -23,7 +23,7 @@ RSpec.shared_examples "Datadog distributed format" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           trace_id: 10000,
-          span_id: 20000
+          span_id: 20000,
         )
       end
 
@@ -31,7 +31,7 @@ RSpec.shared_examples "Datadog distributed format" do
         inject!
         expect(data).to eq(
           "x-datadog-trace-id" => "10000",
-          "x-datadog-parent-id" => "20000"
+          "x-datadog-parent-id" => "20000",
         )
       end
 
@@ -40,7 +40,7 @@ RSpec.shared_examples "Datadog distributed format" do
           Datadog::Tracing::TraceDigest.new(
             span_id: 60000,
             trace_id: 50000,
-            trace_sampling_priority: 1
+            trace_sampling_priority: 1,
           )
         end
 
@@ -49,7 +49,7 @@ RSpec.shared_examples "Datadog distributed format" do
           expect(data).to eq(
             "x-datadog-trace-id" => "50000",
             "x-datadog-parent-id" => "60000",
-            "x-datadog-sampling-priority" => "1"
+            "x-datadog-sampling-priority" => "1",
           )
         end
 
@@ -59,7 +59,7 @@ RSpec.shared_examples "Datadog distributed format" do
               span_id: 80000,
               trace_id: 70000,
               trace_origin: "synthetics",
-              trace_sampling_priority: 1
+              trace_sampling_priority: 1,
             )
           end
 
@@ -69,7 +69,7 @@ RSpec.shared_examples "Datadog distributed format" do
               "x-datadog-trace-id" => "70000",
               "x-datadog-parent-id" => "80000",
               "x-datadog-sampling-priority" => "1",
-              "x-datadog-origin" => "synthetics"
+              "x-datadog-origin" => "synthetics",
             )
           end
         end
@@ -80,7 +80,7 @@ RSpec.shared_examples "Datadog distributed format" do
           Datadog::Tracing::TraceDigest.new(
             span_id: 100000,
             trace_id: 90000,
-            trace_origin: "synthetics"
+            trace_origin: "synthetics",
           )
         end
 
@@ -89,7 +89,7 @@ RSpec.shared_examples "Datadog distributed format" do
           expect(data).to eq(
             "x-datadog-trace-id" => "90000",
             "x-datadog-parent-id" => "100000",
-            "x-datadog-origin" => "synthetics"
+            "x-datadog-origin" => "synthetics",
           )
         end
       end
@@ -98,7 +98,7 @@ RSpec.shared_examples "Datadog distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: Datadog::Tracing::Utils::TraceId.next_id,
-            trace_distributed_tags: tags
+            trace_distributed_tags: tags,
           )
         end
 
@@ -232,7 +232,7 @@ RSpec.shared_examples "Datadog distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0x0aaaaaaaaaaaaaaaffffffffffffffff,
-            span_id: 0xbbbbbbbbbbbbbbbb
+            span_id: 0xbbbbbbbbbbbbbbbb,
           )
         end
 
@@ -242,7 +242,7 @@ RSpec.shared_examples "Datadog distributed format" do
           expect(data).to eq(
             "x-datadog-trace-id" => 0xffffffffffffffff.to_s,
             "x-datadog-parent-id" => 0xbbbbbbbbbbbbbbbb.to_s,
-            "x-datadog-tags" => "_dd.p.tid=0aaaaaaaaaaaaaaa"
+            "x-datadog-tags" => "_dd.p.tid=0aaaaaaaaaaaaaaa",
           )
         end
       end
@@ -251,7 +251,7 @@ RSpec.shared_examples "Datadog distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xffffffffffffffff,
-            span_id: 0xbbbbbbbbbbbbbbbb
+            span_id: 0xbbbbbbbbbbbbbbbb,
           )
         end
 
@@ -260,7 +260,7 @@ RSpec.shared_examples "Datadog distributed format" do
 
           expect(data).to eq(
             "x-datadog-trace-id" => 0xffffffffffffffff.to_s,
-            "x-datadog-parent-id" => 0xbbbbbbbbbbbbbbbb.to_s
+            "x-datadog-parent-id" => 0xbbbbbbbbbbbbbbbb.to_s,
           )
         end
       end
@@ -268,7 +268,7 @@ RSpec.shared_examples "Datadog distributed format" do
       context "with span_id nil" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            trace_id: 30000
+            trace_id: 30000,
           )
         end
 

@@ -119,7 +119,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
       value: RSpec::Matchers::BuiltIn::Match.new(
         lambda do |rules|
           rules == '[{"sample_rate":1,"tags":{"k":"v"}}]'
-        end
+        end,
       ),
       telemetry_value: '[{"sample_rate":1,"tags":{"k":"v"}}]',
       config_object: Datadog.configuration.tracing.sampling do
@@ -137,5 +137,30 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
   it "reconfigures the live sampler" do
     expect(Datadog.send(:components)).to receive(:reconfigure_sampler)
     option.call(new_value)
+  end
+end
+
+RSpec.describe Datadog::Tracing::Configuration::Dynamic::DataStreamsEnabled do
+  include_examples "tracing dynamic simple option",
+    name: "data_streams_enabled",
+    env_var: "DD_DATA_STREAMS_ENABLED",
+    config_key: :enabled,
+    value: true,
+    telemetry_value: true,
+    config_object: Datadog.configuration.data_streams
+
+  # Keeps a leftover Components instance from starting a real processor.
+  before { allow(Datadog::Core::Configuration::Components).to receive(:reconfigure_data_streams) }
+
+  it "reconfigures the live Data Streams processor" do
+    expect(Datadog::Core::Configuration::Components).to receive(:reconfigure_data_streams)
+    option.call(true)
+  end
+
+  context "with a non-boolean value" do
+    it "ignores the value instead of raising" do
+      expect(option.call("yes")).to be_nil
+      expect(Datadog.configuration.data_streams.enabled).to eq(false)
+    end
   end
 end

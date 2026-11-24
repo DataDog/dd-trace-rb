@@ -13,13 +13,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Events.subscribe!
             ::ActionCable::Connection::Base.prepend(Instrumentation::ActionCableConnection)
             ::ActionCable::Channel::Base.include(Instrumentation::ActionCableChannel)

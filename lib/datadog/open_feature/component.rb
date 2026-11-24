@@ -3,6 +3,7 @@
 require_relative "transport"
 require_relative "evaluation_engine"
 require_relative "../core/utils/time"
+require_relative "configuration/source"
 require_relative "exposures/buffer"
 require_relative "exposures/worker"
 require_relative "exposures/deduplicator"
@@ -12,6 +13,8 @@ require_relative "flag_evaluation/writer"
 require_relative "hooks/flag_eval_metrics_hook"
 require_relative "hooks/flag_eval_evp_hook"
 require_relative "hooks/span_enrichment_hook"
+require_relative "hooks/debug_logging_hook"
+require_relative "hooks/exposure_logging_hook"
 
 module Datadog
   module OpenFeature
@@ -20,19 +23,13 @@ module Datadog
       CONFIGURATION_READY = :ready
       CONFIGURATION_TIMEOUT = :timeout
       CONFIGURATION_SHUTDOWN = :shutdown
+      CONFIGURATION_CHANGED = :changed
+      CONFIGURATION_LOST = :lost
 
       attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
-      def self.build(settings, agent_settings, logger:, telemetry:)
-        return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
-
-        unless settings.respond_to?(:remote) && settings.remote.enabled
-          message = "OpenFeature could not be enabled as Remote Configuration is currently disabled. " \
-            "To enable Remote Configuration, see https://docs.datadoghq.com/remote_configuration/."
-
-          logger.warn(message)
-          return
-        end
+      def self.build(settings, agent_settings, resolution:, on_configuration_change:, logger:, telemetry:)
+        return unless resolution.enabled?
 
         unless ["ruby", "truffleruby"].include?(RUBY_ENGINE)
           message = "OpenFeature could not be enabled as MRI is required, " \
@@ -51,33 +48,44 @@ module Datadog
           return
         end
 
-        new(settings, agent_settings, logger: logger, telemetry: telemetry)
+        new(
+          settings,
+          agent_settings,
+          on_configuration_change: on_configuration_change,
+          logger: logger,
+          telemetry: telemetry,
+        )
       end
 
-      def initialize(settings, agent_settings, logger:, telemetry:)
+      def initialize(settings, agent_settings, logger:, telemetry:, on_configuration_change: nil)
         transport = Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(settings: settings, transport: transport, telemetry: telemetry, logger: logger)
 
-        reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
-        @engine = EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger)
+        @engine = EvaluationEngine.new(telemetry: telemetry, logger: logger)
 
         @telemetry = telemetry
         @logger = logger
         @settings = settings
         @agent_settings = agent_settings
+        @on_configuration_change = on_configuration_change
+        @exposure_logging_hook_mutex = Mutex.new
+        @exposure_logging_hook = create_exposure_logging_hook
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
         @span_enrichment_hook = create_span_enrichment_hook
+        @debug_logging_hook = nil
 
         @configuration_mutex = Mutex.new
         @reconfiguration_mutex = Mutex.new
         @configuration_condition = ConditionVariable.new
         @configuration_received = false
         @configuration_shutdown = false
+
+        @engine.warn_raw_data_logging
       end
 
       def reconfigure!(configuration)
-        @reconfiguration_mutex.synchronize do
+        event = @reconfiguration_mutex.synchronize do
           return if configuration_shutdown?
 
           @engine.reconfigure!(configuration)
@@ -85,19 +93,47 @@ module Datadog
           @configuration_mutex.synchronize do
             return if @configuration_shutdown
 
+            previously_received = @configuration_received
             @configuration_received = !configuration.nil?
             @configuration_condition.broadcast
+
+            if @configuration_received
+              previously_received ? CONFIGURATION_CHANGED : CONFIGURATION_READY
+            elsif previously_received
+              CONFIGURATION_LOST
+            end
           end
         end
+
+        @on_configuration_change&.call(event) if event
       end
 
-      def wait_for_configuration
-        timeout_seconds = @settings.feature_flags.initialization_timeout_ms / 1000.0
-        deadline = Core::Utils::Time.get_time + timeout_seconds
+      # Retried until the OpenFeature SDK loads, since Remote Configuration can build this component first.
+      # Built at most once: each hook owns an exposure cache, and two caches would send repeats.
+      def exposure_logging_hook
+        hook = @exposure_logging_hook
+        return hook if hook
+
+        @exposure_logging_hook_mutex.synchronize { @exposure_logging_hook ||= create_exposure_logging_hook }
+      end
+
+      # Checked per evaluation so the SDK skips hook dispatch unless debug logging is on. Built lazily
+      # because Remote Configuration can build this component before the OpenFeature SDK loads.
+      def debug_logging_hook
+        return unless @logger.debug?
+
+        @engine.warn_raw_data_logging
+        @debug_logging_hook ||= create_debug_logging_hook
+      end
+
+      def wait_for_configuration(&cancelled)
+        timeout_ms = @settings.feature_flags.initialization_timeout_ms
+        @logger.debug { "Feature Flags: waiting up to #{timeout_ms}ms for configuration" }
+        deadline = Core::Utils::Time.get_time + timeout_ms / 1000.0
 
         @configuration_mutex.synchronize do
           loop do
-            return CONFIGURATION_SHUTDOWN if @configuration_shutdown
+            return CONFIGURATION_SHUTDOWN if @configuration_shutdown || cancelled&.call
             return CONFIGURATION_READY if @configuration_received
 
             remaining = deadline - Core::Utils::Time.get_time
@@ -106,6 +142,11 @@ module Datadog
             @configuration_condition.wait(@configuration_mutex, remaining)
           end
         end
+      end
+
+      def wake_configuration_waiters
+        @configuration_mutex.synchronize { @configuration_condition.broadcast }
+        nil
       end
 
       def configuration_received?
@@ -129,6 +170,17 @@ module Datadog
 
       def configuration_shutdown?
         @configuration_mutex.synchronize { @configuration_shutdown }
+      end
+
+      def create_exposure_logging_hook
+        return unless Hooks::ExposureLoggingHook.available?
+
+        reporter = Exposures::Reporter.new(
+          @worker,
+          logger: @logger,
+          datadog_logging_enabled: @settings.feature_flags.exposures_datadog_logging_enabled,
+        )
+        Hooks::ExposureLoggingHook.new(reporter, telemetry: @telemetry, logger: @logger)
       end
 
       def create_flag_eval_metrics_hook
@@ -159,6 +211,12 @@ module Datadog
 
         store = Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new
         Hooks::SpanEnrichmentHook.new(store, logger: @logger)
+      end
+
+      def create_debug_logging_hook
+        return unless Hooks::DebugLoggingHook.available?
+
+        Hooks::DebugLoggingHook.new(@logger)
       end
     end
   end

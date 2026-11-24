@@ -2,6 +2,8 @@
 
 require_relative "../patcher"
 require_relative "ext"
+require_relative "../kafka/ext"
+require_relative "kafka_config"
 require_relative "distributed/propagation"
 
 module Datadog
@@ -24,6 +26,11 @@ module Datadog
           # (e.g. `my_batch_operation messages.payloads`)
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
+            # Outside a worker job, e.g. when the batch is iterated on another thread, the routed topic is
+            # unknown and the app-wide brokers are used.
+            bootstrap_servers = KafkaConfig.job_bootstrap_servers ||
+              KafkaConfig.bootstrap_servers(::Karafka::App.config.kafka)
+
             @messages_array.each do |message|
               trace_digest = if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
@@ -46,7 +53,7 @@ module Datadog
                     Datadog::DataStreams.set_consume_checkpoint(
                       type: "kafka",
                       source: message.topic,
-                      auto_instrumentation: true
+                      auto_instrumentation: true,
                     ) { |key| headers[key] }
                   rescue => e
                     Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
@@ -56,6 +63,9 @@ module Datadog
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
+                span.set_tag(Contrib::Kafka::Ext::TAG_KAFKA_BOOTSTRAP_SERVERS, bootstrap_servers) if bootstrap_servers
 
                 span.resource = message.topic
 
@@ -71,13 +81,11 @@ module Datadog
 
           ACTIVATE_FRAMEWORK_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "monitor"
             require_relative "framework"
             require_relative "../waterdrop"

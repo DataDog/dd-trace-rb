@@ -45,6 +45,15 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     context "when libdatadog API is available", if: !PlatformHelpers.mac? do
+      let(:otel_thread_context_enabled) { false }
+
+      let(:tracing_settings) do
+        instance_double(
+          Datadog.configuration.tracing.class,
+          otel_thread_context_enabled: otel_thread_context_enabled,
+        )
+      end
+
       before do
         Datadog.configure do |c|
           c.service = "dummy-service" # Manually set so it isn't set to fallback service name that we don't control
@@ -58,11 +67,12 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       context "with all settings provided" do
         let(:settings) do
           instance_double(
-            "Datadog::Core::Configuration::Setting",
+            Datadog::Core::Configuration::Settings,
             service: "test-service",
             env: "test-env",
             version: "1.0.0",
-            experimental_propagate_process_tags_enabled: propagate_process_tags
+            experimental_propagate_process_tags_enabled: propagate_process_tags,
+            tracing: tracing_settings,
           )
         end
 
@@ -80,7 +90,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
               "service_name" => "test-service",
               "service_env" => "test-env",
               "service_version" => "1.0.0",
-              "process_tags" => Datadog::Core::Environment::Process.serialized
+              "process_tags" => Datadog::Core::Environment::Process.serialized,
             )
           end
         end
@@ -113,11 +123,12 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       context "with missing optional settings" do
         let(:settings) do
           instance_double(
-            "Datadog::Core::Configuration::Setting",
+            Datadog::Core::Configuration::Settings,
             service: nil,
             env: nil,
             version: nil,
-            experimental_propagate_process_tags_enabled: true
+            experimental_propagate_process_tags_enabled: true,
+            tracing: tracing_settings,
           )
         end
 
@@ -131,7 +142,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             "tracer_language" => Datadog::Core::Environment::Identity.lang,
             "tracer_version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
             "hostname" => Datadog::Core::Environment::Socket.hostname,
-            "process_tags" => Datadog::Core::Environment::Process.serialized
+            "process_tags" => Datadog::Core::Environment::Process.serialized,
           )
         end
       end
@@ -167,7 +178,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           "tracer_version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
           "hostname" => Datadog::Core::Environment::Socket.hostname,
           "service_name" => "test-service",
-          "process_tags" => Datadog::Core::Environment::Process.serialized
+          "process_tags" => Datadog::Core::Environment::Process.serialized,
         )
         expect(content.fetch("runtime_id")).to_not eq(parent_runtime_id)
       end
@@ -251,10 +262,26 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         "telemetry.sdk.version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
         "telemetry.sdk.name" => "libdatadog",
         "host.name" => Datadog::Core::Environment::Socket.hostname,
-        "container.id" => "test-container-id"
+        "container.id" => "test-container-id",
       )
 
-      expect(extra_attributes).to eq("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
+      expect(extra_attributes).to include("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
+    end
+
+    it "publishes threadlocal discovery metadata", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
+      Datadog.configuration.tracing.otel_thread_context_enabled = true
+      described_class.publish(Datadog.configuration)
+
+      expect(extra_attributes).to have_key("threadlocal.schema_version")
+      expect(extra_attributes).to have_key("threadlocal.attribute_key_map")
+    end
+
+    it "omits threadlocal discovery metadata when disabled after initialization", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
+      Datadog.configuration.tracing.otel_thread_context_enabled = false
+      described_class.publish(Datadog.configuration)
+
+      expect(extra_attributes).not_to have_key("threadlocal.schema_version")
+      expect(extra_attributes).not_to have_key("threadlocal.attribute_key_map")
     end
 
     context "when app uses fork" do

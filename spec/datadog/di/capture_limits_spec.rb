@@ -42,7 +42,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
         max_capture_depth: nil,
         max_capture_attribute_count: nil,
         max_capture_collection_size: nil,
-        max_capture_string_length: nil,)
+        max_capture_string_length: nil)
     end
 
     context "no expression limits and no probe limits" do
@@ -58,7 +58,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
           max_capture_depth: 7,
           max_capture_attribute_count: 99,
           max_capture_collection_size: nil,
-          max_capture_string_length: nil,)
+          max_capture_string_length: nil)
       end
 
       it "uses probe limits for depth and attribute_count, settings for the rest" do
@@ -73,7 +73,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
           max_capture_depth: nil,
           max_capture_attribute_count: nil,
           max_capture_collection_size: 33,
-          max_capture_string_length: 77,)
+          max_capture_string_length: 77)
       end
 
       it "uses probe-level overrides for collection_size and length" do
@@ -102,7 +102,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
           max_capture_depth: 5,
           max_capture_attribute_count: 7,
           max_capture_collection_size: nil,
-          max_capture_string_length: nil,)
+          max_capture_string_length: nil)
       end
 
       it "expression wins over probe; probe wins over settings for the rest" do
@@ -120,7 +120,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
           max_capture_depth: nil,
           max_capture_attribute_count: nil,
           max_capture_collection_size: 44,
-          max_capture_string_length: 88,)
+          max_capture_string_length: 88)
       end
 
       it "expression wins over probe for length; probe wins over settings for collection_size" do

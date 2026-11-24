@@ -4,7 +4,7 @@ module Datadog
       module Rails
         module Patches
           module RenderToBodyPatch
-            def render_to_body: (?::Hash[::Symbol, any] options) -> untyped
+            def render_to_body: (?Hash[Symbol, any] options) -> untyped
 
             private
 

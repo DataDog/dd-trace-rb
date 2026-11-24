@@ -20,8 +20,8 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
         described_class::Testing._native_after_sample(
           max_overhead_target,
           current_monotonic_wall_time_ns,
-          sampling_time_ns
-        )
+          sampling_time_ns,
+        ),
       )
         .to be(current_monotonic_wall_time_ns + expected_time_to_sleep.to_i)
     end
@@ -35,8 +35,8 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
           described_class::Testing._native_after_sample(
             max_overhead_target,
             current_monotonic_wall_time_ns,
-            sampling_time_ns
-          )
+            sampling_time_ns,
+          ),
         )
           .to be(current_monotonic_wall_time_ns + max_time_until_next_sample_ns)
       end
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
       described_class::Testing._native_should_sample(
         max_overhead_target,
         next_sample_after_monotonic_wall_time_ns,
-        wall_time_ns_before_sample
+        wall_time_ns_before_sample,
       )
     end
 
@@ -72,14 +72,14 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
       described_class::Testing._native_get_sleep(
         max_overhead_target,
         next_sample_after_monotonic_wall_time_ns,
-        current_monotonic_wall_time_ns
+        current_monotonic_wall_time_ns,
       )
     end
 
     context "when current_monotonic_wall_time_ns is before next_sample_after_monotonic_wall_time_ns" do
       context(
         "when current_monotonic_wall_time_ns is less than MAX_SLEEP_TIME_NS " \
-        "from next_sample_after_monotonic_wall_time_ns"
+        "from next_sample_after_monotonic_wall_time_ns",
       ) do
         let(:current_monotonic_wall_time_ns) { next_sample_after_monotonic_wall_time_ns - 1234 }
 
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
 
       context(
         "when current_monotonic_wall_time_ns is more than MAX_SLEEP_TIME_NS " \
-        "from next_sample_after_monotonic_wall_time_ns"
+        "from next_sample_after_monotonic_wall_time_ns",
       ) do
         let(:current_monotonic_wall_time_ns) { next_sample_after_monotonic_wall_time_ns - 123_456_789 }
 

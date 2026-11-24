@@ -1,18 +1,18 @@
 # Generics
 
 Use a generic when a method's output type depends on its input type, or a
-container carries elements of a caller-chosen type
+container carries elements of a caller-chosen type.
 
 ## Rules
 
 - SHOULD use a type parameter `[T]` to preserve an input/output relationship
-  instead of returning `untyped`
+  instead of returning `untyped`.
 - SHOULD bound the parameter – `[T < Bound]` – when the input must satisfy a
-  constraint
+  constraint.
 - MUST thread the type through the block for a method that yields and returns the
-  block's value – `[T] () { () -> T } -> T`
+  block's value – `[T] () { () -> T } -> T`.
 - SHOULD parameterize the generic core types (`Array[T]`, `Enumerable[T]`,
-  `Enumerator[T]`, `Hash[K, V]`) rather than leaving their slots `untyped`
+  `Enumerator[T]`, `Hash[K, V]`) rather than leaving their slots `untyped`.
 
 ## Examples
 
@@ -42,4 +42,4 @@ def first: [T] (Array[T] list) -> T?
 ```
 
 Without the `[T]`, each of these returns `untyped` and loses the relationship –
-the same mistake as the Bad above
+the same mistake as the Bad above.

@@ -662,7 +662,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         **settings,
         ssl: false,
         hostname: "custom-hostname",
-        port: 1234
+        port: 1234,
       )
     end
 

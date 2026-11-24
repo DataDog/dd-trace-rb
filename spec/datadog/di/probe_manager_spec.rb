@@ -8,9 +8,12 @@ class ProbeManagerSpecTestClass; end
 RSpec.describe Datadog::DI::ProbeManager do
   di_test
 
+  let(:propagate_all_exceptions) { false }
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions)
+      .and_return(propagate_all_exceptions)
   end
 
   let(:instrumenter) do
@@ -32,7 +35,8 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   let(:manager) do
-    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository)
+    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
+      probe_repository)
   end
 
   describe ".new" do
@@ -462,12 +466,17 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe "#probe_condition_evaluation_failed_callback" do
+    let(:rate_limiter) do
+      instance_double(Datadog::Core::TokenBucket, allow?: true)
+    end
+
     let(:probe) do
       instance_double(
         Datadog::DI::Probe,
         id: "test-probe",
         type: "log",
-        condition_evaluation_failed_rate_limiter: per_probe_limiter,
+        capture_snapshot?: false,
+        condition_evaluation_failed_rate_limiter: rate_limiter,
       )
     end
 
@@ -478,63 +487,50 @@ RSpec.describe Datadog::DI::ProbeManager do
     let(:exc) { StandardError.new("boom") }
     let(:expr) { "undefined_function()" }
 
-    let(:per_probe_limiter) do
-      instance_double(Datadog::Core::TokenBucket, allow?: true)
-    end
-
-    context "when both the per-probe and global limiters admit" do
-      let(:global_limiter) do
-        instance_double(Datadog::Core::TokenBucket, allow?: true)
-      end
-
+    context "when both the per-probe limiter and the admission gate admit" do
       before do
-        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+        allow(instrumenter).to receive(:admit_condition_error_snapshot?).and_return(true)
       end
 
       it "builds and enqueues the condition error snapshot" do
         snapshot = double("snapshot")
         expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
           .with(context, expr, exc).and_return(snapshot)
-        expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
+        expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
       end
     end
 
     context "when the per-probe limiter rejects" do
-      let(:per_probe_limiter) do
+      let(:rate_limiter) do
         instance_double(Datadog::Core::TokenBucket, allow?: false)
       end
 
-      it "does not consult the global limiter and enqueues nothing" do
-        expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
+      it "does not consult the admission gate and enqueues nothing" do
+        expect(instrumenter).not_to receive(:admit_condition_error_snapshot?)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
-        expect(per_probe_limiter).to have_received(:allow?)
+        expect(rate_limiter).to have_received(:allow?)
+        expect(logger).to have_received(:trace) do |&block|
+          expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+        end
       end
     end
 
-    context "when the global limiter rejects" do
-      let(:global_limiter) do
-        instance_double(Datadog::Core::TokenBucket, allow?: false)
-      end
-
+    context "when the admission gate rejects" do
       before do
-        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+        allow(instrumenter).to receive(:admit_condition_error_snapshot?).and_return(false)
       end
 
-      it "does not build or enqueue a snapshot and logs at trace" do
+      it "does not build or enqueue a snapshot" do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
-
-        expect(logger).to have_received(:trace) do |&block|
-          expect(block.call).to match(/global rate limit/)
-        end
       end
     end
   end

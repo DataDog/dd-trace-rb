@@ -31,8 +31,8 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTP do
                 "DD-EVP-ORIGIN-VERSION" => Datadog::VERSION::STRING,
                 "X-Datadog-EVP-Subdomain" => "event-platform-intake",
               },
-              body: '{"event":"value"}'
-            )
+              body: '{"event":"value"}',
+            ),
         ).to have_been_made.once
       end
     end
@@ -67,8 +67,8 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTP do
                 "DD-EVP-ORIGIN-VERSION" => Datadog::VERSION::STRING,
                 "X-Datadog-EVP-Subdomain" => "event-platform-intake",
               },
-              body: '{"event":"value"}'
-            )
+              body: '{"event":"value"}',
+            ),
         ).to have_been_made.once
       end
     end

@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
+require "datadog/di/correlation_sampler"
 require "spec_helper"
 require "logger"
 
@@ -33,8 +34,8 @@ RSpec.describe Datadog::DI::Remote do
       match(
         lambda do |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse(path)
-        end
-      )
+        end,
+      ),
     )
   end
 
@@ -72,7 +73,7 @@ RSpec.describe Datadog::DI::Remote do
         expect(Datadog::DI).not_to receive(:activate_tracking)
         expect(component).not_to receive(:start!)
         expect(Datadog.logger).to receive(:warn).with(
-          a_string_matching(/ignoring implicit enablement signal.*DD_DYNAMIC_INSTRUMENTATION_ENABLED.*explicitly set to false/)
+          a_string_matching(/ignoring implicit enablement signal.*DD_DYNAMIC_INSTRUMENTATION_ENABLED.*explicitly set to false/),
         )
         described_class.handle_rc_enablement(true)
       end
@@ -98,7 +99,7 @@ RSpec.describe Datadog::DI::Remote do
           allow(Datadog::DI).to receive(:unsupported_reason).and_return("MRI is required, but running on jruby")
           expect(Datadog::DI).not_to receive(:activate_tracking)
           expect(Datadog.logger).to receive(:warn).with(
-            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*MRI is required.*jruby/)
+            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*MRI is required.*jruby/),
           )
           described_class.handle_rc_enablement(true)
         end
@@ -107,7 +108,7 @@ RSpec.describe Datadog::DI::Remote do
           allow(described_class).to receive(:explicitly_disabled?).and_return(true)
           expect(Datadog::DI).not_to receive(:activate_tracking)
           expect(Datadog.logger).to receive(:warn).with(
-            a_string_matching(/cannot enable dynamic instrumentation.*DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false/)
+            a_string_matching(/cannot enable dynamic instrumentation.*DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false/),
           )
           described_class.handle_rc_enablement(true)
         end
@@ -116,7 +117,7 @@ RSpec.describe Datadog::DI::Remote do
           allow(described_class).to receive(:explicitly_disabled?).and_return(false)
           allow(Datadog::DI).to receive(:unsupported_reason).and_return(nil)
           expect(Datadog.logger).to receive(:warn).with(
-            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*was not initialized at startup/)
+            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*was not initialized at startup/),
           )
           described_class.handle_rc_enablement(true)
         end
@@ -294,14 +295,14 @@ RSpec.describe Datadog::DI::Remote do
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(value_json.to_json)},
                 "length" => value_json.length,
-              }
+              },
             )
 
             content = Datadog::Core::Remote::Configuration::Content.parse(
               {
                 path: key,
                 content: value_json,
-              }
+              },
             )
 
             transaction.insert(content.path, target, content)
@@ -338,8 +339,18 @@ RSpec.describe Datadog::DI::Remote do
         instance_double(Datadog::DI::Serializer)
       end
 
+      let(:guardrails_telemetry) do
+        Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+      end
+
       let(:instrumenter) do
-        Datadog::DI::Instrumenter.new(settings, serializer, logger)
+        Datadog::DI::Instrumenter.new(settings, serializer, logger,
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
+            settings: settings, serializer: serializer, logger: logger,
+            guardrails_telemetry: guardrails_telemetry, telemetry: nil,
+          ),
+          correlation_sampler: Datadog::DI::CorrelationSampler.new)
       end
 
       let(:probe_notification_builder) do
@@ -355,7 +366,8 @@ RSpec.describe Datadog::DI::Remote do
       end
 
       let(:probe_manager) do
-        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository)
+        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
+          probe_repository)
       end
 
       let(:agent_settings) do

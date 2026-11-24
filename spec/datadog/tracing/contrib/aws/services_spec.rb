@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws do
     subject(:handlers) { Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS }
 
     it do
-      expect(handlers.length).to eq(7)
+      expect(handlers.length).to eq(8)
     end
 
     it do
@@ -36,13 +36,14 @@ RSpec.describe Datadog::Tracing::Contrib::Aws do
         "kinesis",
         "eventbridge",
         "states",
-        "s3"
+        "s3",
+        "lambda",
       )
     end
 
     it do
       expect(handlers.values).to all(
-        be_a Datadog::Tracing::Contrib::Aws::Service::Base
+        be_a(Datadog::Tracing::Contrib::Aws::Service::Base),
       )
     end
   end

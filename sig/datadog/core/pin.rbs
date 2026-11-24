@@ -14,7 +14,7 @@ module Datadog
       def key?: (untyped name) -> untyped
       def onto: (untyped obj) -> untyped
 
-      def to_s: () -> ::String
+      def to_s: () -> String
 
       private
 

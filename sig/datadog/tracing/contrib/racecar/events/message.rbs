@@ -8,11 +8,11 @@ module Datadog
 
             EVENT_NAME: "process_message.racecar"
 
-            def self?.event_name: () -> untyped
+            def self.event_name: () -> untyped
 
-            def self?.span_name: () -> untyped
+            def self.span_name: () -> untyped
 
-            def self?.span_options: () -> untyped
+            def self.span_options: () -> untyped
           end
         end
       end

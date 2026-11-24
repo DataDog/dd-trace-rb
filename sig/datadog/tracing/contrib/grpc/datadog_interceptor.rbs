@@ -4,7 +4,7 @@ module Datadog
       module GRPC
         module DatadogInterceptor
           class Base < ::GRPC::Interceptor
-            def initialize: (?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> void
+            def initialize: (?Hash[untyped, untyped] options) { (untyped) -> untyped } -> void
 
             def request_response: (**untyped keywords) ?{ () -> untyped } -> untyped
 

@@ -266,7 +266,7 @@ module Datadog
           start_time: start_time,
           tags: tags,
           type: type,
-          id: id
+          id: id,
         )
 
         # Start span measurement
@@ -299,9 +299,9 @@ module Datadog
         span_events = events || SpanOperation::Events.new(logger: logger)
 
         # Before start: activate the span, publish events.
-        span_events.before_start.subscribe do |span_op|
-          start_span(span_op)
-        end
+        # Runs before caller-supplied subscribers: before_start is published once per span,
+        # so an exception in an earlier subscriber would skip activation for good.
+        span_events.before_start.subscriptions.unshift(proc { |span_op| start_span(span_op) })
 
         # Before finish: allow enrichment before the span is finalized, publish events.
         span_events.before_finish.subscribe do |span_op|
@@ -327,7 +327,7 @@ module Datadog
           tags: tags,
           trace_id: trace_id,
           type: type,
-          id: id
+          id: id,
         )
       rescue => e
         logger.debug { "Failed to build new span: #{e.class}: #{e.message}" }
@@ -422,7 +422,7 @@ module Datadog
           trace_otel_threshold: open_telemetry.threshold,
           trace_otel_unknown_fields: open_telemetry.unknown_fields,
           span_remote: @remote_parent && @active_span.nil?,
-          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage
+          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage,
         ).freeze
       end
 
@@ -433,7 +433,7 @@ module Datadog
 
         Correlation::Identifier.new(
           trace_id: @id,
-          span_id: span_id
+          span_id: span_id,
         )
       end
 
@@ -460,7 +460,7 @@ module Datadog
           tags: meta.dup,
           metrics: metrics.dup,
           remote_parent: @remote_parent,
-          distributed_sampling_priority: @distributed_sampling_priority
+          distributed_sampling_priority: @distributed_sampling_priority,
         )
       end
 
@@ -640,7 +640,7 @@ module Datadog
           metrics: metrics,
           root_span_id: (!partial) ? root_span&.id : nil,
           profiling_enabled: @profiling_enabled,
-          apm_tracing_enabled: @apm_tracing_enabled
+          apm_tracing_enabled: @apm_tracing_enabled,
         )
       end
 

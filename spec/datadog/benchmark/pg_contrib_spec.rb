@@ -13,7 +13,7 @@ RSpec.describe "Pg Tracing Integration", order: :defined do
       port: port,
       dbname: dbname,
       user: user,
-      password: password
+      password: password,
     )
   end
 

@@ -44,7 +44,7 @@ module Datadog
 
                   Datadog.logger.warn(
                     "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED is deprecated; use " \
-                    "DD_FEATURE_FLAGS_ENABLED and DD_FEATURE_FLAGS_CONFIGURATION_SOURCE instead"
+                    "DD_FEATURE_FLAGS_ENABLED and DD_FEATURE_FLAGS_CONFIGURATION_SOURCE instead",
                   )
                 end
               end
@@ -72,9 +72,28 @@ module Datadog
             end
 
             settings :feature_flags do
+              option :experimentation_opt_out_mode do |o|
+                o.type :string
+                o.env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE"
+                o.default "disabled"
+              end
+
               option :enabled do |o|
                 o.type :bool
                 o.env "DD_FEATURE_FLAGS_ENABLED"
+                o.default true
+              end
+
+              option :evaluation_telemetry_per_subject_opt_out_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED"
+                o.default false
+              end
+
+              # Sends exposure events to Datadog.
+              option :exposures_datadog_logging_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED"
                 o.default true
               end
 
@@ -112,7 +131,7 @@ module Datadog
                       value
                     else
                       Datadog.logger.warn(
-                        "Feature Flags agentless poll interval must be positive; using the default"
+                        "Feature Flags agentless poll interval must be positive; using the default",
                       )
                       Settings::DEFAULT_POLL_INTERVAL_SECONDS
                     end
@@ -132,7 +151,7 @@ module Datadog
                     else
                       Datadog.logger.warn(
                         "Feature Flags agentless request timeout must be within (0, " \
-                        "#{Settings::MAX_REQUEST_TIMEOUT_SECONDS}]; using the default"
+                        "#{Settings::MAX_REQUEST_TIMEOUT_SECONDS}]; using the default",
                       )
                       Settings::DEFAULT_REQUEST_TIMEOUT_SECONDS
                     end
@@ -153,7 +172,7 @@ module Datadog
                   else
                     Datadog.logger.warn(
                       "Feature Flags provider initialization timeout must be within (0, " \
-                      "#{Settings::MAX_INITIALIZATION_TIMEOUT_MS}]; using the default"
+                      "#{Settings::MAX_INITIALIZATION_TIMEOUT_MS}]; using the default",
                     )
                     Settings::DEFAULT_INITIALIZATION_TIMEOUT_MS
                   end

@@ -77,14 +77,12 @@ module Datadog
         end
       end
 
-      module_function
-
       # Produces a CorrelationIdentifier from the TraceDigest provided
       #
       # DEV: can we memoize this object, give it can be common to
       # use a correlation multiple times, specially in the context of logging?
       # @!visibility private
-      def identifier_from_digest(digest)
+      def self.identifier_from_digest(digest)
         return Identifier.new unless digest
 
         Identifier.new(
@@ -93,7 +91,7 @@ module Datadog
         )
       end
 
-      def format_trace_id(trace_id)
+      def self.format_trace_id(trace_id)
         if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled
           format_trace_id_128(trace_id)
         else
@@ -101,7 +99,7 @@ module Datadog
         end
       end
 
-      def format_trace_id_128(trace_id)
+      def self.format_trace_id_128(trace_id)
         if !Tracing::Utils::TraceId.to_high_order(trace_id).zero?
           Kernel.format("%032x", trace_id)
         else

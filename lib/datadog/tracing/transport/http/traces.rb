@@ -51,6 +51,8 @@ module Datadog
 
                 # Query for response
                 http_response = super
+                # Delivery succeeded or failed before service-rate parsing can raise.
+                env.request.capture_status(http_response)
 
                 # Process the response
                 response_options = {trace_count: env.request.parcel.trace_count}.tap do |options|

@@ -28,11 +28,11 @@ module Datadog
             def from_tracestate_member(value)
               return new unless value
 
-              # @type var sampling_priority: ::Integer?
-              # @type var origin: ::String?
-              # @type var ts_parent_id: ::String?
-              # @type var tags: ::Hash[::String, ::String]?
-              # @type var unknown_fields: ::String?
+              # @type var sampling_priority: Integer?
+              # @type var origin: String?
+              # @type var ts_parent_id: String?
+              # @type var tags: Hash[String, String]?
+              # @type var unknown_fields: String?
               sampling_priority = nil
               origin = nil
               ts_parent_id = nil

@@ -10,7 +10,7 @@ module Datadog
 
             attr_reader status: untyped
 
-            attr_reader headers: ::Hash[::String, ::String]
+            attr_reader headers: Hash[String, String]
 
             attr_reader context: AppSec::Context
 

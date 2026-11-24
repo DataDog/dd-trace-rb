@@ -16,7 +16,7 @@ module Datadog
           setting_name: String
         ) -> void
 
-        def self.extended: (::Class | ::Module base) -> void
+        def self.extended: (Class | Module base) -> void
 
         def self.add_settings!: (untyped base) -> void
       end

@@ -30,7 +30,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
         .with(
           adapter.hostname,
           adapter.port,
-          proxy_addr
+          proxy_addr,
         ).and_return(http_connection)
 
       allow(http_connection).to receive(:open_timeout=).with(adapter.timeout)
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
         query: nil,
         body: body,
         headers: headers,
-        form: form
+        form: form,
       )
     end
 

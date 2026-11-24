@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -18,6 +19,16 @@ module Datadog
     #
     # @api private
     class ProbeManager
+      # Initializes the probe manager.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param instrumenter [Instrumenter] instrumenter that executes installed probes
+      # @param probe_notification_builder [ProbeNotificationBuilder] builder for status and snapshot payloads
+      # @param probe_notifier_worker [ProbeNotifierWorker] worker that sends the built payloads
+      # @param logger [DI::Logger] logger for probe manager diagnostics
+      # @param probe_repository [ProbeRepository] repository of installed probes
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component probe manager errors are reported through
+      # @return [void]
       def initialize(settings, instrumenter, probe_notification_builder,
         probe_notifier_worker, logger, probe_repository, telemetry: nil)
         @settings = settings
@@ -303,30 +314,39 @@ module Datadog
         end
 
         payload = probe_notification_builder.build_executed(context)
-        probe_notifier_worker.add_snapshot(payload)
+        probe_notifier_worker.add_snapshot(payload, probe: probe)
       end
 
       # Callback invoked when a probe's condition expression fails to evaluate.
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
-      # Rate-limited to 1 notification per second per probe, and subject to
-      # the process-wide global snapshot rate limit, to avoid flooding the
-      # backend when conditions fail repeatedly.
+      # Rate-limited to 1 notification per second per probe. Once the per-probe
+      # throttle admits, the instrumenter's admission gate applies the trace
+      # sampling decision to a capturing probe's notification inside an active
+      # trace, and the process-wide GLOBAL token to every other notification,
+      # to avoid flooding the backend when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
       # @param expr [EL::Expression] The condition expression that failed
       # @param exc [Exception] The exception raised during condition evaluation
+      # @return [void]
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        if probe.condition_evaluation_failed_rate_limiter&.allow?
-          if instrumenter.global_snapshot_rate_limiter.allow?
+        rate_limiter = probe.condition_evaluation_failed_rate_limiter
+        if rate_limiter&.allow?
+          if instrumenter.admit_condition_error_snapshot?(probe)
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
-            probe_notifier_worker.add_snapshot(payload)
-          else
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" }
+            probe_notifier_worker.add_snapshot(payload, probe: probe)
+          end
+        elsif rate_limiter
+          logger.trace do
+            "di: #{probe.type} probe #{probe.id}: skipping condition evaluation failure" \
+              " notification due to per-probe rate limit" \
+              " (#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
           end
         end
+        nil
       end
 
       # Callback invoked when a probe is disabled, for example due to

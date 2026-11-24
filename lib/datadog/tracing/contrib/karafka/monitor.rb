@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "ext"
+require_relative "../kafka/ext"
+require_relative "kafka_config"
 
 module Datadog
   module Tracing
@@ -21,7 +23,8 @@ module Datadog
             Datadog::Tracing.trace(Ext::SPAN_WORKER_PROCESS) do |span|
               job = payload[:job]
               job_type = fetch_job_type(job.class)
-              consumer = job.executor.topic.consumer
+              topic = job.executor.topic
+              consumer = topic.consumer
 
               action = case job_type
               when "Periodic", "PeriodicNonBlocking"
@@ -40,27 +43,35 @@ module Datadog
 
               span.resource = "#{consumer}##{action}"
 
-              if action == "consume"
-                span.set_tag(Ext::TAG_MESSAGE_COUNT, job.messages.count)
-                span.set_tag(Ext::TAG_PARTITION, job.executor.partition)
-                span.set_tag(Ext::TAG_OFFSET, job.messages.first.metadata.offset)
-                span.set_tag(Ext::TAG_CONSUMER, consumer)
-                span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, job.executor.topic.name)
-                span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
+              # Falls back to `Karafka::App.config.kafka` when the topic does not override it.
+              bootstrap_servers = KafkaConfig.bootstrap_servers(topic.kafka) if topic.respond_to?(:kafka)
 
-                # DSM: Track consumer offset stats for batch processing
-                if Datadog.configuration.data_streams.enabled
-                  job.messages.each do |message|
-                    Datadog::DataStreams.track_kafka_consume(
-                      job.executor.topic.name,
-                      job.executor.partition,
-                      message.metadata.offset
-                    )
+              # Message spans created during the job, including by the DSM tracking below, take these brokers.
+              KafkaConfig.with_job_bootstrap_servers(bootstrap_servers) do
+                if action == "consume"
+                  span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+                  span.set_tag(Ext::TAG_MESSAGE_COUNT, job.messages.count)
+                  span.set_tag(Ext::TAG_PARTITION, job.executor.partition)
+                  span.set_tag(Ext::TAG_OFFSET, job.messages.first.metadata.offset)
+                  span.set_tag(Ext::TAG_CONSUMER, consumer)
+                  span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, topic.name)
+                  span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
+                  span.set_tag(Contrib::Kafka::Ext::TAG_KAFKA_BOOTSTRAP_SERVERS, bootstrap_servers) if bootstrap_servers
+
+                  # DSM: Track consumer offset stats for batch processing
+                  if Datadog::DataStreams.enabled?
+                    job.messages.each do |message|
+                      Datadog::DataStreams.track_kafka_consume(
+                        topic.name,
+                        job.executor.partition,
+                        message.metadata.offset,
+                      )
+                    end
                   end
                 end
-              end
 
-              super
+                super
+              end
             end
           end
 

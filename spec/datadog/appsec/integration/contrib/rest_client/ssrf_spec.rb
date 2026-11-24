@@ -76,7 +76,7 @@ RSpec.describe "RestClient SSRF Injection" do
             response = RestClient.get("http://#{request.params["url"]}")
 
             [200, {"Content-Type" => "application/json"}, [response.code.to_s]]
-          end
+          end,
         )
       end
     end

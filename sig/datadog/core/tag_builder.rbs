@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module TagBuilder
-      type tags = ::Hash[::String, ::String]
+      type tags = Hash[String, String]
 
       self.@fixed_environment_tags: tags
 
@@ -9,7 +9,7 @@ module Datadog
 
       def self.tags: (Datadog::Core::Configuration::Settings settings) -> tags
 
-      def self.serialize_tags: (tags tags) -> ::String
+      def self.serialize_tags: (tags tags) -> String
     end
   end
 end

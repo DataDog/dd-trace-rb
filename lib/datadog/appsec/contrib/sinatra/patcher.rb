@@ -37,7 +37,7 @@ module Datadog
                 tracing_sinatra_framework.add_middleware_after(
                   tracing_middleware,
                   Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-                  builder
+                  builder,
                 )
               else
                 tracing_sinatra_framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
@@ -100,17 +100,15 @@ module Datadog
 
         # Patcher for AppSec on Sinatra
         module Patcher
-          module_function
-
-          def patched?
+          def self.patched?
             Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Gateway::Watcher.watch
 
             ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
@@ -122,7 +120,7 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_json?
+          def self.patch_json?
             !!(defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON)
           end
         end

@@ -15,28 +15,26 @@ module Datadog
 
             EVENT_NAME = "deliver.action_mailer"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_DELIVER
             end
 
-            def span_type
+            def self.span_type
               # deliver.action_mailer sends emails
               Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               super
 
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
             end
 
-            def on_finish(span, event, _id, payload)
+            def self.on_finish(span, event, _id, payload)
               super
 
               span.resource = payload[:mailer] # Mailer is not available at `on_start`

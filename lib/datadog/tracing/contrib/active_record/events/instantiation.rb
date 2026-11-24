@@ -17,22 +17,20 @@ module Datadog
 
             EVENT_NAME = "instantiation.active_record"
 
-            module_function
-
-            def supported?
+            def self.supported?
               Gem.loaded_specs["activerecord"] \
                 && Gem.loaded_specs["activerecord"].version >= Gem::Version.new("4.2")
             end
 
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_INSTANTIATION
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               span.resource = payload.fetch(:class_name)
               span.type = Ext::SPAN_TYPE_INSTANTIATION
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

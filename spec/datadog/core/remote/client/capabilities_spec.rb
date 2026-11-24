@@ -5,7 +5,7 @@ require "datadog/core/remote/client/capabilities"
 require "datadog/appsec/configuration"
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
-  subject(:capabilities) { described_class.new(settings, telemetry) }
+  subject(:capabilities) { described_class.new(settings, telemetry: telemetry) }
   let(:settings) do
     double(Datadog::Core::Configuration)
   end
@@ -18,20 +18,21 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     # JRuby and old Rubies). The unsupported-runtime paths are covered below.
     allow(Datadog::DI).to receive(:supported_runtime?).and_return(true)
     allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(true)
   end
 
   shared_examples "tracing and DI capabilities" do
     it "includes tracing capabilities and the DI enablement bit" do
-      # Bits 12, 13, 14, 29, 45 (tracing) + 38 (DI enablement, registered with the DI block)
-      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
+      # Bits 12, 13, 14, 20, 29, 45 (tracing) + 38 (DI enablement, registered with the DI block)
+      expect(capabilities.base64_capabilities).to eq("IEAgEHAA")
     end
   end
 
   shared_examples "tracing capabilities only" do
     it "includes only tracing capabilities (DI not registered)" do
-      # Bits 12, 13, 14, 29, 45 (tracing). Bit 38 lives in the DI block, which is
+      # Bits 12, 13, 14, 20, 29, 45 (tracing). Bit 38 lives in the DI block, which is
       # not registered here (DI settings absent or explicitly disabled).
-      expect(capabilities.base64_capabilities).to eq("IAAgAHAA")
+      expect(capabilities.base64_capabilities).to eq("IAAgEHAA")
     end
   end
 
@@ -49,7 +50,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -67,7 +68,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -97,7 +98,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -123,7 +124,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -138,7 +139,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -162,7 +163,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -201,7 +202,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -263,7 +264,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_")
-          }
+          },
         )
       end
     end
@@ -330,47 +331,48 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_")
-          }
+          },
         )
       end
     end
   end
 
   context "Tracing component" do
+    context "when DDSketch is not supported" do
+      before { allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false) }
+
+      it "does not advertise the Data Streams enablement bit 20" do
+        expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
+      end
+    end
+
     it "register capabilities, products, and receivers" do
-      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 20, 1 << 29, 1 << 45)
       expect(capabilities.products).to include("APM_TRACING")
       expect(capabilities.receivers).to include(
         lambda { |r|
           r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/_/lib_config")
-        }
+        },
       )
     end
   end
 
   context "OpenFeature component" do
-    subject(:capabilities) do
-      described_class.new(
-        settings,
-        telemetry,
-        open_feature_component_provider: open_feature_component_provider,
-      )
-    end
-
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |settings|
-        settings.open_feature.enabled = true
+        settings.feature_flags.enabled = true
+        settings.feature_flags.configuration_source = "remote_config"
       end
     end
-    let(:open_feature_component_provider) { -> {} }
 
-    it "binds the receiver to the supplied component provider" do
-      expect(Datadog::OpenFeature::Remote).to receive(:receivers).with(
-        telemetry,
-        component_provider: open_feature_component_provider,
-      ).and_call_original
-
-      capabilities
+    it "does not register Feature Flags during initial capability construction" do
+      expect(capabilities.capabilities).not_to include(1 << 46)
+      expect(capabilities.products).not_to include("FFE_FLAGS")
+      expect(capabilities.receivers).not_to include(
+        lambda { |receiver|
+          receiver.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
+        },
+      )
     end
   end
 
@@ -409,17 +411,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   describe "#capabilities_to_base64" do
-    before do
-      allow(capabilities).to receive(:capabilities).and_return(
-        [
-          1 << 1,
-          1 << 2,
-        ]
-      )
-    end
-
     it "returns base64 string" do
-      expect(capabilities.send(:capabilities_to_base64)).to eq("Bg==")
+      expect(capabilities.send(:capabilities_to_base64, [1 << 1, 1 << 2])).to eq("Bg==")
     end
   end
 
@@ -454,6 +447,68 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     it "#remove_products leaves other products intact" do
       capabilities.remove_products("LIVE_DEBUGGING")
       expect(capabilities.products).to include("APM_TRACING")
+    end
+  end
+
+  describe "#register_runtime" do
+    let(:receiver) { instance_double(Datadog::Core::Remote::Dispatcher::Receiver) }
+    let(:runtime_capability) { 1 << 46 }
+
+    it "adds capabilities, products, and receivers for future clients" do
+      capabilities.register_runtime(
+        capabilities: [runtime_capability],
+        products: ["FFE_FLAGS"],
+        receivers: [receiver],
+      )
+
+      expect(capabilities.capabilities).to include(runtime_capability)
+      expect(capabilities.products).to include("FFE_FLAGS")
+      expect(capabilities.receivers).to include(receiver)
+    end
+
+    it "recomputes base64 over the union of boot and runtime capabilities" do
+      boot_capabilities = capabilities.capabilities
+      expect(boot_capabilities).not_to be_empty
+
+      capabilities.register_runtime(
+        capabilities: [runtime_capability],
+        products: ["FFE_FLAGS"],
+        receivers: [receiver],
+      )
+
+      expect(capabilities.base64_capabilities)
+        .to eq(capabilities.send(:capabilities_to_base64, boot_capabilities + [runtime_capability]))
+    end
+
+    it "is idempotent" do
+      2.times do
+        capabilities.register_runtime(
+          capabilities: [runtime_capability],
+          products: ["FFE_FLAGS"],
+          receivers: [receiver],
+        )
+      end
+
+      expect(capabilities.capabilities.count(runtime_capability)).to eq(1)
+      expect(capabilities.products.count("FFE_FLAGS")).to eq(1)
+      expect(capabilities.receivers.count(receiver)).to eq(1)
+    end
+  end
+
+  context "Profiling" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    it "registers the APM_PROFILING product and a receiver for it, without a capability" do
+      expect(capabilities.products).to include("APM_PROFILING")
+      expect(capabilities.products).to_not include("DEBUG")
+      expect(capabilities.receivers).to include(
+        lambda { |r|
+          r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/APM_PROFILING/preset-default/config")
+        },
+      )
+      # Same bits as "tracing and DI capabilities": the backend defines no capability for profiling, so
+      # profiling only subscribes to its products.
+      expect(capabilities.base64_capabilities).to eq("IEAgEHAA")
     end
   end
 end

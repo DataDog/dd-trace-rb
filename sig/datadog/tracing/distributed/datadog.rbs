@@ -2,8 +2,8 @@ module Datadog
   module Tracing
     module Distributed
       class Datadog
-        type carrier = ::Hash[::String, ::String]
-        type tags = ::Hash[::String, ::String]
+        type carrier = Hash[String, String]
+        type tags = Hash[String, String]
 
         TRACE_ID_KEY: "x-datadog-trace-id"
 
@@ -15,14 +15,14 @@ module Datadog
         TAGS_KEY: "x-datadog-tags"
         TAGS_PREFIX: "x-datadog-"
 
-        @trace_id_key: ::String
-        @parent_id_key: ::String
-        @sampling_priority_key: ::String
-        @origin_key: ::String
-        @tags_key: ::String
+        @trace_id_key: String
+        @parent_id_key: String
+        @sampling_priority_key: String
+        @origin_key: String
+        @tags_key: String
         @fetcher: singleton(Distributed::Fetcher)
 
-        def initialize: (fetcher: singleton(Distributed::Fetcher), ?trace_id_key: ::String, ?parent_id_key: ::String, ?sampling_priority_key: ::String, ?origin_key: ::String, ?tags_key: ::String) -> void
+        def initialize: (fetcher: singleton(Distributed::Fetcher), ?trace_id_key: String, ?parent_id_key: String, ?sampling_priority_key: String, ?origin_key: String, ?tags_key: String) -> void
 
         def inject!: (TraceDigest? digest, carrier data) -> carrier?
 
@@ -30,16 +30,16 @@ module Datadog
 
         private
 
-        def parse_trace_id: (Distributed::Fetcher fetcher_object) -> ::Integer?
+        def parse_trace_id: (Distributed::Fetcher fetcher_object) -> Integer?
 
-        def parse_parent_id: (Distributed::Fetcher fetcher_object) -> ::Integer?
+        def parse_parent_id: (Distributed::Fetcher fetcher_object) -> Integer?
 
         def build_tags: (TraceDigest digest) -> tags
-        def extract_trace_id!: (::Integer trace_id, tags? tags) -> ::Integer
-        def inject_tags!: (tags tags, carrier data) -> ::String?
+        def extract_trace_id!: (Integer trace_id, tags? tags) -> Integer
+        def inject_tags!: (tags tags, carrier data) -> String?
         def extract_tags: (Distributed::Fetcher fetcher) -> tags?
 
-        def set_tags_propagation_error: (reason: ::String) -> nil
+        def set_tags_propagation_error: (reason: String) -> nil
 
         def tags_disabled?: () -> bool
 

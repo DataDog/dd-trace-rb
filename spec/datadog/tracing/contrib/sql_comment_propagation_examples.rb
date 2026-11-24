@@ -81,7 +81,7 @@ RSpec.shared_examples_for "propagates with sql comment" do |mode:, span_op_name:
   it "decorates the span operation" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:annotate!).with(
       a_span_operation_with(name: span_op_name),
-      propagation_mode
+      propagation_mode,
     )
     if error
       expect { subject }.to raise_error(error)
@@ -103,7 +103,7 @@ RSpec.shared_examples_for "propagates with sql comment" do |mode:, span_op_name:
       sql_statement,
       a_span_operation_with(service: service_name),
       duck_type(:to_digest),
-      propagation_mode
+      propagation_mode,
     )
   end
 
@@ -124,7 +124,7 @@ RSpec.shared_examples_for "propagates with sql comment" do |mode:, span_op_name:
         sql_statement,
         a_span_operation_with(service: service_name),
         duck_type(:to_digest),
-        propagation_mode
+        propagation_mode,
       )
     end
   end

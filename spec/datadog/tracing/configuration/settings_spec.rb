@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context "when #{Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED}" do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => environment
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => environment,
             ) do
               example.run
             end
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             is_expected.to contain_exactly(
               Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
               Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
             )
           end
         end
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               [
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
-              ]
+              ],
             )
           end
 
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
-                ]
+                ],
               )
             end
           end
@@ -124,7 +124,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             is_expected.to contain_exactly(
               Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
               Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
             )
           end
         end
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               [
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
-              ]
+              ],
             )
           end
 
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
-                ]
+                ],
               )
             end
           end
@@ -312,7 +312,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             {
               Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
               "OTEL_TRACES_EXPORTER" => otel_exporter,
-            }
+            },
           ) do
             example.run
           end
@@ -467,7 +467,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       context "when #{Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED}" do
         around do |example|
           ClimateControl.modify(
-            Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED => log_injection_env
+            Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED => log_injection_env,
           ) do
             example.run
           end
@@ -492,22 +492,22 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       it_behaves_like "a binary setting with",
         env_variable: "DD_TRACE_OTEL_CTX_ENABLED",
-        default: true
+        default: PlatformHelpers.mri? && PlatformHelpers.linux?
     end
 
     describe "#partial_flush" do
       describe "#enabled" do
         subject(:enabled) { settings.tracing.partial_flush.enabled }
 
-        it { is_expected.to be false }
+        it { is_expected.to be true }
       end
 
       describe "#enabled=" do
         it "updates the #enabled setting" do
-          expect { settings.tracing.partial_flush.enabled = true }
+          expect { settings.tracing.partial_flush.enabled = false }
             .to change { settings.tracing.partial_flush.enabled }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
 
@@ -819,7 +819,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context "when DD_SPAN_SAMPLING_RULES is provided" do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES => "{}"
+              Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES => "{}",
             ) do
               example.run
             end
@@ -830,7 +830,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context "and DD_SPAN_SAMPLING_RULES_FILE is also provided" do
             around do |example|
               ClimateControl.modify(
-                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => "path"
+                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => "path",
               ) do
                 example.run
               end
@@ -850,7 +850,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               f.flush
 
               ClimateControl.modify(
-                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => f.path
+                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => f.path,
               ) do
                 example.run
               end
@@ -1012,7 +1012,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH}" do
         around do |example|
           ClimateControl.modify(
-            Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH => env_var
+            Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH => env_var,
           ) do
             example.run
           end
@@ -1047,7 +1047,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       context "when given environment variable `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`" do
         around do |example|
           ClimateControl.modify(
-            "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED" => env_var
+            "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED" => env_var,
           ) do
             example.run
           end
@@ -1089,7 +1089,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       context "when given environment variable `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED " do
         around do |example|
           ClimateControl.modify(
-            "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED" => env_var
+            "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED" => env_var,
           ) do
             example.run
           end
@@ -1148,6 +1148,43 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             expect(settings.tracing.client_ip.enabled).to eq(value)
           end
         end
+      end
+    end
+
+    describe "#http_client_resource_name_quantize" do
+      subject(:http_client_resource_name_quantize) { settings.tracing.http_client_resource_name_quantize }
+
+      let(:envs) do
+        {
+          Datadog::Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE => environment,
+        }
+      end
+      let(:environment) { nil }
+
+      it { is_expected.to be false }
+
+      {
+        "true" => true,
+        "1" => true,
+        "false" => false,
+        "0" => false,
+        "invalid" => false,
+      }.each do |value, expected|
+        context "when environment value is #{value.inspect}" do
+          let(:environment) { value }
+
+          it { is_expected.to be(expected) }
+        end
+      end
+
+      it "accepts programmatic boolean values" do
+        expect do
+          settings.tracing.http_client_resource_name_quantize = true
+        end.to change { settings.tracing.http_client_resource_name_quantize }.from(false).to(true)
+
+        expect do
+          settings.tracing.http_client_resource_name_quantize = false
+        end.to change { settings.tracing.http_client_resource_name_quantize }.from(true).to(false)
       end
     end
 

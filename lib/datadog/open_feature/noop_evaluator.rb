@@ -16,14 +16,16 @@ module Datadog
         # no-op
       end
 
-      def get_assignment(_flag_key, default_value:, context:, expected_type:)
+      def get_assignment(
+        _flag_key, default_value:, context:, expected_type:, experimentation_opt_out_mode: :disabled
+      )
         ResolutionDetails.new(
           value: default_value,
           log?: false,
           error?: true,
           error_code: Ext::PROVIDER_NOT_READY,
           error_message: "Waiting for flags configuration",
-          reason: Ext::ERROR
+          reason: Ext::ERROR,
         )
       end
     end

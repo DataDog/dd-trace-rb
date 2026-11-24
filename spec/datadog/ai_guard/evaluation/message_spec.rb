@@ -18,14 +18,14 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
 
     it "raises an ArgumentError when :tool_calls is not an array" do
       expect { described_class.new(role: :assistant, tool_calls: "ls -la") }.to raise_error(
-        ArgumentError, "Tool calls must be an Array"
+        ArgumentError, "Tool calls must be an Array",
       )
     end
 
     it "raises an ArgumentError when :tool_calls contains something other than ToolCall instances" do
       expect { described_class.new(role: :assistant, tool_calls: ["ls -la"]) }.to raise_error(
         ArgumentError,
-        "Tool calls must contain only Datadog::AIGuard::Evaluation::ToolCall instances"
+        "Tool calls must contain only Datadog::AIGuard::Evaluation::ToolCall instances",
       )
     end
 
@@ -48,7 +48,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
           content: "Running tools",
           tool_calls: [
             Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: '{"path":"~"}'),
-          ]
+          ],
         )
       end
 
@@ -56,7 +56,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
         expect(message.to_h).to eq(
           role: :assistant,
           content: "Running tools",
-          tool_calls: [{id: "call-1", function: {name: "first", arguments: '{"path":"~"}'}}]
+          tool_calls: [{id: "call-1", function: {name: "first", arguments: '{"path":"~"}'}}],
         )
       end
     end
@@ -68,7 +68,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
           tool_calls: [
             Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: "{}"),
             Datadog::AIGuard::Evaluation::ToolCall.new("second", id: "call-2", arguments: '{"value":2}'),
-          ]
+          ],
         )
       end
 
@@ -78,7 +78,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
           tool_calls: [
             {id: "call-1", function: {name: "first", arguments: "{}"}},
             {id: "call-2", function: {name: "second", arguments: '{"value":2}'}},
-          ]
+          ],
         )
       end
     end

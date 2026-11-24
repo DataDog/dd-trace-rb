@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     before do
       expect(client.dispatcher).to receive(:dispatch).with(
         instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet),
-        client.repository
+        client.repository,
       ).at_least(:once)
     end
   end
@@ -250,7 +250,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:capabilities) do
     capabilities = Datadog::Core::Remote::Client::Capabilities.new(
       settings,
-      instance_double(Datadog::Core::Telemetry::Component)
+      telemetry: instance_double(Datadog::Core::Telemetry::Component),
     )
     capabilities.send(:register_products, ["ASM_DATA", "ASM_DD", "ASM"])
 
@@ -297,7 +297,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
       it "propagates changes to the dispatcher" do
         expect_any_instance_of(Datadog::Core::Remote::Dispatcher).to receive(:dispatch).with(
-          instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet), repository
+          instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet), repository,
         )
         client.sync
       end
@@ -334,7 +334,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   path: "datadog/603646/ASM_DD/latest/config",
                   content: rules_data,
                 },
-              ]
+              ],
             )
 
           updated_targets = {
@@ -379,12 +379,100 @@ RSpec.describe Datadog::Core::Remote::Client do
             },
           }
           expect_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Config::Response).to receive(:targets).and_return(
-            updated_targets
+            updated_targets,
           )
 
           expect_any_instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction).to receive(:update)
             .exactly(1).and_call_original
           client.sync
+        end
+      end
+    end
+
+    context "the initial reconcile" do
+      let(:invocations) { [] }
+
+      let(:receiver_products) { ["TEST_PRODUCT"] }
+
+      let(:test_receiver) do
+        Datadog::Core::Remote::Dispatcher::Receiver.new(
+          Datadog::Core::Remote::Dispatcher::Matcher::Product.new(receiver_products),
+          initial_reconcile: true,
+        ) { |_repository, changes| invocations << changes }
+      end
+
+      let(:capabilities) do
+        capabilities = Datadog::Core::Remote::Client::Capabilities.new(
+          settings,
+          telemetry: instance_double(Datadog::Core::Telemetry::Component),
+        )
+        capabilities.send(:register_receivers, [test_receiver])
+
+        capabilities
+      end
+
+      context "the sync serves no changes for the receiver's product" do
+        it "invokes the receiver with empty changes" do
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+
+        it "does not invoke the receiver again on the next changeless sync" do
+          client.sync
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+
+        it "keeps the initial reconcile pending when the first sync fails" do
+          allow(http_connection).to receive(:request).and_raise(IOError)
+          expect { client.sync }.to raise_error(Datadog::Core::Remote::Client::TransportError)
+
+          allow(http_connection).to receive(:request).and_return(
+            instance_double(::Net::HTTPResponse, body: response_body, code: response_code),
+          )
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+      end
+
+      context "the first response carries no targets" do
+        before do
+          allow(http_connection).to receive(:request).and_return(
+            instance_double(::Net::HTTPResponse, body: "{}", code: response_code),
+          )
+        end
+
+        it "does not invoke the receiver" do
+          client.sync
+
+          expect(invocations).to eq([])
+        end
+
+        it "invokes the receiver with empty changes on the first later response that carries targets" do
+          client.sync
+          client.sync
+
+          allow(http_connection).to receive(:request).and_return(
+            instance_double(::Net::HTTPResponse, body: response_body, code: response_code),
+          )
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+      end
+
+      context "the sync serves changes for the receiver's product" do
+        let(:receiver_products) { ["ASM"] }
+
+        it "invokes the receiver only with the dispatched changes" do
+          client.sync
+
+          expect(invocations).to contain_exactly(
+            [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
+          )
         end
       end
     end
@@ -413,7 +501,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               client.sync
             end.to raise_error(
               described_class::SyncError,
-              %r{no valid content for target at path 'datadog/603646/ASM_DATA/blocked_ips/config'}
+              %r{no valid content for target at path 'datadog/603646/ASM_DATA/blocked_ips/config'},
             )
           end
         end
@@ -444,7 +532,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               client.sync
             end.to raise_error(
               described_class::SyncError,
-              %r{no target for path 'datadog/603646/ASM_DATA/blocked_ips/config'}
+              %r{no target for path 'datadog/603646/ASM_DATA/blocked_ips/config'},
             )
           end
         end
@@ -480,7 +568,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
         it "raises a transport error" do
           expect { client.sync }.to raise_error(
-            Datadog::Core::Remote::Client::TransportError, /Agent returned an error response: 500: unimplemented/
+            Datadog::Core::Remote::Client::TransportError, /Agent returned an error response: 500: unimplemented/,
           )
         end
       end
@@ -490,7 +578,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
           expect { client.sync }.to raise_error(
-            Datadog::Core::Remote::Client::TransportError, /error_type:IOError error:IOError/
+            Datadog::Core::Remote::Client::TransportError, /error_type:IOError error:IOError/,
           )
         end
       end
@@ -593,7 +681,6 @@ RSpec.describe Datadog::Core::Remote::Client do
 
                 allow(Gem::Platform).to receive(:local).and_return(gem_platform_local)
                 allow(Datadog::Core::Environment::Identity).to receive(:gem_datadog_version).and_return(gem_datadog_version)
-                allow(client).to receive(:ruby_engine_version).and_return(ruby_engine_version)
                 allow(client).to receive(:native_platform).and_return(native_platform)
                 allow(client).to receive(:gem_spec).with("libddwaf").and_return(libddwaf_gem_spec)
                 allow(client).to receive(:gem_spec).with("libdatadog").and_return(libdatadog_gem_spec)

@@ -4,7 +4,7 @@ hooks="$(dirname -- "$here")"
 compiled="$hooks/compiled/require-skill"
 
 if [ -x "$compiled" ]; then
-    exec "$compiled" "$@"
+  exec "$compiled" "$@"
 fi
 
 exec ruby --disable-gems "$hooks/require-skill.rb" "$@"

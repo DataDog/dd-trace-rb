@@ -5,11 +5,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          def self?.target_version: () -> untyped
+          def self.target_version: () -> untyped
 
-          def self?.patch: () -> untyped
+          def self.patch: () -> untyped
 
-          def self?.add_middleware: () -> untyped
+          def self.add_middleware: () -> untyped
         end
       end
     end

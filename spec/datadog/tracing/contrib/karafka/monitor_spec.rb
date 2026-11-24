@@ -49,7 +49,10 @@ RSpec.describe "Karafka monitor" do
         instance_double(consume_job_class, class: consume_job_class, executor: executor, messages: messages)
       end
       let(:executor) { instance_double(executor_class, topic: topic, partition: 1) }
-      let(:topic) { instance_double(Karafka::Routing::Topic, consumer: "Consumer", name: "topic_name") }
+      let(:topic) do
+        instance_double(Karafka::Routing::Topic, consumer: "Consumer", name: "topic_name", kafka: kafka_config)
+      end
+      let(:kafka_config) { {"bootstrap.servers": "kafka-1:9092,kafka-2:9092"} }
       let(:messages) { [instance_double(Karafka::Messages::Messages, metadata: metadata)] }
       let(:metadata) { instance_double(Karafka::Messages::Metadata, offset: 42) }
 
@@ -66,8 +69,30 @@ RSpec.describe "Karafka monitor" do
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET => 42,
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER => "Consumer",
           "messaging.destination" => "topic_name",
-          "messaging.system" => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM
+          "messaging.system" => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
+          "span.kind" => "consumer",
+          "messaging.kafka.bootstrap.servers" => "kafka-1:9092,kafka-2:9092",
         )
+      end
+
+      it "passes the topic's bootstrap servers to the job, and restores them afterwards" do
+        job_bootstrap_servers = nil
+        Karafka.monitor.instrument("worker.processed", {job: job}) do
+          job_bootstrap_servers = Datadog::Tracing::Contrib::Karafka::KafkaConfig.job_bootstrap_servers
+        end
+
+        expect(job_bootstrap_servers).to eq "kafka-1:9092,kafka-2:9092"
+        expect(Datadog::Tracing::Contrib::Karafka::KafkaConfig.job_bootstrap_servers).to be_nil
+      end
+
+      context "when the topic has no bootstrap.servers configured" do
+        let(:kafka_config) { {} }
+
+        it "does not set the bootstrap servers tag" do
+          Karafka.monitor.instrument("worker.processed", {job: job})
+
+          expect(spans[0].get_tag("messaging.kafka.bootstrap.servers")).to be_nil
+        end
       end
     end
   end

@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -48,14 +48,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 1000, duration_ext_ns: 1200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -79,14 +79,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 100, duration_ext_ns: 500,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 400, duration_ext_ns: 1200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -126,7 +126,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -151,14 +151,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 1000, duration_ext_ns: 1200,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -184,14 +184,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 100, duration_ext_ns: 500,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true,
-          duration_ns: 400, duration_ext_ns: 1200, input_truncated: false
+          duration_ns: 400, duration_ext_ns: 1200, input_truncated: false,
         )
       end
 
@@ -220,14 +220,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 100, duration_ext_ns: 200, input_truncated: false
+          duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 1000, duration_ext_ns: 1200, input_truncated: false
+          duration_ns: 1000, duration_ext_ns: 1200, input_truncated: false,
         )
       end
 
@@ -243,14 +243,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 100, duration_ext_ns: 200, input_truncated: false
+          duration_ns: 100, duration_ext_ns: 200, input_truncated: false,
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 1000, duration_ext_ns: 1200, input_truncated: false
+          duration_ns: 1000, duration_ext_ns: 1200, input_truncated: false,
         )
       end
 

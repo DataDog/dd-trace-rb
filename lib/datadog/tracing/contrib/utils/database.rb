@@ -10,9 +10,7 @@ module Datadog
           VENDOR_POSTGRES = "postgres"
           VENDOR_SQLITE = "sqlite"
 
-          module_function
-
-          def normalize_vendor(vendor)
+          def self.normalize_vendor(vendor)
             case vendor
             when nil
               VENDOR_DEFAULT

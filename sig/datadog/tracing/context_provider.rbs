@@ -10,7 +10,7 @@ module Datadog
     end
 
     class FiberLocalContext
-      @key: ::Symbol
+      @key: Symbol
       @otel_thread_context: OTelThreadContext?
 
       def initialize: (?otel_thread_context: OTelThreadContext?) -> void

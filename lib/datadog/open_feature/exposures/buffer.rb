@@ -21,6 +21,10 @@ module Datadog
           super
         end
 
+        def pending_dropped_count
+          @dropped
+        end
+
         protected
 
         def drain!

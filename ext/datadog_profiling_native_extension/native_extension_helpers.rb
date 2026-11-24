@@ -94,9 +94,9 @@ module Datadog
         )
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
-        COMPILER_ATOMIC_MISSING = explain_issue(
-          "your C compiler is missing support for the <stdatomic.h> header.",
-          "This issue can usually be fixed by upgrading to a later version of your",
+        COMPILER_C11_MISSING = explain_issue(
+          "your C compiler does not support C11 (-std=gnu11).",
+          "This issue can be fixed by upgrading to a later version of your",
           "operating system image or compiler.",
           suggested: CONTACT_SUPPORT,
         )

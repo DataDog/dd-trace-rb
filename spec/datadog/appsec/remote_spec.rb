@@ -124,7 +124,7 @@ RSpec.describe Datadog::AppSec::Remote do
               },
               "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules.to_json)},
               "length" => rules.to_s.length,
-            }
+            },
           )
         end
 
@@ -133,7 +133,7 @@ RSpec.describe Datadog::AppSec::Remote do
             {
               path: "datadog/603646/ASM_DD/latest/config",
               content: rules,
-            }
+            },
           )
         end
 
@@ -164,7 +164,7 @@ RSpec.describe Datadog::AppSec::Remote do
 
         it "propagates changes to AppSec" do
           expect(Datadog::AppSec.security_engine).to receive(:add_or_update_config).with(
-            JSON.parse(rules), path: content.path.to_s
+            JSON.parse(rules), path: content.path.to_s,
           )
 
           expect(Datadog::AppSec).to receive(:reconfigure!)
@@ -176,6 +176,20 @@ RSpec.describe Datadog::AppSec::Remote do
           receiver.call(repository, transaction)
 
           expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+        end
+
+        context "the initial reconcile (Dispatcher#reconcile on the client's first targets-bearing sync)" do
+          let(:dispatcher) { Datadog::Core::Remote::Dispatcher.new([receiver]) }
+
+          it "leaves the AppSec receiver uncalled, preserving the initialized ruleset version" do
+            initialized_ruleset_version = appsec_component.security_engine.new_runner.ruleset_version
+
+            expect(Datadog::AppSec).not_to receive(:reconfigure!)
+
+            dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+            expect(appsec_component.security_engine.new_runner.ruleset_version).to eq(initialized_ruleset_version)
+          end
         end
 
         context "when the ASM_DD ruleset path changes" do
@@ -226,7 +240,7 @@ RSpec.describe Datadog::AppSec::Remote do
               {
                 path: "datadog/603646/ASM_DD/v1/config",
                 content: rules,
-              }
+              },
             )
           end
 
@@ -235,7 +249,7 @@ RSpec.describe Datadog::AppSec::Remote do
               {
                 path: "datadog/603646/ASM_DD/v2/config",
                 content: rules_v2,
-              }
+              },
             )
           end
 
@@ -247,7 +261,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules_v2)},
                 "length" => rules_v2.length,
-              }
+              },
             )
           end
 

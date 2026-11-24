@@ -32,7 +32,7 @@ RSpec.describe "datadog_ruby_common" do
         _, stderr, status = Open3.capture3(
           RbConfig.ruby,
           "-e",
-          <<~RUBY
+          <<~RUBY,
             require 'libdatadog'
             Libdatadog.send(:remove_const, :VERSION)
             Libdatadog.const_set(:VERSION, '0.0.0.0.0')
@@ -46,7 +46,7 @@ RSpec.describe "datadog_ruby_common" do
             "The currently-installed version of `datadog` was built to work with `libdatadog` gem version #{Libdatadog::VERSION} " \
             "but the currently-loaded version of `libdatadog` is 0.0.0.0.0. " \
             "To fix this, reinstall the `datadog` gem (e.g. `bundle exec gem pristine datadog`) " \
-            "or contact Datadog support for help at <https://docs.datadoghq.com/help/>."
+            "or contact Datadog support for help at <https://docs.datadoghq.com/help/>.",
         )
       end
     end

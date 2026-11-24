@@ -37,7 +37,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: DataDog/team-freeze-guard@d28a2e357903b426122feaae225629bd63fcd2c5  # 0.0.5
+      - uses: DataDog/team-freeze-guard@d972736cb1c9ae781bdb3cf4564193eb27ee6339  # 0.0.6
         with:
           bypass-labels: |
             dev/ci

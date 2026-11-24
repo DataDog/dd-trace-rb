@@ -2,15 +2,17 @@ module Datadog
   module OpenFeature
     module Exposures
       class Buffer < Core::Buffer::CRuby
-        DEFAULT_LIMIT: ::Integer
+        DEFAULT_LIMIT: Integer
 
-        attr_reader dropped_count: ::Integer
+        attr_reader dropped_count: Integer
 
-        @dropped: ::Integer
+        @dropped: Integer
 
-        def initialize: (?::Integer) -> void
+        def initialize: (?Integer) -> void
 
-        def drain!: () -> ::Array[Object]
+        def pending_dropped_count: () -> Integer
+
+        def drain!: () -> Array[Object]
 
         def replace!: [T < Object] (T) -> T
       end

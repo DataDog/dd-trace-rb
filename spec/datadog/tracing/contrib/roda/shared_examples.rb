@@ -40,7 +40,7 @@ RSpec.shared_examples_for "shared examples for roda" do |test_method|
         ::Rack::Request,
         env: env,
         request_method: response_method,
-        path: path
+        path: path,
       )
     end
 

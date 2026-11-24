@@ -15,7 +15,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Evaluation::Outcome,
           result: result,
-          redaction: redaction
+          redaction: redaction,
         )
       end
       let(:result) { instance_double(Datadog::AIGuard::Evaluation::Result, action: "ALLOW") }
@@ -24,7 +24,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: true,
-          failures_count: 0
+          failures_count: 0,
         )
       end
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {action: "ALLOW", block: "false", error: "false", redacted: "true"}
+          tags: {action: "ALLOW", block: "false", error: "false", redacted: "true"},
         )
 
         described_class.report_evaluation(outcome, blocked: false)
@@ -45,7 +45,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Evaluation::Outcome,
           result: result,
-          redaction: redaction
+          redaction: redaction,
         )
       end
       let(:result) { instance_double(Datadog::AIGuard::Evaluation::Result, action: "ALLOW") }
@@ -54,7 +54,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: false,
-          failures_count: 0
+          failures_count: 0,
         )
       end
 
@@ -63,7 +63,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {action: "ALLOW", block: "false", error: "false", redacted: "false"}
+          tags: {action: "ALLOW", block: "false", error: "false", redacted: "false"},
         )
 
         described_class.report_evaluation(outcome, blocked: false)
@@ -75,7 +75,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Evaluation::Outcome,
           result: result,
-          redaction: redaction
+          redaction: redaction,
         )
       end
       let(:result) { instance_double(Datadog::AIGuard::Evaluation::Result, action: "ALLOW") }
@@ -83,7 +83,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Redaction::Result,
           performed?: false,
-          failures_count: 0
+          failures_count: 0,
         )
       end
 
@@ -92,7 +92,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {action: "ALLOW", block: "false", error: "false"}
+          tags: {action: "ALLOW", block: "false", error: "false"},
         )
 
         described_class.report_evaluation(outcome, blocked: false)
@@ -104,7 +104,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Evaluation::Outcome,
           result: result,
-          redaction: redaction
+          redaction: redaction,
         )
       end
       let(:result) { instance_double(Datadog::AIGuard::Evaluation::Result, action: "DENY") }
@@ -113,7 +113,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: true,
-          failures_count: 0
+          failures_count: 0,
         )
       end
 
@@ -122,7 +122,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {action: "DENY", block: "true", error: "false", redacted: "true"}
+          tags: {action: "DENY", block: "true", error: "false", redacted: "true"},
         )
 
         described_class.report_evaluation(outcome, blocked: true)
@@ -134,7 +134,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Evaluation::Outcome,
           result: result,
-          redaction: redaction
+          redaction: redaction,
         )
       end
       let(:result) { instance_double(Datadog::AIGuard::Evaluation::Result, action: "DENY") }
@@ -143,7 +143,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: false,
-          failures_count: 0
+          failures_count: 0,
         )
       end
 
@@ -152,7 +152,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {action: "DENY", block: "false", error: "false", redacted: "false"}
+          tags: {action: "DENY", block: "false", error: "false", redacted: "false"},
         )
 
         described_class.report_evaluation(outcome, blocked: false)
@@ -164,7 +164,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Evaluation::Outcome,
           result: result,
-          redaction: redaction
+          redaction: redaction,
         )
       end
       let(:result) { instance_double(Datadog::AIGuard::Evaluation::Result, action: "ALLOW") }
@@ -173,7 +173,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: false,
-          failures_count: 3
+          failures_count: 3,
         )
       end
 
@@ -182,13 +182,13 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {action: "ALLOW", block: "false", error: "false", redacted: "false"}
+          tags: {action: "ALLOW", block: "false", error: "false", redacted: "false"},
         )
         expect(telemetry).to receive(:inc).with(
           "ai_guard",
           "error",
           3,
-          tags: {type: "redaction_error"}
+          tags: {type: "redaction_error"},
         )
 
         described_class.report_evaluation(outcome, blocked: false)
@@ -211,13 +211,13 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           "ai_guard",
           "requests",
           1,
-          tags: {error: "true"}
+          tags: {error: "true"},
         )
         expect(telemetry).to receive(:inc).with(
           "ai_guard",
           "error",
           1,
-          tags: {type: "client_error"}
+          tags: {type: "client_error"},
         )
 
         described_class.report_error

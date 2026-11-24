@@ -14,9 +14,7 @@ module Datadog
             # NOTE: Rails 8.1.1+ natively provides the same object via 'action_dispatch.route'.
             DATADOG_RAILS_ROUTE_ENV_KEY = "datadog.action_dispatch.route"
 
-            module_function
-
-            def set_http_route_tags(route_spec, route_path)
+            def self.set_http_route_tags(route_spec, route_path)
               return unless Tracing.enabled?
 
               return unless route_spec
@@ -31,7 +29,7 @@ module Datadog
               end
             end
 
-            def dispatcher_route?(route)
+            def self.dispatcher_route?(route)
               return true if route.dispatcher?
 
               # in Rails 4 there is no #rack_app method on the app

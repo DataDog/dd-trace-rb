@@ -10,9 +10,7 @@ module Datadog
         BLOCK_SUCCESS = "success"
         BLOCK_IRRELEVANT = "irrelevant"
 
-        module_function
-
-        def report_rasp(type, result, phase: nil)
+        def self.report_rasp(type, result, phase: nil)
           return if result.error?
 
           tags = {rule_type: type, waf_version: WAF::VERSION::BASE_STRING}

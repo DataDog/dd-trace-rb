@@ -99,8 +99,8 @@ RSpec.describe "WAF requests telemetry" do
             waf_error: "false",
             waf_timeout: "false",
             request_blocked: "false",
-            rate_limited: "false"
-          )
+            rate_limited: "false",
+          ),
         )
       end
     end
@@ -115,8 +115,8 @@ RSpec.describe "WAF requests telemetry" do
             rule_triggered: "false",
             waf_error: "false",
             waf_timeout: "false",
-            request_blocked: "false"
-          )
+            request_blocked: "false",
+          ),
         )
       end
     end

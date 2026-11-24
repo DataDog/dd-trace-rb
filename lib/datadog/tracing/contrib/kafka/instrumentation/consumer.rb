@@ -13,21 +13,22 @@ module Datadog
 
             # Instance methods for consumer instrumentation
             module InstanceMethods
+              # Checked per message, not at entry: Remote Config can enable DSM while the loop runs.
               def each_message(**kwargs, &block)
-                return super unless Datadog::DataStreams.enabled?
-
                 wrapped_block = proc do |message|
-                  Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
+                  if Datadog::DataStreams.enabled?
+                    Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
 
-                  begin
-                    headers = message.headers || {}
-                    Datadog::DataStreams.set_consume_checkpoint(
-                      type: "kafka",
-                      source: message.topic,
-                      auto_instrumentation: true
-                    ) { |key| headers[key] }
-                  rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
+                    begin
+                      headers = message.headers || {}
+                      Datadog::DataStreams.set_consume_checkpoint(
+                        type: "kafka",
+                        source: message.topic,
+                        auto_instrumentation: true,
+                      ) { |key| headers[key] }
+                    rescue => e
+                      Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
+                    end
                   end
 
                   yield(message) if block
@@ -37,19 +38,19 @@ module Datadog
               end
 
               def each_batch(**kwargs, &block)
-                return super unless Datadog::DataStreams.enabled?
-
                 wrapped_block = proc do |batch|
-                  Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
+                  if Datadog::DataStreams.enabled?
+                    Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
 
-                  begin
-                    Datadog::DataStreams.set_consume_checkpoint(
-                      type: "kafka",
-                      source: batch.topic,
-                      auto_instrumentation: true
-                    )
-                  rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
+                    begin
+                      Datadog::DataStreams.set_consume_checkpoint(
+                        type: "kafka",
+                        source: batch.topic,
+                        auto_instrumentation: true,
+                      )
+                    rescue => e
+                      Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
+                    end
                   end
 
                   yield(batch) if block

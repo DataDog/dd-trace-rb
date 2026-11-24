@@ -34,14 +34,14 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
             def create
               head :ok
             end
-          end
+          end,
         )
 
         auth_engine = stub_const(
           "AuthEngine::Engine",
           Class.new(::Rails::Engine) do
             isolate_namespace AuthEngine
-          end
+          end,
         )
 
         auth_engine.routes.append do
@@ -54,7 +54,7 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
             def call(_env)
               [200, {"Content-Type" => "text/plain"}, ["OK"]]
             end
-          end
+          end,
         )
 
         stub_const(
@@ -63,7 +63,7 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
             def show
               head :ok
             end
-          end
+          end,
         )
 
         stub_const(
@@ -76,7 +76,7 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
             def by_slug
               head :ok
             end
-          end
+          end,
         )
 
         stub_const(
@@ -89,7 +89,7 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
             def show
               head :ok
             end
-          end
+          end,
         )
 
         rails_test_application.instance.routes.append do

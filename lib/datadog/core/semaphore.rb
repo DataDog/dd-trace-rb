@@ -20,7 +20,9 @@ module Datadog
 
       def wait(timeout = nil)
         wake_lock.synchronize do
-          wake.wait(wake_lock, timeout)
+          # ConditionVariable#wait accepts Numeric seconds at runtime; the
+          # bundled core signatures only model the Timeouts module form.
+          wake.wait(wake_lock, timeout) # steep:ignore ArgumentTypeMismatch
         end
       end
 

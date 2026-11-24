@@ -5,7 +5,7 @@ module Datadog
         class ClientTracer
           include Utils
 
-          def initialize: (?::Hash[untyped, untyped] options) -> void
+          def initialize: (?Hash[untyped, untyped] options) -> void
           def call: (untyped worker_class, untyped job, untyped queue, untyped redis_pool) { () -> untyped } -> untyped
 
           private

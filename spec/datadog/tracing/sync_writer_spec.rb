@@ -73,7 +73,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
         allow(transport).to receive(:send_traces).and_call_original
 
         Datadog::Tracing::Pipeline.before_flush(
-          Datadog::Tracing::Pipeline::SpanFilter.new { |span| span.name == "span_1" }
+          Datadog::Tracing::Pipeline::SpanFilter.new { |span| span.name == "span_1" },
         )
 
         sync_writer.write(unfiltered_trace)

@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::Response do
         expect(response.status).to eq(100)
         expect(response.headers).to include("Content-Type" => "text/html")
         expect(response.body[0]).to match(
-          /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/
+          /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/,
         )
       end
     end
@@ -89,13 +89,13 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is not supported" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/xml"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/xml",
           )
         end
 
         it "returns default json template with security response ID" do
           expect(response.body[0]).to match(
-            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/
+            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/,
           )
         end
       end
@@ -103,7 +103,7 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is text/html" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/html"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/html",
           )
         end
 
@@ -112,7 +112,7 @@ RSpec.describe Datadog::AppSec::Response do
             expect(response.body[0]).to start_with("<!DOCTYPE html><html")
             expect(response.body[0]).not_to include("\n")
             expect(response.body[0]).to match(
-              /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/
+              /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/,
             )
           end
         end
@@ -121,13 +121,13 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is application/json" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/json"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/json",
           )
         end
 
         it "returns default json template with security response ID" do
           expect(response.body[0]).to match(
-            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/
+            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/,
           )
         end
       end
@@ -135,13 +135,13 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is text/plain" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain",
           )
         end
 
         it "returns default json template with security response ID" do
           expect(response.body[0]).to match(
-            /You've been blocked.*Security Response ID: 00000000-0000-0000-0000-000000000000.*/m
+            /You've been blocked.*Security Response ID: 00000000-0000-0000-0000-000000000000.*/m,
           )
         end
       end
@@ -165,13 +165,13 @@ RSpec.describe Datadog::AppSec::Response do
 
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain",
           )
         end
 
         it "returns custom template with security response ID" do
           expect(response.body[0]).to match(
-            /Blocked, that's an ID: 00000000-0000-0000-0000-000000000000/
+            /Blocked, that's an ID: 00000000-0000-0000-0000-000000000000/,
           )
         end
       end

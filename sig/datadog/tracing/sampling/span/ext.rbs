@@ -3,7 +3,7 @@ module Datadog
     module Sampling
       module Span
         module Ext
-          DEFAULT_SAMPLE_RATE: ::Float
+          DEFAULT_SAMPLE_RATE: Float
           DEFAULT_MAX_PER_SECOND: -1
           TAG_MECHANISM: "_dd.span_sampling.mechanism"
           TAG_RULE_RATE: "_dd.span_sampling.rule_rate"

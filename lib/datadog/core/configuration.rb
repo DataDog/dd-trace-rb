@@ -84,15 +84,15 @@ module Datadog
         configuration = self.configuration
         yield(configuration)
 
+        new_components = nil
+        retired_data_streams = nil
         safely_synchronize do |write_components|
-          write_components.call(
-            if components?
-              replace_components!(configuration, @components)
-            else
-              build_components(configuration)
-            end
-          )
+          new_components = components? ? replace_components!(configuration, @components) : build_components(configuration)
+          write_components.call(new_components)
+          # Remote Config may change data_streams.enabled during the rebuild, then lose its own reconcile.
+          retired_data_streams = new_components&.swap_data_streams
         end
+        new_components&.stop_retired_data_streams(retired_data_streams) if retired_data_streams
 
         configuration
       end
@@ -240,7 +240,7 @@ module Datadog
           logger_without_components.error(
             "Detected deadlock during datadog initialization: #{e.class}: #{e.message}. " \
             "Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug" \
-            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
+            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}",
           )
           nil
         end

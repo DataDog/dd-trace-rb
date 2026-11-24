@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::Contrib::Faraday::Patcher do
 
         expect { Datadog.configuration.appsec.instrument :faraday }.not_to change {
           ::Faraday.default_connection.builder.handlers.count(
-            Datadog::AppSec::Contrib::Faraday::SSRFDetectionMiddleware
+            Datadog::AppSec::Contrib::Faraday::SSRFDetectionMiddleware,
           )
         }
       end

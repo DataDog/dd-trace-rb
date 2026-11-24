@@ -17,9 +17,10 @@ module Datadog
       :allocation_key,
       :serial_id,
       :extra_logging,
+      :features,
       :log?,
       :error?,
-      keyword_init: true
+      keyword_init: true,
     )
       def self.build_error(value:, error_code:, error_message:, reason: Ext::ERROR)
         new(
@@ -29,7 +30,7 @@ module Datadog
           reason: reason,
           error?: true,
           log?: false,
-          serial_id: nil
+          serial_id: nil,
         ).freeze
       end
     end

@@ -9,8 +9,8 @@ module Datadog
       #
       # Two-tier design:
       # - full-tier key: (flag_key, variant, allocation_key, runtime_default, error_message,
-      #   targeting_key, canonical_context_key, observe_full_evaluation_data)
-      # - degraded-tier key: (flag_key, variant, allocation_key, runtime_default, error_message)
+      #   targeting_key, canonical_context_key, observe_full_evaluation_data, features)
+      # - degraded-tier key: (flag_key, variant, allocation_key, runtime_default, error_message, features)
       # - Drop-and-count when degraded tier is full
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: global_cap=131_072 / per_flag_cap=10_000 / degraded_cap=32_768
@@ -63,6 +63,8 @@ module Datadog
         DEFAULT_PER_FLAG_CAP = EVAL_SCALE_PER_FLAG_BUCKET_TARGET
         DEFAULT_DEGRADED_CAP = 32_768
 
+        NO_FEATURES = {}.freeze
+
         attr_reader :dropped_degraded_overflow
 
         def initialize(
@@ -88,7 +90,7 @@ module Datadog
         # Record one evaluation event. Thread-safe. Called from the background writer.
         def record(
           flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
-          runtime_default: nil, observe_full_evaluation_data: false
+          runtime_default: nil, observe_full_evaluation_data: false, features: NO_FEATURES
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
@@ -109,7 +111,7 @@ module Datadog
           # @type var full_key: full_key
           full_key = [
             flag_key, variant, allocation_key, runtime_default, error_message,
-            targeting_key, context_key, observe_full_evaluation_data,
+            targeting_key, context_key, observe_full_evaluation_data, features,
           ]
           evaluation_time_ms = eval_time_ms.to_i
 
@@ -124,7 +126,7 @@ module Datadog
             if per_flag_count >= @per_flag_cap
               add_to_degraded(
                 flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data
+                observe_full_evaluation_data, features,
               )
               return
             end
@@ -140,7 +142,7 @@ module Datadog
                 error_message: error_message,
                 targeting_key: targeting_key,
                 context_attrs: observe_full_evaluation_data ? attrs : nil,
-                observe_full_evaluation_data: observe_full_evaluation_data
+                observe_full_evaluation_data: observe_full_evaluation_data,
               )
               @full[full_key] = entry
               @global_count += 1
@@ -148,7 +150,7 @@ module Datadog
               # Route to degraded tier
               add_to_degraded(
                 flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data
+                observe_full_evaluation_data, features,
               )
             end
           end
@@ -328,7 +330,7 @@ module Datadog
                 end
 
                 output[prefix] = string_value.encode(
-                  Encoding::UTF_8, invalid: :replace, undef: :replace
+                  Encoding::UTF_8, invalid: :replace, undef: :replace,
                 ).freeze
               rescue
                 # Unsupported caller values must not break flag evaluation.
@@ -411,10 +413,10 @@ module Datadog
 
         def add_to_degraded(
           flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-          observe_full_evaluation_data
+          observe_full_evaluation_data, features
         )
           # @type var degraded_key: degraded_key
-          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message]
+          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message, features]
 
           if (entry = @degraded[degraded_key])
             observe(entry, evaluation_time_ms, observe_full_evaluation_data)
@@ -433,7 +435,7 @@ module Datadog
             evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message,
-            observe_full_evaluation_data: observe_full_evaluation_data
+            observe_full_evaluation_data: observe_full_evaluation_data,
           )
         end
       end

@@ -223,7 +223,7 @@ RSpec.describe "Devise auto authenticated sing-user tracking" do
       expect(http_service_entry_span.tags).to include(
         "usr.id" => "1",
         "_dd.appsec.usr.id" => "1",
-        "_dd.appsec.user.collection_mode" => "identification"
+        "_dd.appsec.user.collection_mode" => "identification",
       )
     end
 
@@ -236,7 +236,7 @@ RSpec.describe "Devise auto authenticated sing-user tracking" do
       expect(http_service_entry_span.tags).to include(
         "usr.id" => "1",
         "_dd.appsec.usr.id" => "1",
-        "_dd.appsec.user.collection_mode" => "identification"
+        "_dd.appsec.user.collection_mode" => "identification",
       )
     end
   end
@@ -259,7 +259,7 @@ RSpec.describe "Devise auto authenticated sing-user tracking" do
       expect(http_service_entry_span.tags).to include(
         "usr.id" => match(%r{anon_[a-z0-9]{32}}),
         "_dd.appsec.usr.id" => match(%r{anon_[a-z0-9]{32}}),
-        "_dd.appsec.user.collection_mode" => "anonymization"
+        "_dd.appsec.user.collection_mode" => "anonymization",
       )
     end
   end
@@ -295,7 +295,7 @@ RSpec.describe "Devise auto authenticated sing-user tracking" do
         "usr.id" => "42",
         "usr.email" => "hello@gmail.com",
         "_dd.appsec.usr.id" => "1",
-        "_dd.appsec.user.collection_mode" => "sdk"
+        "_dd.appsec.user.collection_mode" => "sdk",
       )
     end
   end

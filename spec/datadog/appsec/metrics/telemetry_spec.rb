@@ -18,7 +18,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -36,7 +36,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {"block_request" => {}}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 0, duration_ext_ns: 0, input_truncated: false
+          duration_ns: 0, duration_ext_ns: 0, input_truncated: false,
         )
       end
 
@@ -54,7 +54,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {"redirect_request" => {}}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 0, duration_ext_ns: 0, input_truncated: false
+          duration_ns: 0, duration_ext_ns: 0, input_truncated: false,
         )
       end
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -92,7 +92,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -108,7 +108,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -129,7 +129,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false,
-          duration_ns: 0, duration_ext_ns: 0, input_truncated: false
+          duration_ns: 0, duration_ext_ns: 0, input_truncated: false,
         )
       end
 

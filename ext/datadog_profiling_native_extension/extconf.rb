@@ -20,7 +20,7 @@ def skip_building_extension!(reason)
     Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(
       **reason,
       fail_install: fail_install_if_missing_extension,
-    )
+    ),
   )
 
   File.write(
@@ -32,7 +32,7 @@ def skip_building_extension!(reason)
     require "mkmf"
     Logging.message(
       "[datadog] Failure cause: " \
-      "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n"
+      "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n",
     )
   else
     File.write("Makefile", "all install clean: # dummy makefile that does nothing")
@@ -63,7 +63,7 @@ $stderr.puts(
 | Thanks for using datadog! You rock!                                          |
 +------------------------------------------------------------------------------+
 
-)
+),
 )
 
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
@@ -89,12 +89,10 @@ append_cflags "-Werror" if ENV["DATADOG_GEM_CI"] == "true"
 # header lands upstream in libdatadog/libdatadog-rb. Remove this once that ships.
 append_cflags "-Wno-error=typedef-redefinition" if ENV["DATADOG_GEM_CI"] == "true"
 
-# Older gcc releases may not default to C99 and we need to ask for this. This is also used:
-# * by upstream Ruby -- search for gnu99 in the codebase
-# * by msgpack, another datadog gem dependency
-#   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
-# @ivoanjo: We could probably start using C11/gnu11 for non macOS-too but it's somewhat hard to validate so I chickened out for now
-append_cflags RUBY_PLATFORM.include?("darwin") ? "-std=gnu11" : "-std=gnu99"
+unless try_cflags("-std=gnu11") && have_type("atomic_int", ["stdatomic.h"])
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_C11_MISSING)
+end
+$CFLAGS += " -std=gnu11"
 
 # Gets really noisy when we include the private VM headers, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
 append_cflags "-Wno-unused-function"
@@ -113,6 +111,14 @@ append_cflags "-Werror-implicit-function-declaration"
 # By setting this compiler flag, we tell it to assume that everything is private unless explicitly stated.
 # For more details see https://gcc.gnu.org/wiki/Visibility
 append_cflags "-fvisibility=hidden"
+
+# Let the linker discard unused native code and data, including bundled zstd APIs.
+if RUBY_PLATFORM.include?("linux")
+  append_cflags ["-ffunction-sections", "-fdata-sections"]
+  append_ldflags "-Wl,--gc-sections"
+elsif RUBY_PLATFORM.include?("darwin")
+  append_ldflags "-Wl,-dead_strip"
+end
 
 # Avoid legacy C definitions
 append_cflags "-Wold-style-definition"
@@ -216,6 +222,9 @@ $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"
 # On older Rubies, there was no thread->invoke_arg
 $defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 
+# On older Rubies, there was no ISEQ_TYPE_PLAIN iseq type
+$defs << "-DNO_ISEQ_TYPE_PLAIN" if RUBY_VERSION < "2.6"
+
 # If we got here, libdatadog is available and loaded
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
@@ -225,21 +234,25 @@ end
 
 Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 
-unless have_type("atomic_int", ["stdatomic.h"])
-  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
-end
-
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
+# Configure miteruby folders for building with Make.
+$srcs = Dir["#{$srcdir}/*.c"]
+["miteruby", "miteruby/pprof", "miteruby/hashtable"].each do |directory|
+  $srcs.concat(Dir["#{$srcdir}/#{directory}/*.c"])
+  $headers.concat(Dir["#{$srcdir}/#{directory}/*.h"])
+  $VPATH.concat(["$(srcdir)/#{directory}"])
+end
+
+create_header
+
 # We rely on the datadog-ruby_core_source gem to get access to private VM headers.
 # This gem ships source code copies of these VM headers for the different Ruby VM versions;
 # see https://github.com/DataDog/datadog-ruby_core_source for details
-
-create_header
 
 require "datadog/ruby_core_source"
 dir_config("ruby") # allow user to pass in non-standard core include directory

@@ -4,9 +4,7 @@ module Datadog
   module Core
     module Telemetry
       module ConfigurationValue
-        module_function
-
-        def convert(value)
+        def self.convert(value)
           case value
           when Integer, String, true, false, nil
             value

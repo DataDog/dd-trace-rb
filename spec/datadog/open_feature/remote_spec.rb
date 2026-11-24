@@ -7,9 +7,9 @@ require "datadog/core/remote/configuration/repository"
 RSpec.describe Datadog::OpenFeature::Remote do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:component_provider) { -> { component } }
-  let(:receivers) { described_class.receivers(telemetry, component_provider: component_provider) }
+  let(:receivers) { described_class.receivers(telemetry, component_provider: component_provider, logger: logger) }
   let(:receiver) { receivers[0] }
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
   let(:component) { instance_double(Datadog::OpenFeature::Component) }
 
   describe ".capabilities" do
@@ -45,7 +45,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
           "custom" => {"v" => 1},
           "hashes" => {"sha256" => Digest::SHA256.hexdigest(content_data)},
           "length" => content_data.length,
-        }
+        },
       )
     end
     let(:content) do
@@ -53,7 +53,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         {
           path: "datadog/1/FFE_FLAGS/latest/config",
           content: content_data,
-        }
+        },
       )
     end
     let(:content_data) do
@@ -96,6 +96,18 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
+
+      it "logs the received path and version" do
+        messages = []
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+        allow(component).to receive(:reconfigure!)
+
+        receiver.call(repository, transaction)
+
+        expect(messages).to eq(
+          ["Feature Flags: received Remote Configuration insert for datadog/1/FFE_FLAGS/latest/config (version 1)"],
+        )
+      end
     end
 
     context "when change type is insert and reconfigure fails" do
@@ -128,7 +140,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
       let(:new_content) do
         Datadog::Core::Remote::Configuration::Content.parse(
-          {path: content.path.to_s, content: new_content_data}
+          {path: content.path.to_s, content: new_content_data},
         )
       end
       let(:new_content_data) do
@@ -170,6 +182,16 @@ RSpec.describe Datadog::OpenFeature::Remote do
         expect(component).to receive(:reconfigure!)
         expect { receiver.call(repository, transaction) }.not_to raise_error
       end
+
+      it "logs the received deletion" do
+        messages = []
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+        allow(component).to receive(:reconfigure!)
+
+        receiver.call(repository, transaction)
+
+        expect(messages).to eq(["Feature Flags: received Remote Configuration delete for datadog/1/FFE_FLAGS/latest/config"])
+      end
     end
 
     context "when content is missing" do
@@ -191,6 +213,18 @@ RSpec.describe Datadog::OpenFeature::Remote do
         expect(component).not_to receive(:reconfigure!)
 
         receiver.call(repository, changes)
+      end
+
+      it "logs that the change was ignored" do
+        messages = []
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+        allow(telemetry).to receive(:error)
+
+        receiver.call(repository, changes)
+
+        expect(messages.last).to eq(
+          "Feature Flags: ignored Remote Configuration update for datadog/1/FFE_FLAGS/other/config: content is missing",
+        )
       end
     end
 

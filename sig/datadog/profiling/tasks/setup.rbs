@@ -2,7 +2,13 @@ module Datadog
   module Profiling
     module Tasks
       class Setup
+        ACTIVATE_EXTENSIONS_ONLY_ONCE: Core::Utils::OnlyOnce
+
         def run: () -> void
+
+        private
+
+        def setup_at_fork_hooks: () -> void
       end
     end
   end

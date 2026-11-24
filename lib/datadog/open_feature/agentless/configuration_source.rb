@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../core/tag_normalizer"
+require_relative "../../core/utils"
 require_relative "../../core/workers/polling"
 require_relative "../evaluation_engine"
 require_relative "parser"
@@ -16,12 +18,14 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
+        # The Agent cuts a service to 100 bytes before it normalizes the name.
+        USAGE_SERVICE_MAX_BYTES = 100
 
         include Core::Workers::Polling
 
         attr_reader :etag
 
-        def self.build(settings, endpoint:, apply:, logger: Datadog.logger)
+        def self.build(settings, endpoint:, apply:, flag_selection_reporter:, logger: Datadog.logger)
           api_key = settings.api_key.to_s.strip
           if endpoint.managed? && api_key.empty?
             logger.warn("Feature Flags agentless delivery requires DD_API_KEY; agentless delivery is disabled")
@@ -31,20 +35,60 @@ module Datadog
           new(
             endpoint: endpoint,
             api_key: api_key.empty? ? nil : api_key,
+            service: usage_service(settings.service, logger),
             poll_interval_seconds: settings.feature_flags.agentless.poll_interval_seconds,
             request_timeout_seconds: settings.feature_flags.agentless.request_timeout_seconds,
             apply: apply,
             logger: logger,
+            flag_selection_reporter: flag_selection_reporter,
           )
         end
+
+        # Returns the DD-Service value, or nil. It converts the service as the tracer does for spans, cuts it to 100 bytes
+        # as the Agent does, then normalizes it with Core::TagNormalizer. Thus `My Service` becomes `my_service`. If the
+        # result is empty (for example from `___`), the header is not sent. Net::HTTP sends a non-ASCII name, such as
+        # `café-api`, as raw UTF-8 bytes. The CDN alone decides which values it attributes usage to, so this method does
+        # not check the value. Only the header value changes. The tracer's service stays as configured. Normalization
+        # also replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
+        def self.usage_service(service, logger)
+          name = span_service(service.to_s)
+          unless name
+            logger.debug do
+              "Feature Flags: the tracer cannot convert service #{service.inspect} to UTF-8, so spans do not use it; " \
+                "DD-Service header not sent"
+            end
+            return
+          end
+          return if name.strip.empty?
+
+          normalized = Core::TagNormalizer.normalize((name.byteslice(0, USAGE_SERVICE_MAX_BYTES) || name).scrub(""))
+          return normalized unless normalized.empty?
+
+          logger.debug do
+            "Feature Flags: service #{service.inspect} has an empty normalized name; DD-Service header not sent"
+          end
+          nil
+        end
+
+        # Returns the service as the Agent reads it from a span, or nil if the tracer cannot convert it to UTF-8. The
+        # tracer converts a span service with Core::Utils.utf8_encode. If that fails, the span has no service. For
+        # example, without a locale Ruby reads a non-ASCII DD_SERVICE as ASCII-8BIT, and that conversion fails. The
+        # Agent replaces each invalid UTF-8 byte with U+FFFD, so this method does too. Thus the 100-byte cut falls at the
+        # same place.
+        def self.span_service(service)
+          Core::Utils.utf8_encode(service, placeholder: nil)&.scrub { |bytes| "\uFFFD" * bytes.bytesize }
+        end
+        private_class_method :usage_service, :span_service
 
         def initialize(
           endpoint:,
           api_key:,
+          service:,
           poll_interval_seconds:,
           request_timeout_seconds:,
           apply:,
           logger:,
+          flag_selection_reporter:,
           transport: nil,
           random: nil,
           retry_wait: nil
@@ -52,15 +96,18 @@ module Datadog
           @transport = transport || Transport.new(
             endpoint: endpoint,
             api_key: api_key,
+            service: service,
             timeout_seconds: request_timeout_seconds,
           )
           @apply = apply
           @logger = logger
+          @flag_selection_reporter = flag_selection_reporter
           @poll_interval_seconds = poll_interval_seconds
           @random = random || -> { Kernel.rand }
           @retry_wait = retry_wait || ->(delay) { wait_for_retry(delay) }
           @etag = nil
           @warned = {}
+          @failed_polls = 0
           @lifecycle_mutex = Mutex.new
           @started = false
           @stopped = false
@@ -91,6 +138,7 @@ module Datadog
           end
 
           super
+          @logger.debug { "Feature Flags: stopped agentless configuration polling" }
           true
         end
 
@@ -110,6 +158,7 @@ module Datadog
             return if stopped?
 
             response = @transport.get(@etag)
+            log_poll_attempt(response, attempt)
             unless retryable?(response)
               apply_response(response)
               return
@@ -120,7 +169,9 @@ module Datadog
               return
             end
 
-            return if wait_before_retry(retry_delay(attempt))
+            delay = retry_delay(attempt)
+            @logger.debug { "Feature Flags: retrying agentless configuration poll in #{delay.round(1)}s" }
+            return if wait_before_retry(delay)
 
             attempt += 1
           end
@@ -131,6 +182,7 @@ module Datadog
         def after_fork
           # The child must report its own failures, while the inherited ETag still matches its configuration.
           @warned = {}
+          @failed_polls = 0
           nil
         end
 
@@ -138,6 +190,53 @@ module Datadog
 
         def stopped?
           @lifecycle_mutex.synchronize { @stopped }
+        end
+
+        def log_poll_attempt(response, attempt)
+          @logger.debug do
+            status = response.status
+            outcome = case status
+            when nil
+              "failed: #{request_error_class(response)}"
+            when 304
+              "configuration unchanged (HTTP 304)"
+            when 200
+              etag = response.etag.to_s.strip
+              etag.empty? ? "configuration received (HTTP 200)" : "configuration received (ETag #{etag}; HTTP 200)"
+            else
+              "#{http_failure_reason(status)} (HTTP #{status})"
+            end
+            "Feature Flags: agentless configuration poll attempt #{attempt}/#{MAX_ATTEMPTS}: #{outcome}"
+          end
+        end
+
+        def http_failure_reason(status)
+          case status
+          when 400
+            "configuration request rejected as invalid"
+          when 401
+            "configuration request lacks valid authentication credentials"
+          when 403
+            "access to the configuration endpoint is forbidden"
+          when 404
+            "configuration endpoint not found"
+          when 408
+            "configuration request timed out"
+          when 429
+            "configuration request rate limited"
+          when 500
+            "configuration endpoint encountered an internal error"
+          when 502
+            "configuration endpoint received an invalid upstream response"
+          when 503
+            "configuration endpoint is temporarily unavailable"
+          when 504
+            "configuration endpoint timed out waiting for an upstream response"
+          when 500..599
+            "configuration endpoint reported a server error"
+          else
+            "unexpected response from the configuration endpoint"
+          end
         end
 
         def retryable?(response)
@@ -181,17 +280,18 @@ module Datadog
         end
 
         def apply_response(response)
-          case response.status
+          status = response.status
+          case status
           when 200
+            log_recovery
             apply_configuration(response)
           when 304
-            nil
+            log_recovery
           when 401, 403
-            warn_once(:authentication) do
-              @logger.warn(
-                "Feature Flags agentless endpoint returned HTTP #{response.status}; verify endpoint authentication"
-              )
-            end
+            report_poll_failure(
+              :authentication,
+              "Feature Flags agentless #{http_failure_reason(status)}; verify endpoint authentication (HTTP #{status})",
+            )
           else
             warn_failure(response, 1)
           end
@@ -203,12 +303,16 @@ module Datadog
             warn_once(:malformed) do
               @logger.error("Feature Flags agentless endpoint returned malformed UFC payload")
             end
+            @logger.debug do
+              "Feature Flags: ignoring malformed agentless configuration payload"
+            end
             return
           end
 
           @apply.call(configuration)
           etag = response.etag.to_s.strip
           @etag = etag.empty? ? nil : etag
+          @flag_selection_reporter.report_ignored(response.flag_selection_ignored)
         rescue EvaluationEngine::ReconfigurationError => error
           warn_once(:application) do
             @logger.warn("Feature Flags agentless UFC payload could not be applied: #{error.class}: #{error.message}")
@@ -224,14 +328,36 @@ module Datadog
           else
             :http_unexpected
           end
-          warn_once(category) do
-            if status
-              @logger.warn("Feature Flags agentless endpoint returned HTTP #{status} after #{attempts} attempt(s)")
-            else
-              error_class = response.error ? response.error.class : StandardError
-              @logger.warn("Feature Flags agentless request failed after #{attempts} attempt(s): #{error_class}")
-            end
+          refresh = (attempts == MAX_ATTEMPTS) ? "; next poll in #{@poll_interval_seconds}s" : ""
+          message = if status
+            "Feature Flags agentless #{http_failure_reason(status)} after #{attempts} attempt(s) (HTTP #{status})#{refresh}"
+          else
+            "Feature Flags agentless request failed after #{attempts} attempt(s): #{request_error_class(response)}#{refresh}"
           end
+          report_poll_failure(category, message)
+        end
+
+        # Repeats are debug-only so a persistent outage does not flood warnings.
+        def report_poll_failure(category, message)
+          @failed_polls += 1
+          if @warned[category]
+            @logger.debug { message }
+          else
+            warn_once(category) { @logger.warn(message) }
+          end
+        end
+
+        def log_recovery
+          return if @failed_polls.zero?
+
+          failed_polls = @failed_polls
+          @failed_polls = 0
+          @logger.debug { "Feature Flags: agentless configuration delivery recovered after #{failed_polls} failed poll(s)" }
+        end
+
+        # Class only: transport error messages can embed endpoint details.
+        def request_error_class(response)
+          response.error ? response.error.class : StandardError
         end
 
         def warn_once(category)

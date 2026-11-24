@@ -51,7 +51,7 @@ module Datadog
                   span_options,
                   on_start: on_start,
                   on_finish: on_finish,
-                  trace: trace
+                  trace: trace,
                 ).tap do |subscription|
                   subscription.subscribe(pattern)
                 end
@@ -65,7 +65,7 @@ module Datadog
                   span_options,
                   on_start: on_start,
                   on_finish: on_finish,
-                  trace: trace
+                  trace: trace,
                 ).tap do |subscription|
                   subscriptions << subscription
                 end

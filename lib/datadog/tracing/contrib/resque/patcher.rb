@@ -11,13 +11,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "resque_job"
 
             ::Resque::Job.prepend(Resque::Job)

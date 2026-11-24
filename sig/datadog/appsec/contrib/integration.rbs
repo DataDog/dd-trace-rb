@@ -24,29 +24,29 @@ module Datadog
 
         type klass = _IntegrationClass
 
-        class RegisteredIntegration < ::Struct[[::Symbol, klass, ::Hash[::Symbol, untyped]]]
-          def self.new: (::Symbol name, klass klass, ::Hash[::Symbol, untyped] options) -> instance
+        class RegisteredIntegration < Struct[[Symbol, klass, Hash[Symbol, untyped]]]
+          def self.new: (Symbol name, klass klass, Hash[Symbol, untyped] options) -> instance
 
-          attr_accessor name: ::Symbol
+          attr_accessor name: Symbol
 
           attr_accessor klass: klass
 
-          attr_accessor options: ::Hash[::Symbol, untyped]
+          attr_accessor options: Hash[Symbol, untyped]
         end
 
         module ClassMethods
-          def register_as: (::Symbol name, ?::Hash[::Symbol, untyped] options) -> void
+          def register_as: (Symbol name, ?Hash[Symbol, untyped] options) -> void
 
           def compatible?: () -> bool
         end
 
-        self.@registry: ::Hash[::Symbol, RegisteredIntegration]
+        self.@registry: Hash[Symbol, RegisteredIntegration]
 
-        def self.included: (::Module base) -> void
+        def self.included: (Module base) -> void
 
-        def self.register: (untyped integration, ::Symbol name, ::Hash[::Symbol, untyped] options) -> RegisteredIntegration
+        def self.register: (untyped integration, Symbol name, Hash[Symbol, untyped] options) -> RegisteredIntegration
 
-        def self.registry: () -> ::Hash[::Symbol, RegisteredIntegration]
+        def self.registry: () -> Hash[Symbol, RegisteredIntegration]
       end
     end
   end

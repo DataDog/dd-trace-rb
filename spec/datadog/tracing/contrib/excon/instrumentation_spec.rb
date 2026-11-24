@@ -16,13 +16,14 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   let(:connection) do
     Excon.new("http://example.com", connection_options).tap do
       Excon.stub({method: :get, path: "/success"}, body: "OK", status: 200, headers: response_headers)
+      Excon.stub({method: :get, path: "/users/123"}, body: "OK", status: 200)
       Excon.stub({method: :post, path: "/failure"}, body: "Boom!", status: 500)
       Excon.stub({method: :get, path: "/not_found"}, body: "Not Found.", status: 404)
       Excon.stub(
         {method: :get, path: "/timeout"},
         lambda do |_request_params|
           raise Excon::Errors::Timeout, "READ TIMEOUT"
-        end
+        end,
       )
     end
   end
@@ -59,7 +60,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
           Excon::Middleware::ResponseParser,
           described_class.with(middleware_options),
           Excon::Middleware::Mock,
-        ]
+        ],
       )
     end
   end
@@ -67,6 +68,19 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   shared_context "connection with default middleware" do
     let(:connection_options) do
       super().merge(middlewares: described_class.with(middleware_options).around_default_stack)
+    end
+  end
+
+  context "when HTTP client resource-name quantization is enabled" do
+    subject(:response) { connection.get(path: "/users/123") }
+
+    before do
+      Datadog.configuration.tracing.http_client_resource_name_quantize = true
+      response
+    end
+
+    it "includes the quantized path in the resource" do
+      expect(request_span.resource).to eq("GET /users/*")
     end
   end
 
@@ -288,11 +302,11 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             headers = datum[:headers]
             expect(headers).to include(
               "x-datadog-trace-id" => low_order_trace_id(span.trace_id).to_s,
-              "x-datadog-parent-id" => span.id.to_s
+              "x-datadog-parent-id" => span.id.to_s,
             )
 
             expect(headers).to include(
-              "x-datadog-sampling-priority"
+              "x-datadog-sampling-priority",
             )
           end
         end
@@ -321,7 +335,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             expect(headers).to_not include(
               "x-datadog-trace-id",
               "x-datadog-parent-id",
-              "x-datadog-sampling-priority"
+              "x-datadog-sampling-priority",
             )
           end
         end
