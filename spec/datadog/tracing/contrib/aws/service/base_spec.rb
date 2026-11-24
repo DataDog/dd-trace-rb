@@ -173,31 +173,21 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
   end
 
   describe ".aws_dotted_dns_suffixes" do
-    # The memoized list and the report gate both live on the class for the
-    # life of the process, so these examples have to put back exactly what
-    # they found. Written with an explicit `begin`/`ensure` because a bare
-    # `ensure` inside a block needs Ruby 2.6, and the `aws` contrib is
-    # supported from 2.5.
+    # The memo and the report gate are process-wide. The memo is rebuilt on the next read.
+    def reset_suffixes
+      if described_class.instance_variable_defined?(:@aws_dotted_dns_suffixes)
+        described_class.remove_instance_variable(:@aws_dotted_dns_suffixes)
+      end
+      described_class.const_get(:DNS_SUFFIX_FAILURE_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+    end
+
+    # `begin`/`ensure` because `ensure` directly in a block needs Ruby 2.6.
     around do |example|
-      only_once = described_class.const_get(:DNS_SUFFIX_FAILURE_ONLY_ONCE)
-      memo_was_set = described_class.instance_variable_defined?(:@aws_dotted_dns_suffixes)
-      memoized = described_class.instance_variable_get(:@aws_dotted_dns_suffixes)
-      only_once_had_run = only_once.ran?
-
-      described_class.remove_instance_variable(:@aws_dotted_dns_suffixes) if memo_was_set
-      only_once.send(:reset_ran_once_state_for_tests)
-
+      reset_suffixes
       begin
         example.run
       ensure
-        if memo_was_set
-          described_class.instance_variable_set(:@aws_dotted_dns_suffixes, memoized)
-        elsif described_class.instance_variable_defined?(:@aws_dotted_dns_suffixes)
-          described_class.remove_instance_variable(:@aws_dotted_dns_suffixes)
-        end
-
-        only_once.send(:reset_ran_once_state_for_tests)
-        only_once.run { nil } if only_once_had_run
+        reset_suffixes
       end
     end
 
@@ -206,8 +196,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         .to include(".amazonaws.com", ".amazonaws.com.cn", ".c2s.ic.gov", ".api.aws")
     end
 
-    # The leading dot is what makes the caller's `end_with?` a dot-boundary
-    # match, and precomputing it is what keeps the hot path allocation-free.
     it "stores each suffix with its leading dot already attached" do
       suffixes = described_class.aws_dotted_dns_suffixes
 
@@ -221,10 +209,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
       expect(described_class.aws_dotted_dns_suffixes).to be(described_class.aws_dotted_dns_suffixes)
     end
 
-    # Memoizing a failure would disable owner tagging for the rest of the
-    # process, and the failure can be transient, so only a non-empty read is
-    # kept. The report is gated to once per process because the read is retried
-    # on every subsequent span.
     shared_examples "an observable, retried failure" do |expected_log|
       before do
         allow(Datadog.logger).to receive(:warn)
@@ -236,7 +220,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         expect(described_class.aws_dotted_dns_suffixes).to eq([])
         expect(described_class.aws_dotted_dns_suffixes).to eq([])
 
-        expect(described_class.instance_variable_defined?(:@aws_dotted_dns_suffixes)).to be false
+        expect(::Aws::Partitions).to have_received(:each).twice
       end
 
       it "logs and reports the failure exactly once" do
@@ -252,7 +236,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         allow(::Aws::Partitions).to receive(:each).and_call_original
 
         expect(described_class.aws_dotted_dns_suffixes).to include(".amazonaws.com")
-        expect(described_class.instance_variable_defined?(:@aws_dotted_dns_suffixes)).to be true
+        expect(described_class.aws_dotted_dns_suffixes).to be(described_class.aws_dotted_dns_suffixes)
       end
     end
 
@@ -295,10 +279,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
       end
     end
 
-    # `Partition#metadata` is newer than the oldest `aws-partitions` this gem
-    # runs against. A partition without it is skipped instead of raising
-    # NoMethodError, and skipping all of them reads as no suffix, which fails
-    # closed rather than matching every host.
     context "when the partition list predates Partition#metadata" do
       let(:legacy_partition) { double("aws-partitions Partition without #metadata") }
 
@@ -330,9 +310,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
   describe "#add_owner_tags" do
     let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
 
-    # Only DynamoDB and S3 override this. Every other handler inherits the
-    # no-op, so moving the response gate onto `Base` does not start tagging
-    # owners anywhere new.
     it "is a no-op" do
       expect(base.add_owner_tags(span, {expected_bucket_owner: "123456789012"}, context)).to be_nil
     end

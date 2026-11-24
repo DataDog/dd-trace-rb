@@ -18,11 +18,7 @@ RSpec.describe "AWS instrumentation" do
   let(:configuration_options) { {} }
   let(:server_error_statuses) { nil }
 
-  # The stubbed-response examples produce exactly one span, so they use the
-  # `span` helper. The examples that let the request go over HTTP cannot: when
-  # another spec in the same process has already patched `net/http`, that
-  # integration traces the same request and a second span appears. Picking the
-  # AWS span by name keeps those examples independent of what else ran first.
+  # Over HTTP, an already patched `net/http` adds its own span.
   let(:aws_span) { spans.find { |s| s.name == Datadog::Tracing::Contrib::Aws::Ext::SPAN_COMMAND } }
 
   before do
@@ -368,8 +364,7 @@ RSpec.describe "AWS instrumentation" do
         end
       end
 
-      # An S3-compatible service accepts `x-amz-expected-bucket-owner` and
-      # ignores it, so a 200 from one is not evidence about an AWS account.
+      # An S3-compatible service may ignore `x-amz-expected-bucket-owner`.
       context "over HTTP against an S3-compatible endpoint", webmock: true do
         before { WebMock.disable_net_connect! }
         after { WebMock.allow_net_connect! }
@@ -712,9 +707,6 @@ RSpec.describe "AWS instrumentation" do
   context "with an dynamodb client" do
     let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses) }
 
-    # A real STS client with a stubbed response, so the providers below derive
-    # their account id the production way: from the `AssumedRoleUser.Arn` that
-    # STS returned.
     def stub_sts_client(operation, account_id: "999988887777")
       ::Aws::STS::Client.new(
         region: "us-east-1",
@@ -745,8 +737,6 @@ RSpec.describe "AWS instrumentation" do
       )
     end
 
-    # Owner tagging is optional, so a failure in it must not cost the span any
-    # of the tags the instrumentation is actually responsible for.
     describe "owner tagging failure isolation" do
       subject(:get_item) { client.get_item(table_name: "my-table-name", key: {id: "1234"}) }
 
@@ -834,8 +824,7 @@ RSpec.describe "AWS instrumentation" do
       let(:table_name) { "my-table-name" }
       let(:credentials) { assume_role_provider }
 
-      # STS is instrumented too, so building an assume-role provider emits its
-      # own span. Pick the DynamoDB one rather than assume there is only one.
+      # Building an assume-role provider emits an STS span too.
       let(:span) { spans.find { |candidate| candidate.get_tag("aws_service") == "dynamodb" } }
 
       context "with an AssumeRole provider" do
@@ -871,8 +860,6 @@ RSpec.describe "AWS instrumentation" do
         end
       end
 
-      # The account id these report came from local configuration, not from
-      # AWS, so it is not evidence of who owns the table.
       context "with static credentials carrying an account id" do
         let(:credentials) { ::Aws::Credentials.new("akid", "secret", nil, account_id: "123456789012") }
 
@@ -931,9 +918,7 @@ RSpec.describe "AWS instrumentation" do
       context "when a second credential lookup would fail" do
         let(:credentials) do
           provider = assume_role_provider
-          # Nothing after the provider is built may resolve credentials again,
-          # neither the signer nor span annotation, so make any further STS
-          # call raise: a second lookup then shows up as a missing tag.
+          # A second credential lookup would show up as a missing tag.
           allow(provider.client).to receive(:assume_role)
             .and_raise(::Aws::Errors::MissingCredentialsError)
           provider
@@ -963,9 +948,6 @@ RSpec.describe "AWS instrumentation" do
       end
     end
 
-    # A bare table name only names a table in the signing account once AWS has
-    # resolved it there, so a request that failed, or one that never reached
-    # AWS, proves nothing about who owns anything.
     describe "owner account identity on a response that proves nothing" do
       subject(:get_item) { client.get_item(table_name: "my-table-name", key: {id: "1234"}) }
 
@@ -984,9 +966,6 @@ RSpec.describe "AWS instrumentation" do
         end
       end
 
-      # DynamoDB Local and LocalStack accept the same bare table name and
-      # resolve it in a local store that has no AWS account behind it, so a 200
-      # from one of those is not evidence about any AWS account.
       context "over HTTP against a DynamoDB-compatible endpoint", webmock: true do
         let(:endpoint) { "http://localhost:8000" }
         let(:url) { "#{endpoint}/" }
@@ -1021,14 +1000,8 @@ RSpec.describe "AWS instrumentation" do
         end
       end
 
-      # The same request against the real endpoint is tagged, which is what
-      # says the endpoint check is the only thing holding the case above back.
       context "over HTTP against an AWS endpoint", webmock: true do
-        # DynamoDB uses account-based endpoint routing when the credentials
-        # carry an account id, which puts it in the host
-        # (`<account>.ddb.<region>.amazonaws.com`) instead of using
-        # `dynamodb.<region>.amazonaws.com`. Either host is AWS, and which one
-        # the SDK picks depends on its version, so this matches on the shape.
+        # Account-based endpoints (`<account>.ddb.<region>.amazonaws.com`) depend on the SDK version.
         let(:url) { %r{\Ahttps://[a-z0-9.-]+\.amazonaws\.com/\z} }
         let(:client) do
           ::Aws::DynamoDB::Client.new(

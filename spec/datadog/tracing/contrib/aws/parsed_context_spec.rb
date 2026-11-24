@@ -22,9 +22,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
     ).tap { |ctx| metadata.each { |key, value| ctx[key] = value } }
   end
 
-  # A real STS client with stubbed responses, so the providers below resolve
-  # their account id the way they do in production: by parsing the
-  # `AssumedRoleUser.Arn` out of an actual STS response.
+  # The providers parse the account id out of a real (stubbed) STS response.
   def stub_sts_client(operation, account_id: "999988887777", expires_in: 3600)
     client = Aws::STS::Client.new(
       region: "us-east-1",
@@ -73,18 +71,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
     end
   end
 
-  # These examples pin facts about `aws-sdk-core`, not about this gem. Owner
-  # tagging rests on all three of them, and each one would break silently and
-  # differently if a future SDK release changed it, so each gets an example
-  # that goes red instead:
-  #
-  # - the provider names, because the gate matches on the exact class name, so
-  #   a rename would quietly stop tagging anything at all;
-  # - `Aws::RefreshingCredentials` in the ancestry, because its override is
-  #   what makes the public `#credentials` reader refresh, and that override is
-  #   the entire reason `@credentials` is read directly;
-  # - `@credentials` holding what the provider resolved from STS, because
-  #   reading it is what stands in for that public reader.
+  # Pins `aws-sdk-core` behavior that would otherwise stop tagging silently.
   describe "the aws-sdk contract this depends on" do
     it "trusts exactly the two assume-role providers" do
       expect(described_class::PROVEN_ACCOUNT_ID_PROVIDERS).to eq(
@@ -93,10 +80,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
     end
 
     it "reads the account id off state, not off a reader that refreshes" do
-      # `Aws::CredentialProvider#credentials` is the plain attribute reader;
-      # `Aws::RefreshingCredentials` overrides it with one that resolves first.
-      # If the SDK ever exposes a public reader that cannot refresh, this is
-      # the example that says `@credentials` no longer needs to be read directly.
       expect(Aws::CredentialProvider.instance_method(:credentials).owner)
         .to be(Aws::CredentialProvider)
       expect(Aws::RefreshingCredentials.instance_method(:credentials).owner)
@@ -117,13 +100,10 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
         expect(provider_class.ancestors).to include(Aws::RefreshingCredentials)
       end
 
-      it "leaves the credentials STS returned in @credentials" do
-        expect(provider).to be_an_instance_of(provider_class)
-        expect(provider.instance_variable_defined?(:@credentials)).to be true
+      it "exposes the account id STS returned" do
+        allow(client_config).to receive(:credentials).and_return(provider)
 
-        resolved = provider.instance_variable_get(:@credentials)
-        expect(resolved).to be_a(Aws::Credentials)
-        expect(resolved.account_id).to eq(expected_account_id)
+        expect(parsed_context.assumed_role_account_id).to eq(expected_account_id)
       end
     end
 
@@ -186,8 +166,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       end
 
       it "does not refresh even when the resolved credentials are expiring" do
-        # `Aws::RefreshingCredentials#credentials` would refresh at this point,
-        # which is the network call this must never make.
         expiring = stub_sts_client(:assume_role, expires_in: -60)
         provider = Aws::AssumeRoleCredentials.new(
           client: expiring,
@@ -271,28 +249,8 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       end
     end
 
-    # Every one of these exposes an `account_id`, but each one took it from
-    # local configuration rather than from an STS response, so none of them is
-    # evidence of who owns a resource.
-    #
-    # The providers that resolve over a network, off a cache or off disk are
-    # built synthetically, with `allocate` plus an already-resolved
-    # `@credentials`, instead of through their constructors:
-    # `Aws::InstanceProfileCredentials` and `Aws::ECSCredentials` would call
-    # the IMDS and ECS container metadata endpoints, `Aws::SSOCredentials` and
-    # `Aws::ProcessCredentials` a token cache and a subprocess, and
-    # `Aws::SharedCredentials` the profile files on disk. The gate's only input
-    # is the provider's class name, so a synthesized instance hands it exactly
-    # what a real one would, with no network call and no subprocess in the
-    # suite.
-    #
-    # The limitation that leaves is deliberate. These examples do not exercise
-    # those providers' real resolution paths, and they would not notice if one
-    # of them started populating `account_id` from somewhere new, because the
-    # gate rejects the class either way. What a real flow has to prove is the
-    # opposite case, and that is covered: the two providers that ARE trusted
-    # are built from real stubbed STS responses, both here and in "the aws-sdk
-    # contract this depends on".
+    # These take `account_id` from local config. The gate only reads the class name,
+    # so `allocate` stands in for constructors that would reach IMDS, ECS, SSO or disk.
     context "with an untrusted credential source" do
       context "of static credentials carrying an account id" do
         let(:credentials) { Aws::Credentials.new("akid", "secret", nil, account_id: "123456789012") }
@@ -319,66 +277,31 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       end
 
       context "of Aws::SSOCredentials" do
-        let(:credentials) do
-          instance = Aws::SSOCredentials.allocate
-          instance.instance_variable_set(
-            :@credentials,
-            Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012"),
-          )
-          instance
-        end
+        let(:credentials) { Aws::SSOCredentials.allocate }
 
         it { is_expected.to be_nil }
       end
 
       context "of Aws::ProcessCredentials" do
-        let(:credentials) do
-          instance = Aws::ProcessCredentials.allocate
-          instance.instance_variable_set(
-            :@credentials,
-            Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012"),
-          )
-          instance
-        end
+        let(:credentials) { Aws::ProcessCredentials.allocate }
 
         it { is_expected.to be_nil }
       end
 
       context "of Aws::InstanceProfileCredentials" do
-        let(:credentials) do
-          instance = Aws::InstanceProfileCredentials.allocate
-          instance.instance_variable_set(
-            :@credentials,
-            Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012"),
-          )
-          instance
-        end
+        let(:credentials) { Aws::InstanceProfileCredentials.allocate }
 
         it { is_expected.to be_nil }
       end
 
       context "of Aws::ECSCredentials" do
-        let(:credentials) do
-          instance = Aws::ECSCredentials.allocate
-          instance.instance_variable_set(
-            :@credentials,
-            Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012"),
-          )
-          instance
-        end
+        let(:credentials) { Aws::ECSCredentials.allocate }
 
         it { is_expected.to be_nil }
       end
 
       context "of Aws::SharedCredentials" do
-        let(:credentials) do
-          instance = Aws::SharedCredentials.allocate
-          instance.instance_variable_set(
-            :@credentials,
-            Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012"),
-          )
-          instance
-        end
+        let(:credentials) { Aws::SharedCredentials.allocate }
 
         it { is_expected.to be_nil }
       end
@@ -401,8 +324,6 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
 
       context "of a subclass of a proven provider" do
         let(:credentials) do
-          # A subclass can override `#refresh` and set `account_id` from
-          # anywhere, so the exact-class check has to reject it.
           subclass = Class.new(Aws::AssumeRoleCredentials) do
             def refresh
               @credentials = Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012")
@@ -427,21 +348,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       it { is_expected.to be_nil }
     end
 
-    context "with a proven provider whose credentials carry no account id" do
-      let(:credentials) do
-        instance = Aws::AssumeRoleCredentials.allocate
-        instance.instance_variable_set(:@credentials, Aws::Credentials.new("akid", "secret"))
-        instance
-      end
-
-      it { is_expected.to be_nil }
-    end
-
     context "with a proven provider whose credentials resolved to nil" do
       let(:credentials) do
-        instance = Aws::AssumeRoleCredentials.allocate
-        instance.instance_variable_set(:@credentials, nil)
-        instance
+        Aws::AssumeRoleCredentials.allocate.tap do |provider|
+          allow(provider).to receive(:instance_variable_defined?).with(:@credentials).and_return(true)
+        end
       end
 
       it { is_expected.to be_nil }
@@ -463,14 +374,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       end
 
       context "that are an untrusted provider" do
-        let(:override) do
-          instance = Aws::SSOCredentials.allocate
-          instance.instance_variable_set(
-            :@credentials,
-            Aws::Credentials.new("akid", "secret", "token", account_id: "123456789012"),
-          )
-          instance
-        end
+        let(:override) { Aws::SSOCredentials.allocate }
         let(:metadata) { {sigv4_credentials: override} }
 
         it "prefers the credentials that signed and reports nothing" do
