@@ -1,0 +1,12 @@
+_v: 1
+name: mongo
+display_name: MongoDB
+description: Instruments MongoDB Ruby Driver commands, creating client database spans with command, database, collection,
+  network, and error metadata.
+packages:
+- name: mongo
+category:
+- db.client
+systems:
+- mongodb
+creation_date: '2017-08-09'

@@ -1,0 +1,12 @@
+_v: 1
+name: opensearch
+display_name: OpenSearch
+description: Instruments OpenSearch client requests, creating spans for its search and database operations and recording request
+  and response metadata.
+packages:
+- name: opensearch-ruby
+category:
+- db.client
+systems:
+- opensearch
+creation_date: '2023-07-05'

@@ -1,0 +1,13 @@
+_v: 1
+name: elasticsearch
+display_name: Elasticsearch
+description: Instruments requests issued by Elasticsearch transport clients, creating query spans with request metadata and
+  response status.
+packages:
+- name: elastic-transport
+- name: elasticsearch-transport
+category:
+- db.client
+systems:
+- elasticsearch
+creation_date: '2016-11-18'

@@ -1,0 +1,11 @@
+_v: 1
+name: presto
+display_name: Presto
+description: Instruments Presto SQL queries and query cancellation through the presto-client client.
+packages:
+- name: presto-client
+category:
+- db.client
+systems:
+- presto
+creation_date: '2019-07-02'
