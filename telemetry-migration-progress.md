@@ -1,29 +1,42 @@
 # Telemetry migration: session progress and handoff notes
 
-Status date: 2026-11-04 (night, mid step 3). This file is local working
-notes; it is not part of the PR. Delete it when the migration work is done.
+Status date: 2026-11-25 (after the master rebase; mid step 3). This file is
+local working notes; it is not part of the PR. Delete it when the migration work is done.
 
 ## Where things stand
 
-Branch `tonyc.t.hsu/telemetry-native-lifecycle` (local, step-3 work), based
-on `tonyc.t.hsu/telemetry-native-poc-bindings` (`0acd97b522`), which is
-based on the PR branch `tonyc.t.hsu/telemetry-migration-doc`. All of this
-is LOCAL ONLY: it needs the POC libdatadog build to compile (see the
-build recipe below).
+Branch `tonyc.t.hsu/telemetry-native-lifecycle` (local, step-3 work),
+REBASED 2026-11-25 onto the rebased `tonyc.t.hsu/telemetry-native-poc-bindings`
+(`b81e00aa0d`), which sits on the rebased PR branch
+`tonyc.t.hsu/telemetry-migration-doc`. Everything is LOCAL ONLY: the PR
+branch needs a force-push to update #6629 (consent pending), and the
+step-3 branches still need the v51 libdatadog override to compile (see
+the build recipe below).
 
-Commits on this branch, in order:
+Rebase details (2026-11-25): master had moved 288 commits; PR #6629 was
+CONFLICTING. Conflicts were small: `sig/datadog/core/telemetry/ext.rbs`
+(master switched `String` to `::String`) and
+`sig/datadog/core/configuration/components.rbs` (master added data-streams
+retirement fields; kept both). Semantic check passed: `replace_components!`
+still captures `old.telemetry` before building the new tree. The rebased
+PR branch was verified green against stock libdatadog 49: 239
+native-transport + 317 telemetry specs, 0 failures.
 
-1. `f13bf92e92` Reuse the native telemetry worker across reconfigures
+Commits on the lifecycle branch, in order (post-rebase hashes):
+
+1. `66c56c4bfa` Reuse the native telemetry worker across reconfigures
    (item 1 of the step-3 plan; fully verified: unit specs + a real
    Datadog.configure reuse spec + 677 configuration specs + 239
    native-transport specs + Steep/RuboCop clean)
-2. `2e81ef345f` WIP checkpoint (user commit, 18:27): the C bindings for
+2. `dabac70200` WIP checkpoint (user commit): the C bindings for
    dependency/integration, the full-flavor lifecycle routing, the worker
    fork-guard change, adoption specs, and an earlier version of this
    notes file
 
-Uncommitted on top (each verified individually except the parity suite,
-see the parity section below):
+Previously-uncommitted work was checkpointed as `6641662b75` (WIP:
+lifecycle on native worker, builder config feed, parity rework). The
+tree is clean; that commit contains (each piece verified individually
+except the parity suite, see the parity section below):
 
 - `lib/datadog/core/telemetry/configuration_snapshot.rb` (NEW): the
   configuration-list builder extracted from `Event::AppStarted`, shared
@@ -158,6 +171,9 @@ equality is NOT asserted).
 
 ## Remaining work for step 3
 
+0. Retarget the C seam to v51.0.1 (deltas above: drop interval setters,
+   rework _add_endpoint, Option value in _add_config), recompile with
+   the v51 override, re-run the smokes.
 1. Debug the parity suite exec rework (entry points above), get 18/18
    green twice with different seeds.
 2. Sigs: `native_backend.rbs` (start/enqueue/flush, add_native_* helpers,
@@ -173,6 +189,56 @@ equality is NOT asserted).
    lifecycle scenarios.
 5. A changelog fragment when this ships (the work is behind
    DD_TELEMETRY_NATIVE_WORKER, still default-off).
+6. Force-push the rebased PR branch to update #6629 (needs user
+   consent).
+
+## 2026-11-25: the libdatadog POC is superseded by upstream
+
+PR #2872 ("expose config, product change, endpoint, flush and extended
+heartbeat messages", merged as `6102b08df6`, released in v50.0.0+) plus
+earlier merges give upstream `origin/main` EVERY FFI symbol our POC
+branch added, verified by symbol diff. The POC branch
+`tonyc.t.hsu/telemetry-poc-46.1rb` is dead; do not rebase it. All three
+POC branches are deletable. Local build now comes from tag `v51.0.1`.
+
+What upstream now has beyond our POC: `add_product_change` (closes the
+products divergence), `add_endpoint` with method/operation/resource/body
+types/response codes, `add_config` with an Option value (nil and "" stay
+distinct), `send_extended_heartbeat`, `flush_metrics`, `flush_data`.
+
+Upstream flavor model matches our design: `builder_run` = full flavor by
+default, `builder_run_metric_logs` = metrics+logs only. No
+`full_flavor` kwarg is needed upstream.
+
+C-seam deltas vs v51.0.1 (the retarget work, BEFORE compiling against
+the new build):
+
+1. INTERVAL SETTERS DO NOT EXIST upstream. Our calls to
+   `ddog_telemetry_builder_with_heartbeat_interval` and
+   `..._with_extended_heartbeat_interval` must be dropped. Upstream
+   `builder_instantiate` runs `Config::from_env()`, so the env vars
+   `DD_TELEMETRY_HEARTBEAT_INTERVAL` and
+   `DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL` are honored. Code-set
+   intervals (`c.telemetry.heartbeat_interval = 5`) would diverge from
+   the native worker: file an upstream ask for builder interval
+   setters; until then document the env-only path.
+2. `_add_endpoint` must be reworked to the upstream signature:
+   (method: Option<Method>, path, operation_name, resource_name,
+   request_body_type: Slice<CharSlice>, response_body_type:
+   Slice<CharSlice>, response_code: Slice<u32>). No `kind` field, no
+   EndpointData by value. Closes MORE of the endpoints divergence than
+   the POC did (body types, response codes).
+3. `_add_config`: upstream value is `Option<CharSlice>`; map Ruby nil
+   to DDOG_OPTION_CHARSLICE_NONE instead of an empty slice.
+4. `_add_dependency` / `_add_integration` / `builder_with_config` /
+   full-flavor `builder_run`: exact match with our seam, no work.
+5. Optional adoptions: route AppExtendedHeartbeat via
+   `send_extended_heartbeat` (currently dropped), real flush via
+   `flush_data` (currently `flush` returns true).
+
+Remaining upstream gaps after v51: install_signature on app-started,
+the integration `error` field, the step-4 exporter handle setter, the
+fork-safety of the tokio runtime, and now the interval setters.
 
 ## Wiring a local libdatadog prototype into dd-trace-rb
 
@@ -180,14 +246,14 @@ The `libdatadog` gem honors `LIBDATADOG_VENDOR_OVERRIDE` (checked in the
 gem's `lib/libdatadog.rb`). The loop:
 
 ```bash
-# In the libdatadog clone (prototype branch tonyc.t.hsu/telemetry-poc-46.1rb):
-# --release sets PROFILE=release for the artifacts. WITHOUT it everything
-# builds debug. The feature flag is MANDATORY: without it the build omits
-# ddog_trace_exporter_config_enable_observations and dd-trace-rb's trace
-# exporter segfaults on a NULL jump.
-cargo run --release --bin release --features data-pipeline-external-observations -- --out my-libdatadog-build/arm64-darwin-25
+# In the libdatadog clone (upstream tag v51.0.1, worktree .worktrees/v51.0.1):
+# The feature was RENAMED: data-pipeline-external-observations ->
+# libdd-data-pipeline-ffi/external-observations. Without it the build
+# omits ddog_trace_exporter_config_enable_observations and dd-trace-rb's
+# trace exporter segfaults on a NULL jump.
+cargo run --release --bin release --features libdd-data-pipeline-ffi/external-observations -- --out my-libdatadog-build/arm64-darwin-25
 ln -sfn arm64-darwin-25 my-libdatadog-build/arm64-darwin  # gem resolves arm64-darwin
-# Result must contain include/ and lib/.
+# Result must contain include/ and lib/. Build takes ~15-25 min.
 
 # In dd-trace-rb:
 export LIBDATADOG_VENDOR_OVERRIDE=$(pwd)/../libdatadog/my-libdatadog-build/  # absolute, no platform suffix
@@ -195,7 +261,8 @@ bundle exec rake clean compile
 # iterate with: bundle exec rake compile (clean not needed per iteration)
 ```
 
-Unset the variable and `rake clean compile` to return to stock 46.1. The
+Unset the variable and `rake clean compile` to return to stock (49 on
+master after the rebase). The
 runtime version check compares the installed gem's `Libdatadog::VERSION`
 on both compile and run sides, so an override build does not trip it; keep
 the same gem installed. The gemspec pin and `EXPECTED_LIBDATADOG_VERSION`
@@ -331,16 +398,19 @@ The current compiled extension in `lib/` is built against the POC; run
   logs with counts, alongside unchanged Ruby lifecycle events
   (app-started, app-dependencies-loaded, app-heartbeat).
 
-## Proposed upstream asks (for the libdatadog prototype)
+## Upstream asks (updated 2026-11-25; first two are now CLOSED upstream)
 
-- `ddog_telemetry_handle_add_config(handle, name, value, origin,
-  config_id, seq_id)` mirroring `ddog_telemetry_builder_with_config` for
-  post-start configuration changes.
-- Builder interval setters for heartbeat, extended heartbeat, and metrics
-  flush, writing `config.telemetry_heartbeat_interval` and
-  `telemetry_extended_heartbeat_interval`.
-- An `app_endpoints_loaded` payload type plus a handle method; payload
-  shape to be agreed with the DI team.
+- DONE upstream (PR #2872, v50+): `handle_add_config`, `handle_add_endpoint`
+  (with body types and response codes), `add_product_change`,
+  `send_extended_heartbeat`, `flush_metrics`, `flush_data`.
+- STILL OPEN: builder interval setters for heartbeat and extended
+  heartbeat, writing `config.telemetry_heartbeat_interval` and
+  `telemetry_extended_heartbeat_interval`. Upstream only reads the env
+  vars, so code-configured intervals diverge from the native worker.
+- STILL OPEN: install_signature FFI for app-started.
+- STILL OPEN: the integration `error` field in `handle_add_integration`.
+- STILL OPEN: fork-safety of building the telemetry worker in a forked
+  process (tokio runtime threads do not survive the fork).
 - Exporter external handle (P1, step 4): let the trace exporter receive an
   existing `TelemetryWorkerHandle` so its metrics join the shared worker.
   `ddog_trace_exporter_config_enable_telemetry` exists but creates a
