@@ -1,0 +1,12 @@
+_v: 1
+name: redis
+display_name: Redis
+description: Instruments Redis command and pipelined-command execution through the redis and redis-client clients.
+packages:
+- name: redis
+- name: redis-client
+category:
+- db.client
+systems:
+- redis
+creation_date: '2016-12-06'
