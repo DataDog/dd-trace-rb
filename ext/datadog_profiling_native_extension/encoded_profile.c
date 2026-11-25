@@ -37,10 +37,21 @@ static const rb_data_type_t encoded_profile_typed_data = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
+static VALUE allocate_encoded_profile(VALUE state_out_ptr) {
+  ddog_prof_EncodedProfile **state_out = (ddog_prof_EncodedProfile **) state_out_ptr;
+  return TypedData_Make_Struct(encoded_profile_class, ddog_prof_EncodedProfile, &encoded_profile_typed_data, *state_out);
+}
+
 VALUE from_ddog_prof_EncodedProfile(ddog_prof_EncodedProfile profile) {
-  ddog_prof_EncodedProfile *state = ruby_xcalloc(1, sizeof(ddog_prof_EncodedProfile));
+  ddog_prof_EncodedProfile *state;
+  int error;
+  VALUE result = rb_protect(allocate_encoded_profile, (VALUE) &state, &error);
+  if (error != 0) {
+    ddog_prof_EncodedProfile_drop(&profile);
+    rb_jump_tag(error);
+  }
   *state = profile;
-  return TypedData_Wrap_Struct(encoded_profile_class, &encoded_profile_typed_data, state);
+  return result;
 }
 
 static ddog_ByteSlice get_bytes(ddog_prof_EncodedProfile *state) {
