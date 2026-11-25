@@ -104,7 +104,7 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
-    it "keeps the first WAF derivatives and collects distinct keys from later results" do
+    it "keeps the latest WAF attributes and collects distinct keys from all results" do
       trace = Datadog::Tracing::TraceOperation.new
       trace.measure("request") do |span|
         span.set_tag("_dd.appsec.trace.req_headers", "previous request headers")
@@ -141,11 +141,11 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       expect(trace.flush!.spans.first.meta).to include(
-        "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
+        "appsec.api.redirection.move_target" => "/mirror/200",
         "_dd.appsec.trace.req_headers" => "request headers",
         "_dd.appsec.trace.res_headers" => "response headers",
-        "_dd.appsec.fp.http.endpoint" => "first fingerprint",
-        "_dd.appsec.s.req.body" => '[{"first":[8]}]',
+        "_dd.appsec.fp.http.endpoint" => "second fingerprint",
+        "_dd.appsec.s.req.body" => '[{"second":[8]}]',
       )
     end
 

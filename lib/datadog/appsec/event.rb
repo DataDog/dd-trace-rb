@@ -80,16 +80,14 @@ module Datadog
 
         def waf_tags(security_events)
           triggers = []
-          derivatives = {}
+          attributes = {}
 
           security_events.each do |security_event|
             triggers.concat(security_event.waf_result.events)
-
-            # Independent subcontexts can repeat derivatives; retain the request's first observations.
-            derivatives.merge!(security_event.waf_result.attributes) { |_key, first_value, _new_value| first_value }
+            attributes.merge!(security_event.waf_result.attributes)
           end
 
-          tags = derivatives.each_with_object({}) do |(key, value), memo|
+          tags = attributes.each_with_object({}) do |(key, value), memo|
             unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
               memo[key] = value
               next
