@@ -474,6 +474,13 @@
         "default": "false"
       }
     ],
+    "DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
         "__comment": "Default is true on CRuby 4.0.0 and later",

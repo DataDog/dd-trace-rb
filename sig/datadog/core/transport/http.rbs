@@ -2,7 +2,11 @@ module Datadog
   module Core
     module Transport
       module HTTP
-        def self.build: (agent_settings: untyped, ?logger: untyped, ?headers: untyped?) { (untyped) -> untyped } -> HTTP::Builder
+        NATIVE_UNSUPPORTED_WARNING: Core::Utils::OnlyOnce
+
+        def self.build: (agent_settings: untyped, ?logger: untyped, ?headers: untyped?, ?native: bool) { (untyped) -> untyped } -> HTTP::Builder
+
+        def self.native_adapter: (untyped agent_settings, untyped logger) -> Adapters::Native?
 
         def self.default_headers: () -> untyped
       end

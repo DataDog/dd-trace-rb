@@ -85,6 +85,23 @@ module Datadog
           # @return [String,nil]
           option :uds_path
 
+          # Sends the requests to the agent that do not carry traces (remote configuration, telemetry, dynamic
+          # instrumentation, symbol database, feature flags, data streams, agent information) with the native HTTP
+          # client of libdatadog, instead of the pure-Ruby `Net::HTTP` one.
+          #
+          # If the native client is not available, a warning is logged and `Net::HTTP` is used.
+          # Traces have their own setting, `tracing.native_transport`.
+          #
+          # This option is recommended for internal use only.
+          #
+          # @default `DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED` environment variable as a boolean, otherwise `false`
+          # @return [Boolean]
+          option :native_http do |o|
+            o.env Core::Configuration::Ext::Agent::ENV_EXPERIMENTAL_NATIVE_HTTP_ENABLED
+            o.default false
+            o.type :bool
+          end
+
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api
