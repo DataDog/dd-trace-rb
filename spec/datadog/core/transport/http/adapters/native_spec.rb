@@ -93,6 +93,40 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Native do
       end
     end
 
+    context "for an HTTP agent without a timeout" do
+      let(:agent_settings) do
+        Datadog::Core::Configuration::AgentSettings.new(
+          adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
+          ssl: false, hostname: "agent", port: 8126,
+        )
+      end
+
+      it "uses the default timeout" do
+        expect(client_class).to receive(:_native_new).with(
+          base_url: "http://agent:8126", timeout_ms: 30_000, unix_socket_path: nil,
+        )
+
+        adapter
+      end
+    end
+
+    context "for a Unix socket agent without a timeout" do
+      let(:agent_settings) do
+        Datadog::Core::Configuration::AgentSettings.new(
+          adapter: Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
+          uds_path: "/tmp/a.sock",
+        )
+      end
+
+      it "uses the default timeout" do
+        expect(client_class).to receive(:_native_new).with(
+          base_url: "http://localhost", timeout_ms: 30_000, unix_socket_path: "/tmp/a.sock",
+        )
+
+        adapter
+      end
+    end
+
     context "for a Unix socket agent" do
       let(:agent_settings) do
         Datadog::Core::Configuration::AgentSettings.new(

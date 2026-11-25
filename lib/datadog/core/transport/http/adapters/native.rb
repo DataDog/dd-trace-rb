@@ -122,11 +122,16 @@ module Datadog
               @client = client || create_client
             end
 
+            # The timeout of the agent settings is optional: like for `Net::HTTP`, a missing one means the default.
             def self.build(agent_settings)
               if agent_settings.adapter == Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-                new(base_url: nil, timeout: agent_settings.timeout_seconds, uds_path: agent_settings.uds_path)
+                timeout = agent_settings.timeout_seconds ||
+                  Datadog::Core::Configuration::Ext::Agent::UnixSocket::DEFAULT_TIMEOUT_SECONDS
+                new(base_url: nil, timeout: timeout, uds_path: agent_settings.uds_path)
               else
-                new(base_url: agent_settings.url, timeout: agent_settings.timeout_seconds)
+                timeout = agent_settings.timeout_seconds ||
+                  Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_TIMEOUT_SECONDS
+                new(base_url: agent_settings.url, timeout: timeout)
               end
             end
 
