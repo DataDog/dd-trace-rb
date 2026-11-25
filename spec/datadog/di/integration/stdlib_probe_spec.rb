@@ -418,17 +418,10 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   # ----------------------------------------------------------------
 
   context "line probe on stdlib code DI runs while processing a method probe" do
-    # Both targets are loaded before code tracking starts, so the line
-    # probes use untargeted trace points.
-    let(:settings) do
-      Datadog::Core::Configuration::Settings.new.tap do |settings|
-        settings.remote.enabled = true
-        settings.dynamic_instrumentation.enabled = true
-        settings.dynamic_instrumentation.internal.development = true
-        settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
-        settings.dynamic_instrumentation.internal.untargeted_trace_points = true
-      end
-    end
+    include_context "permissive settings"
+
+    # Backfill registers the stdlib targets, which load before tracking starts.
+    with_code_tracking
 
     let(:method_probe) do
       Datadog::DI::Probe.new(
@@ -481,12 +474,13 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
 
       before { stub_no_trace }
 
-      it "emits the method snapshot and no line snapshot of the builder's call" do
+      it "emits a line snapshot for the direct call and none for the builder's call" do
         probe_ids = snapshot_probe_ids do
           expect(StdlibProbeTestClass.new.call_string_length("hello world")).to eq(11)
+          SecureRandom.uuid
         end
 
-        expect(probe_ids).to eq(["stdlib-host-method"])
+        expect(probe_ids).to eq(["stdlib-host-method", "stdlib-line"])
       end
     end
 
@@ -495,16 +489,18 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
 
       before { stub_active_trace(123) }
 
-      it "emits only the method snapshot the trace budget admits" do
+      it "emits the method snapshot the trace budget admits and a line snapshot for the direct call only" do
         # The second hit in the trace reads the stored trace budget through
         # WeakRef#weakref_alive? while the sampler holds its mutex.
         probe_ids = snapshot_probe_ids do
           2.times do
             expect(StdlibProbeTestClass.new.call_string_length("hello world")).to eq(11)
           end
+          weakref_target = Object.new
+          expect(WeakRef.new(weakref_target).weakref_alive?).to be(true)
         end
 
-        expect(probe_ids).to eq(["stdlib-host-method"])
+        expect(probe_ids).to eq(["stdlib-host-method", "stdlib-line"])
       end
     end
   end
