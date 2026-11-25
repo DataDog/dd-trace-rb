@@ -15,19 +15,6 @@ module Datadog
             #
             # @api private
             class Client
-              # Error codes that `_native_send` may report, mirroring `HttpClientErrorCode`
-              # of the FFI crate.
-              ERROR_CODES = [
-                :invalid_argument,
-                :invalid_config,
-                :connection_failed,
-                :timed_out,
-                :cancelled,
-                :io,
-                :runtime,
-                :panic,
-              ].freeze
-
               # @param config [Hash] with keys
               #   `:base_url` (String, required, `http(s)://host[:port]`, no trailing slash),
               #   `:timeout_ms` (Integer, > 0),
@@ -40,7 +27,9 @@ module Datadog
               # Sends a request, blocking the calling thread (GVL released in the C version).
               #
               # @param request [Hash] with keys
-              #   `:verb` (Symbol, one of :get :post :put :delete :head :patch :options),
+              #   `:verb` (Symbol: :get :post :put :delete :head :patch :options. The C layer owns
+              #     this list, mapping it to the FFI `HttpMethod`; any other verb raises
+              #     `ArgumentError`),
               #   `:path` (String, starts with `/`, query string included),
               #   `:headers` (Array<[String, String]>),
               #   `:body` (String or nil),
@@ -48,7 +37,9 @@ module Datadog
               #     mutually exclusive with `:body`).
               # @return [Array] `[:ok, status, headers, body]` where `headers` is an
               #   `Array<[String, String]>` and `body` a binary String, or
-              #   `[:error, code, message]` with `code` one of {ERROR_CODES}.
+              #   `[:error, code, message]` where `code` is a Symbol naming the FFI
+              #   `HttpClientErrorCode` (e.g. `:timed_out`, `:connection_failed`, `:cancelled`).
+              #   The C layer owns the set of codes; the adapter passes them through.
               #   Every HTTP status, including 4xx/5xx, is reported as `:ok`.
               def _native_send(request)
                 raise NotImplementedError, "native HTTP client is not connected yet"

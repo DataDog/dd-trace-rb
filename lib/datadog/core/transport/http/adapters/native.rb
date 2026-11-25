@@ -21,15 +21,6 @@ module Datadog
               end
             end
 
-            # Raised when called with an HTTP verb the native client does not support.
-            class UnknownHTTPMethod < StandardError
-              def initialize(verb)
-                super("No matching native HTTP method for '#{verb.inspect}'!")
-              end
-            end
-
-            VERBS = [:get, :post, :put, :delete, :head, :patch, :options].freeze
-
             # The native client requires a base URL even for Unix sockets, where only the
             # request path is used.
             UDS_PLACEHOLDER_BASE_URL = "http://localhost"
@@ -60,8 +51,6 @@ module Datadog
             end
 
             def call(env)
-              raise UnknownHTTPMethod, env.verb unless VERBS.include?(env.verb)
-
               result = @client._native_send(
                 verb: env.verb,
                 path: path_from_env(env),

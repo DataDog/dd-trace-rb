@@ -138,12 +138,6 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Native do
       expect { response }.to raise_error(ArgumentError, /Invalid type for query/)
     end
 
-    it "rejects unknown verbs" do
-      env.verb = :trace
-
-      expect { response }.to raise_error(described_class::UnknownHTTPMethod)
-    end
-
     context "with a multipart form" do
       let(:upload_io) { Datadog::Core::Vendor::Multipart::Post::UploadIO }
 
