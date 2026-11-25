@@ -86,6 +86,22 @@ RSpec.describe "AWS Data Streams instrumentation" do
       expect(sent_params(sqs, :send_message)[:message_attributes].keys).not_to include("_datadog")
     end
 
+    it "leaves the message alone when the attribute would exceed the SQS size limit" do
+      sqs.send_message(queue_url: queue_url, message_body: "a" * (1_048_576 - 10))
+
+      expect(sent_params(sqs, :send_message)[:message_attributes]).to be_nil
+    end
+
+    it "leaves the message alone when a binary attribute is a stream" do
+      sqs.send_message(
+        queue_url: queue_url,
+        message_body: "hi",
+        message_attributes: {"blob" => {data_type: "Binary", binary_value: StringIO.new("a" * 1_048_570)}},
+      )
+
+      expect(sent_params(sqs, :send_message)[:message_attributes].keys).to eq(["blob"])
+    end
+
     it "does not modify the caller's params" do
       params = {queue_url: queue_url, message_body: "hi", message_attributes: {}}.freeze
       sqs.send_message(params)
@@ -113,6 +129,16 @@ RSpec.describe "AWS Data Streams instrumentation" do
 
       entries = sent_params(sqs, :send_message_batch)[:entries]
       expect(entries.map { |e| e[:message_attributes]["_datadog"][:data_type] }).to eq(["String", "String"])
+    end
+
+    it "leaves the batch alone when the attributes would exceed the aggregate SQS size limit" do
+      sqs.send_message_batch(
+        queue_url: queue_url,
+        entries: [{id: "1", message_body: "a" * 524_280}, {id: "2", message_body: "b" * 524_280}],
+      )
+
+      entries = sent_params(sqs, :send_message_batch)[:entries]
+      expect(entries.map { |e| e[:message_attributes] }).to eq([nil, nil])
     end
   end
 
@@ -219,6 +245,22 @@ RSpec.describe "AWS Data Streams instrumentation" do
 
       entries = sent_params(sns, :publish_batch)[:publish_batch_request_entries]
       expect(entries.map { |e| e[:message_attributes]["_datadog"][:data_type] }).to eq(["Binary", "Binary"])
+    end
+
+    it "leaves the publish alone when the attribute would exceed the SNS size limit" do
+      sns.publish(topic_arn: topic_arn, message: "a" * (262_144 - 10))
+
+      expect(sent_params(sns, :publish)[:message_attributes]).to be_nil
+    end
+
+    it "leaves the batch alone when the attributes would exceed the aggregate SNS size limit" do
+      sns.publish_batch(
+        topic_arn: topic_arn,
+        publish_batch_request_entries: [{id: "1", message: "a" * 131_068}, {id: "2", message: "b" * 131_068}],
+      )
+
+      entries = sent_params(sns, :publish_batch)[:publish_batch_request_entries]
+      expect(entries.map { |e| e[:message_attributes] }).to eq([nil, nil])
     end
 
     it "continues the pathway through an SQS subscription's notification body" do

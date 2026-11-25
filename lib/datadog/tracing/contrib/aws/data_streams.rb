@@ -12,6 +12,10 @@ module Datadog
         module DataStreams
           ATTRIBUTE_NAME = "_datadog"
           MAX_MESSAGE_ATTRIBUTES = 10
+          MAX_SQS_PAYLOAD_BYTES = 1_048_576
+          MAX_SNS_PAYLOAD_BYTES = 262_144
+          ATTRIBUTE_FIELDS = [:data_type, :string_value, :binary_value].freeze
+          CONSUMED_PATHWAY = :@datadog_data_streams_pathway
           BASE64_TEXT = %r{\A(?:[A-Za-z0-9+/]{4})+(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\z}.freeze
 
           class << self
@@ -20,17 +24,21 @@ module Datadog
 
               case [service, operation]
               when ["sqs", :send_message]
-                context.params = inject_sqs(context.params, queue_name(context.params))
+                injected = inject_sqs(context.params, queue_name(context.params))
+                context.params = injected if sqs_payload_fits?([injected])
               when ["sqs", :send_message_batch]
                 queue = queue_name(context.params)
-                context.params = with_entries(context.params) { |entry| inject_sqs(entry, queue) }
+                injected = with_entries(context.params) { |entry| inject_sqs(entry, queue) }
+                context.params = injected if sqs_payload_fits?(injected[:entries] || [])
               when ["sqs", :receive_message]
                 context.params = request_datadog_attribute(context.params)
               when ["sns", :publish]
-                context.params = inject_sns(context.params, sns_destination(context.params))
+                injected = inject_sns(context.params, sns_destination(context.params))
+                context.params = injected if sns_payload_fits?([injected])
               when ["sns", :publish_batch]
                 topic = sns_destination(context.params)
-                context.params = with_entries(context.params) { |entry| inject_sns(entry, topic) }
+                injected = with_entries(context.params) { |entry| inject_sns(entry, topic) }
+                context.params = injected if sns_payload_fits?(injected[:publish_batch_request_entries] || [])
               end
             rescue => e
               Datadog.logger.debug { "Error setting DSM produce checkpoint: #{e.class}: #{e.message}" }
@@ -44,13 +52,28 @@ module Datadog
               return unless queue
 
               messages = response.data&.messages || []
+              caller_processor = Datadog::DataStreams.send(:processor)
               caller_context = Datadog::DataStreams.pathway_context
               messages.each { |message| consume(queue, message) }
               # Only the sole message's context can be safely left active for the
               # caller; a batch's last one would misattribute the others' downstream work.
-              Datadog::DataStreams.pathway_context = caller_context unless messages.size == 1
+              restore_pathway(caller_processor, caller_context) unless messages.size == 1
             rescue => e
               Datadog.logger.debug { "Error setting DSM consume checkpoint: #{e.class}: #{e.message}" }
+            end
+
+            def with_consumed_pathway(message)
+              context = consumed_pathway(message)
+              return yield unless context
+
+              processor = Datadog::DataStreams.send(:processor)
+              previous = Datadog::DataStreams.pathway_context
+              Datadog::DataStreams.pathway_context = context
+              begin
+                yield
+              ensure
+                restore_pathway(processor, previous)
+              end
             end
 
             private
@@ -59,11 +82,50 @@ module Datadog
               Datadog::DataStreams.pathway_context = nil
               carrier = extract_carrier(message)
               pathway = carrier && unwrap_double_encoding(carrier[Datadog::DataStreams::Processor::PROPAGATION_KEY])
-              Datadog::DataStreams.set_consume_checkpoint(type: "sqs", source: queue, auto_instrumentation: true) do |_key|
+              encoded = Datadog::DataStreams.set_consume_checkpoint(type: "sqs", source: queue, auto_instrumentation: true) do |_key|
                 pathway
               end
+              message.instance_variable_set(CONSUMED_PATHWAY, encoded) if encoded && !message.frozen?
             rescue => e
               Datadog.logger.debug { "Error setting DSM consume checkpoint: #{e.class}: #{e.message}" }
+            end
+
+            def restore_pathway(processor, context)
+              Datadog::DataStreams.pathway_context = context if Datadog::DataStreams.send(:processor).equal?(processor)
+            end
+
+            def consumed_pathway(message)
+              return unless Datadog::DataStreams.enabled?
+
+              data = message.respond_to?(:data) ? message.data : message
+              return unless data.instance_variable_defined?(CONSUMED_PATHWAY)
+
+              Datadog::DataStreams::PathwayContext.decode_b64(data.instance_variable_get(CONSUMED_PATHWAY))
+            rescue => e
+              Datadog.logger.debug { "Error restoring DSM consume context: #{e.class}: #{e.message}" }
+              nil
+            end
+
+            def sqs_payload_fits?(messages)
+              payload_fits?(messages, :message_body, MAX_SQS_PAYLOAD_BYTES)
+            end
+
+            def sns_payload_fits?(messages)
+              payload_fits?(messages, :message, MAX_SNS_PAYLOAD_BYTES)
+            end
+
+            def payload_fits?(messages, body_key, limit)
+              messages.sum { |message| payload_bytes(message, body_key) || limit + 1 } <= limit
+            end
+
+            def payload_bytes(message, body_key)
+              attributes = message[:message_attributes] || {}
+              attributes.reduce(message[body_key].to_s.bytesize) do |total, (name, attribute)|
+                values = ATTRIBUTE_FIELDS.map { |field| attribute[field] || attribute[field.to_s] }.compact
+                return nil unless values.all?(String)
+
+                total + name.to_s.bytesize + values.sum(&:bytesize)
+              end
             end
 
             def inject_sqs(message, queue)

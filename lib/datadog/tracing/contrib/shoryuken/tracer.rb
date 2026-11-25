@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../analytics"
+require_relative "../aws/data_streams"
 
 module Datadog
   module Tracing
@@ -42,7 +43,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
 
-              yield
+              Contrib::Aws::DataStreams.with_consumed_pathway(sqs_msg) { yield }
             end
           end
 
