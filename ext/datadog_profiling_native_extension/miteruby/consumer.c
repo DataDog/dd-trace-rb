@@ -66,6 +66,7 @@ static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t r
 #include "hashtable/verstable.h"
 
 #define INTERNED_EVENTS_QUEUE_MAX_SIZE MiB_AS_BYTES(16)
+_Static_assert(INTERNED_EVENTS_QUEUE_MAX_SIZE <= UINT32_MAX, "Stack offsets must fit in uint32_t");
 
 typedef struct {
   miteruby_raw_events_queue_t *raw_events_queue;

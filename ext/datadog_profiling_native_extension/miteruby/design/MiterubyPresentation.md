@@ -105,7 +105,7 @@ Full consumer storage raises an error; graceful recovery is unfinished.
 ## 7. Memory footprint
 
 **Arena-style storage:** a contiguous `mmap` region holds variable-size interned events. Each new stack's delta-encoded
-location IDs live inline in its first sample; later samples refer to that sample by byte offset and occupy 48 bytes each.
+location IDs live inline in its first sample; later samples refer to that sample by byte offset and occupy 40 bytes each.
 
 - No individual `malloc`/`free` per event or stack: these regions avoid malloc heap fragmentation and per-record allocator metadata.
 - Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. The interned queue's write offset tracks occupied bytes separately.
@@ -118,7 +118,7 @@ location IDs live inline in its first sample; later samples refer to that sample
 
 ## 8. Future memory footprint reduction
 
-**Interned events — 48 bytes for a repeated stack:** encode thread IDs and stack IDs compactly, store timestamp/CPU-time deltas, and omit redundant fixed headers. Blocks with absolute starting values allow bounded decoding; unavailable CPU readings need an explicit marker.
+**Interned events — 40 bytes for a repeated stack:** encode thread IDs and stack IDs compactly, store timestamp/CPU-time deltas, and omit redundant fixed headers. Blocks with absolute starting values allow bounded decoding; unavailable CPU readings need an explicit marker.
 
 **Stacks — already stored as delta-encoded location IDs:** explore prefix reuse and alternative encodings.
 

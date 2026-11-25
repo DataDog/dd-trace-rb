@@ -10,7 +10,7 @@
 
 // Byte offset of the first sample with this stack in interned_events_queue; zero is valid. Invalidated on drain or reset.
 typedef struct {
-  size_t offset;
+  uint32_t offset;
 } miteruby_stack_dedup_id_t;
 
 // Inline stack encoded as deltas between location IDs, starting from zero.
@@ -28,10 +28,10 @@ typedef struct {
   miteruby_stored_stack_t stack;
 } miteruby_event_deduped_sample_t;
 
-_Static_assert(sizeof(miteruby_stack_dedup_id_t) == 8, "miteruby_stack_dedup_id_t must be 8 bytes");
+_Static_assert(sizeof(miteruby_stack_dedup_id_t) == 4, "miteruby_stack_dedup_id_t must be 4 bytes");
 _Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
-_Static_assert(offsetof(miteruby_event_deduped_sample_t, stack.ids) == 44, "miteruby_event_deduped_sample_t IDs must start after a 44-byte prefix");
-_Static_assert(sizeof(miteruby_event_deduped_sample_t) == 48, "miteruby_event_deduped_sample_t must be 48 bytes");
+_Static_assert(offsetof(miteruby_event_deduped_sample_t, stack.ids) == 40, "miteruby_event_deduped_sample_t IDs must start after a 40-byte prefix");
+_Static_assert(sizeof(miteruby_event_deduped_sample_t) == 40, "miteruby_event_deduped_sample_t must be 40 bytes");
 
 // When deduplicating stacks, we treat stacks with the same hash as identical.
 //
@@ -52,7 +52,7 @@ _Static_assert(sizeof(miteruby_event_deduped_sample_t) == 48, "miteruby_event_de
 //
 // Design note: If we're worried about collisions, we can use more bits for hash (see for instance
 // https://www.mckusick.com/bookrefs/zfs_dedup.html on how zfs uses sha256 to dedup on-disk storage)
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint64_t hash;
 } miteruby_stack_hash_t;
 

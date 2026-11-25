@@ -8,9 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-// The 16 MiB event queue holds at most 349,525 unique stacks (48 bytes minimum per event), fitting in 524,288 map buckets.
-// 16-byte hash/offset pairs plus metadata need just over 9 MiB.
-#define UNIQUE_STACKS_MAP_MAX_SIZE MiB_AS_BYTES(10)
+// The 16 MiB event queue holds at most 419,430 events (40 bytes minimum per event), fitting in 524,288 map buckets.
+// 12-byte hash/offset pairs plus metadata need just over 7 MiB.
+#define UNIQUE_STACKS_MAP_MAX_SIZE MiB_AS_BYTES(8)
 
 static uint64_t stack_hash_value(miteruby_stack_hash_t key);
 static bool stack_hash_equal(miteruby_stack_hash_t left, miteruby_stack_hash_t right);
@@ -24,6 +24,8 @@ static void *unique_stacks_calloc(size_t size);
 #define MALLOC_FN unique_stacks_calloc
 #define FREE_FN miteruby_allocator_free_sized
 #include "hashtable/verstable.h"
+
+_Static_assert(sizeof(verstable_unique_stacks_map_bucket) == 12, "Stack map buckets must fit a 64-bit hash and 32-bit offset without padding");
 
 // Stack deduping design
 //
@@ -39,9 +41,9 @@ static void *unique_stacks_calloc(size_t size);
 //   * Event 3: [A, B, C, D, 0, 1, 2, 3] (frame_count: 4)
 //
 // * Interned events queue (assuming these locations get IDs 0 through 5):
-//   [ Event 1 | stack_id: 0  | frame_count: 4 | ids_size: 4 | 00 02 02 02 ]
+//   [ Event 1 | stack_id: 0  | frame_count: 4 | ids_size: 4 | 00 02 02 02 | padding ]
 //   [ Event 2 | stack_id: 48 | frame_count: 2 | ids_size: 2 | 08 02 | padding ]
-//   [ Event 3 | stack_id: 0  | frame_count: 0 | ids_size: 0 | padding ]
+//   [ Event 3 | stack_id: 0  | frame_count: 0 | ids_size: 0 ]
 //
 //   Conceptually, those bytes represent:
 //   [ Event 1 | stack_id: 0  | (A, 0) (B, 1) (C, 2) (D, 3) ]
@@ -131,7 +133,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
 
   event->stack.frame_count = frame_count;
   return (miteruby_stack_dedup_result_t) {.ok = {
-    .id = {.offset = events_pos},
+    .id = {.offset = (uint32_t)events_pos},
     .reserved = true,
     .stack = {.frame_count = frame_count, .ids = event->stack.ids, .end = event->stack.ids + max_ids_size},
   }};

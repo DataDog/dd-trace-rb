@@ -135,7 +135,7 @@ The consumer reads positions at byte offset
 
 ```c
 typedef struct {
-  size_t offset;
+  uint32_t offset;
 } miteruby_stack_dedup_id_t;
 
 typedef struct __attribute__((packed)) {
@@ -157,8 +157,8 @@ typedef struct {
 - A new stack stores its frame count, encoded length, and delta-encoded location IDs inline at the end of the sample.
   (The compressed deltas encoding starts from a previous ID of 0 for each stack).
 - A known stack stores its `stack_id` with a zeroed inline stack header and no encoded IDs.
-- `header.size_bytes` includes padding to align the next sample to 8 bytes. Known-stack samples occupy 48 bytes;
-  new-stack samples occupy `round_up(44 + stack.ids_size, 8)` bytes. Padding is ignored.
+- `header.size_bytes` includes padding to align the next sample to 8 bytes. Known-stack samples occupy 40 bytes;
+  new-stack samples occupy `round_up(40 + stack.ids_size, 8)` bytes. Padding is ignored.
 - `stack_id.offset` is the byte offset of the first sample containing the stack in `interned_events_queue`.
   0 is a valid ID. Stack lookup, reservation, and commit live in `stack_dedup.c`, which borrows the consumer's queue.
 - Stack IDs refer to the queue that owns them. Export preparation clears the consumer's stack map before transferring
