@@ -48,7 +48,7 @@ bool miteruby_compressed_deltas_write(uint20_t previous_value, uint20_t current_
   return write_sint32(delta, cursor, end);
 }
 
-bool miteruby_compressed_deltas_read(uint20_t previous_value, uint20_t *current_value, const uint8_t **cursor, const uint8_t *end) {
+extern inline __attribute__((always_inline)) bool miteruby_compressed_deltas_read(uint20_t previous_value, uint20_t *current_value, const uint8_t **cursor, const uint8_t *end) {
   int32_t delta;
   if (!read_sint32(&delta, cursor, end)) return false;
   if (delta < -(int32_t) UINT20_MAX || delta > (int32_t) UINT20_MAX) return false;
