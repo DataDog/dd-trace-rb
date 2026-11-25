@@ -142,31 +142,35 @@ module Datadog
             event.payload[:integrations].each do |integration|
               worker._add_integration(
                 integration[:name], integration[:version].to_s, integration[:enabled],
-                integration[:compatible], integration[:auto_enabled]
+                integration[:compatible], integration[:auto_enabled],
               )
             end
           when Event::AppEndpointsLoaded
             event.payload[:endpoints].each do |endpoint|
               worker._add_endpoint(
-                endpoint[:type], endpoint[:method], endpoint[:path],
-                endpoint[:operation_name], endpoint[:resource_name]
+                endpoint[:method], endpoint[:path], endpoint[:operation_name], endpoint[:resource_name],
               )
             end
+          # The native worker emits these on its own schedule.
           when Event::AppClosing, Event::AppHeartbeat, Event::AppExtendedHeartbeat
-            # Emitted by the native worker on its own schedule.
             nil
           else
             @logger.debug { "Dropping telemetry event #{event.type.inspect}: no native equivalent" }
             nil
           end
+          true
         rescue
           nil
         end
 
         def flush(timeout: nil)
-          return super if @native_worker.nil?
+          worker = @native_worker
+          return super if worker.nil?
 
-          # Native flushes on its internal schedule. There is no flush FFI.
+          # Mailbox messages, processed in order before any later Stop. The
+          # metric aggregates roll first, then the data flush sends them.
+          worker._flush_metrics
+          worker._flush_data
           true
         end
 
@@ -293,8 +297,10 @@ module Datadog
             kernel_name: Core::Environment::Platform.kernel_name,
             kernel_release: Core::Environment::Platform.kernel_release,
             kernel_version: Core::Environment::Platform.kernel_version,
-            heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-            extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
+            # libdatadog has no interval FFI; the native worker reads the
+            # DD_TELEMETRY_HEARTBEAT_INTERVAL and
+            # DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL environment variables.
+            # Code-set intervals apply to the Ruby backend only.
             # Fed to the builder before the worker runs, so app-started
             # carries it without filling the worker's message channel.
             initial_configuration: native_initial_configuration(settings, agent_settings),

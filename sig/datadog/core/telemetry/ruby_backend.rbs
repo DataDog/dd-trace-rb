@@ -26,9 +26,9 @@ module Datadog
 
         def start: (Telemetry::Event::AppStarted initial_event) -> void
 
-        def enqueue: (Event::Base event) -> void
+        def enqueue: (Event::Base event) -> (true | nil)
 
-        def add_log: (Event::Log event) -> void
+        def add_log: (Event::Log event) -> (true | nil)
 
         def flush: (?timeout: Numeric?) -> bool?
 

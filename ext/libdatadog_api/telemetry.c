@@ -61,7 +61,10 @@ static VALUE _native_worker_add_log(
 static VALUE _native_worker_add_config(
     VALUE self, VALUE name, VALUE value, VALUE origin, VALUE config_id, VALUE seq_id);
 static VALUE _native_worker_add_endpoint(
-    VALUE self, VALUE kind, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name);
+    VALUE self, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name);
+static VALUE _native_worker_flush_data(VALUE self);
+static VALUE _native_worker_flush_metrics(VALUE self);
+static bool http_method_string_to_enum(const char *method, long len, ddog_Method *out);
 static VALUE _native_worker_add_dependency(VALUE self, VALUE name, VALUE version);
 static VALUE _native_worker_add_integration(
     VALUE self, VALUE name, VALUE version, VALUE enabled, VALUE compatible, VALUE auto_enabled);
@@ -69,7 +72,6 @@ static VALUE _native_worker_add_integration(
 static bool metric_type_symbol_to_enum(VALUE symbol, ddog_MetricType *out_type);
 static bool namespace_symbol_to_enum(VALUE symbol, ddog_MetricNamespace *out_namespace);
 static bool configuration_origin_symbol_to_enum(VALUE symbol, ddog_ConfigurationOrigin *out_origin);
-static bool float_or_fixnum(VALUE rb_val);
 
 void telemetry_init(VALUE core_module) {
   VALUE telemetry_module = rb_define_module_under(core_module, "Telemetry");
@@ -84,9 +86,11 @@ void telemetry_init(VALUE core_module) {
   rb_define_method(telemetry_worker_class, "_add_point", _native_worker_add_point, 3);
   rb_define_method(telemetry_worker_class, "_add_log", _native_worker_add_log, 4);
   rb_define_method(telemetry_worker_class, "_add_config", _native_worker_add_config, 5);
-  rb_define_method(telemetry_worker_class, "_add_endpoint", _native_worker_add_endpoint, 5);
+  rb_define_method(telemetry_worker_class, "_add_endpoint", _native_worker_add_endpoint, 4);
   rb_define_method(telemetry_worker_class, "_add_dependency", _native_worker_add_dependency, 2);
   rb_define_method(telemetry_worker_class, "_add_integration", _native_worker_add_integration, 5);
+  rb_define_method(telemetry_worker_class, "_flush_data", _native_worker_flush_data, 0);
+  rb_define_method(telemetry_worker_class, "_flush_metrics", _native_worker_flush_metrics, 0);
 
   rb_undef_alloc_func(telemetry_worker_class);
 
@@ -163,9 +167,6 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
   VALUE rb_kernel_name = rb_hash_lookup(options, ID2SYM(rb_intern("kernel_name")));
   VALUE rb_kernel_release = rb_hash_lookup(options, ID2SYM(rb_intern("kernel_release")));
   VALUE rb_kernel_version = rb_hash_lookup(options, ID2SYM(rb_intern("kernel_version")));
-  VALUE rb_heartbeat_interval = rb_hash_lookup(options, ID2SYM(rb_intern("heartbeat_interval_seconds")));
-  VALUE rb_extended_heartbeat_interval =
-      rb_hash_lookup(options, ID2SYM(rb_intern("extended_heartbeat_interval_seconds")));
 
   ENFORCE_TYPE(rb_url, T_STRING);
   ENFORCE_TYPE(rb_timeout_ms, T_FIXNUM);
@@ -182,16 +183,6 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
   if (rb_kernel_name != Qnil) ENFORCE_TYPE(rb_kernel_name, T_STRING);
   if (rb_kernel_release != Qnil) ENFORCE_TYPE(rb_kernel_release, T_STRING);
   if (rb_kernel_version != Qnil) ENFORCE_TYPE(rb_kernel_version, T_STRING);
-  if (rb_heartbeat_interval != Qnil) {
-    if (!float_or_fixnum(rb_heartbeat_interval)) {
-      raise_error(rb_eArgError, "heartbeat_interval_seconds must be a number");
-    }
-  }
-  if (rb_extended_heartbeat_interval != Qnil) {
-    if (!float_or_fixnum(rb_extended_heartbeat_interval)) {
-      raise_error(rb_eArgError, "extended_heartbeat_interval_seconds must be a number");
-    }
-  }
 
   ddog_TelemetryWorkerBuilder *builder = NULL;
   ddog_MaybeError err;
@@ -229,18 +220,6 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
                         "Failed to set telemetry kernel release");
   set_builder_str_field(builder, ddog_telemetry_builder_with_str_host_kernel_version, rb_kernel_version,
                         "Failed to set telemetry kernel version");
-
-  // Optional overrides of the Rust defaults (60s heartbeat, 24h extended).
-  // The heartbeat also drives the metrics and logs flush cadence.
-  if (rb_heartbeat_interval != Qnil) {
-    err = ddog_telemetry_builder_with_heartbeat_interval(builder, NUM2DBL(rb_heartbeat_interval));
-    CHECK_TELEMETRY_ERROR("Failed to set telemetry heartbeat interval", err);
-  }
-  if (rb_extended_heartbeat_interval != Qnil) {
-    err =
-        ddog_telemetry_builder_with_extended_heartbeat_interval(builder, NUM2DBL(rb_extended_heartbeat_interval));
-    CHECK_TELEMETRY_ERROR("Failed to set telemetry extended heartbeat interval", err);
-  }
 
   // Empty api_key and test_token select agent-based submission. Passing false
   // for use_system_resolver keeps libdatadog's fork-safe in-process resolver.
@@ -483,10 +462,6 @@ static bool configuration_origin_symbol_to_enum(VALUE symbol, ddog_Configuration
   return false;
 }
 
-static bool float_or_fixnum(VALUE rb_val) {
-  return RB_FIXNUM_P(rb_val) || RB_FLOAT_TYPE_P(rb_val);
-}
-
 static VALUE _native_worker_add_config(
     VALUE self, VALUE name, VALUE value, VALUE origin, VALUE config_id, VALUE seq_id) {
   ENFORCE_TYPE(name, T_STRING);
@@ -501,14 +476,18 @@ static VALUE _native_worker_add_config(
   }
 
   // All slices borrow from the Ruby strings. The call owns no heap memory.
-  ddog_CharSlice value_slice;
+  // A nil value reports as null on the wire, distinct from an empty string.
+  ddog_Option_CharSlice value_option;
   if (value == Qnil) {
+    value_option = (ddog_Option_CharSlice){.tag = DDOG_OPTION_CHAR_SLICE_NONE_CHAR_SLICE};
+  } else {
     // libdatadog takes a string value. dd-trace-rb configuration values
     // can also be booleans or numbers, and the caller serializes them before
     // this binding.
-    value_slice = (ddog_CharSlice){.ptr = "", .len = 0};
-  } else {
-    value_slice = char_slice_from_ruby_string(value);
+    value_option = (ddog_Option_CharSlice){
+        .tag = DDOG_OPTION_CHAR_SLICE_SOME_CHAR_SLICE,
+        .some = char_slice_from_ruby_string(value),
+    };
   }
   ddog_CharSlice config_id_slice;
   if (config_id == Qnil) {
@@ -526,7 +505,7 @@ static VALUE _native_worker_add_config(
   ddog_MaybeError err = ddog_telemetry_handle_add_config(
       get_worker_handle(self),
       char_slice_from_ruby_string(name),
-      value_slice,
+      value_option,
       origin_enum,
       config_id_slice,
       seq);
@@ -535,26 +514,60 @@ static VALUE _native_worker_add_config(
 }
 
 static VALUE _native_worker_add_endpoint(
-    VALUE self, VALUE kind, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name) {
-  ENFORCE_TYPE(kind, T_STRING);
-  ENFORCE_TYPE(method, T_STRING);
+    VALUE self, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name) {
   ENFORCE_TYPE(path, T_STRING);
   ENFORCE_TYPE(operation_name, T_STRING);
   ENFORCE_TYPE(resource_name, T_STRING);
 
-  // The call passes EndpointData by value, and all its slices borrow from
-  // the Ruby strings. libdatadog owns no heap memory from this call.
-  ddog_EndpointData endpoint = {
-    .kind = char_slice_from_ruby_string(kind),
-    .method = char_slice_from_ruby_string(method),
-    .path = char_slice_from_ruby_string(path),
-    .operation_name = char_slice_from_ruby_string(operation_name),
-    .resource_name = char_slice_from_ruby_string(resource_name),
-  };
+  ddog_Option_Method method_option;
+  if (method == Qnil) {
+    method_option = (ddog_Option_Method){.tag = DDOG_OPTION_METHOD_NONE_METHOD};
+  } else {
+    ENFORCE_TYPE(method, T_STRING);
+    ddog_Method method_enum;
+    if (!http_method_string_to_enum(StringValuePtr(method), RSTRING_LEN(method), &method_enum)) {
+      // The catch-all variant serializes as "*", the OpenAPI any-method marker.
+      method_enum = DDOG_METHOD_OTHER;
+    }
+    method_option = (ddog_Option_Method){
+        .tag = DDOG_OPTION_METHOD_SOME_METHOD,
+        .some = method_enum,
+    };
+  }
 
-  ddog_MaybeError err = ddog_telemetry_handle_add_endpoint(get_worker_handle(self), endpoint);
+  // The call passes slices by value, and all of them borrow from the Ruby
+  // strings. libdatadog owns no heap memory from this call. dd-trace-rb does
+  // not collect body types or response codes yet; empty slices mean unset.
+  ddog_MaybeError err = ddog_telemetry_handle_add_endpoint(
+      get_worker_handle(self),
+      method_option,
+      char_slice_from_ruby_string(path),
+      char_slice_from_ruby_string(operation_name),
+      char_slice_from_ruby_string(resource_name),
+      (ddog_Slice_CharSlice){0},
+      (ddog_Slice_CharSlice){0},
+      (ddog_Slice_U32){0});
   CHECK_TELEMETRY_ERROR("Failed to add telemetry endpoint", err);
   return Qtrue;
+}
+
+static bool http_method_string_to_enum(const char *method, long len, ddog_Method *out) {
+#define METHOD_ENTRY(upper, enum_value) \
+  if (len == sizeof(upper) - 1 && strncmp(method, upper, sizeof(upper) - 1) == 0) { \
+    *out = enum_value; \
+    return true; \
+  }
+  METHOD_ENTRY("GET", DDOG_METHOD_GET)
+  METHOD_ENTRY("POST", DDOG_METHOD_POST)
+  METHOD_ENTRY("PUT", DDOG_METHOD_PUT)
+  METHOD_ENTRY("DELETE", DDOG_METHOD_DELETE)
+  METHOD_ENTRY("PATCH", DDOG_METHOD_PATCH)
+  METHOD_ENTRY("HEAD", DDOG_METHOD_HEAD)
+  METHOD_ENTRY("OPTIONS", DDOG_METHOD_OPTIONS)
+  METHOD_ENTRY("TRACE", DDOG_METHOD_TRACE)
+  METHOD_ENTRY("CONNECT", DDOG_METHOD_CONNECT)
+#undef METHOD_ENTRY
+  return false;
 }
 
 static ddog_Option_Bool tri_state_bool(VALUE rb_val) {
@@ -592,5 +605,17 @@ static VALUE _native_worker_add_integration(
       tri_state_bool(compatible),
       tri_state_bool(auto_enabled));
   CHECK_TELEMETRY_ERROR("Failed to add telemetry integration", err);
+  return Qtrue;
+}
+
+static VALUE _native_worker_flush_data(VALUE self) {
+  ddog_MaybeError err = ddog_telemetry_handle_flush_data(get_worker_handle(self));
+  CHECK_TELEMETRY_ERROR("Failed to flush telemetry data", err);
+  return Qtrue;
+}
+
+static VALUE _native_worker_flush_metrics(VALUE self) {
+  ddog_MaybeError err = ddog_telemetry_handle_flush_metrics(get_worker_handle(self));
+  CHECK_TELEMETRY_ERROR("Failed to flush telemetry metrics", err);
   return Qtrue;
 }

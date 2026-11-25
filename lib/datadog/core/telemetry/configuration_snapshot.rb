@@ -8,8 +8,6 @@ module Datadog
       # Builds the configuration snapshot shared by the app-started event
       # and the native telemetry worker's builder configuration.
       module ConfigurationSnapshot
-        module_function
-
         # `origin`: Source of the configuration. One of:
         # - 1: `default`: set when the user has not set any configuration for the key (defaults to a value)
         # - 2: `local_stable_config`: configuration set via a user-managed file
@@ -18,7 +16,7 @@ module Datadog
         # - 5: `code`: configurations that are set through the customer application
         # - 6: `remote_config`: values that are set using remote config
         # - 7: `unknown`: set for cases where it is difficult/not possible to determine the source of a config.
-        def call(settings, agent_settings)
+        def self.call(settings, agent_settings)
           # Special values that are not tied to a configuration option
           list = [
             conf_value(
@@ -113,7 +111,7 @@ module Datadog
           list
         end
 
-        def agent_transport(agent_settings)
+        def self.agent_transport(agent_settings)
           adapter = agent_settings.adapter
           if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
             "UDS"
@@ -122,15 +120,15 @@ module Datadog
           end
         end
 
-        def conf_value(name, value, precedence)
+        def self.conf_value(name, value, precedence)
           build_conf_value(name, value, precedence.origin, precedence.numeric + 1)
         end
 
-        def unknown_conf_value(name, value)
+        def self.unknown_conf_value(name, value)
           build_conf_value(name, value, "unknown", Configuration::Option::Precedence::LIST.size + 1)
         end
 
-        def build_conf_value(name, value, origin, seq_id)
+        def self.build_conf_value(name, value, origin, seq_id)
           # @type var result: Event::telemetry_configuration
           result = {name: name, value: value, origin: origin, seq_id: seq_id}
 
@@ -145,17 +143,17 @@ module Datadog
           result
         end
 
-        def to_telemetry_value(value)
+        def self.to_telemetry_value(value)
           return value.to_s if value.is_a?(Float)
 
           Telemetry::ConfigurationValue.convert(value)
         end
 
-        def collect_all_configuration_options(settings)
+        def self.collect_all_configuration_options(settings)
           collect_configuration_options_from(settings).concat(collect_integration_configuration_options(settings.tracing))
         end
 
-        def collect_integration_configuration_options(tracing_settings)
+        def self.collect_integration_configuration_options(tracing_settings)
           return [] unless tracing_settings.respond_to?(:instrumented_built_in_integrations)
 
           tracing_settings.instrumented_built_in_integrations.each_with_object([]) do |integration, entries|
@@ -165,7 +163,7 @@ module Datadog
           end
         end
 
-        def collect_configuration_options_from(settings)
+        def self.collect_configuration_options_from(settings)
           settings.class.options.each_key.with_object([]) do |name, options|
             option = settings.send(:resolve_option, name)
             next if option.definition.skip_telemetry
@@ -178,11 +176,11 @@ module Datadog
           end
         end
 
-        def option_telemetry_name(option)
+        def self.option_telemetry_name(option)
           option.definition.env || option.name_with_settings_path
         end
 
-        def resolve_option(settings, config_path)
+        def self.resolve_option(settings, config_path)
           split_option = config_path.split(".")
           option_name = split_option.pop
           raise ArgumentError, "Invalid config path: #{config_path}" if option_name.nil?

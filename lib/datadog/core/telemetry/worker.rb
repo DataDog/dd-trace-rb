@@ -58,6 +58,7 @@ module Datadog
           @shutdown_timeout = shutdown_timeout
           @buffer_size = buffer_size
           @initial_event = nil
+          @start_thread_on_fork = false
 
           initialize_state
         end
@@ -97,6 +98,11 @@ module Datadog
         # but must keep this worker ready to take over in a fork child,
         # where after_fork replays the initial event.
         def prepare_initial_event(initial_event)
+          # When the parent runs its event layer on the native worker, the
+          # Ruby thread was never started, so the fork handler alone cannot
+          # restart it. Children of a native parent must start the Ruby
+          # thread themselves.
+          @start_thread_on_fork = true
           @initial_event = initial_event
         end
 
@@ -306,7 +312,7 @@ module Datadog
           # The parent may run its event layer on the native worker
           # instead of this thread (the native backend), in which case
           # there is no thread reference, but the child must still run.
-          if enabled?
+          if enabled? && (!worker.nil? || @start_thread_on_fork)
             # If the background thread was started in the parent
             # process (which requires telemetry to be enabled), start it.
             # Do this after all of the state resets.

@@ -33,7 +33,7 @@ class FakeAgent
       loop do
         client = begin
           server.accept
-        rescue StandardError
+        rescue
           break
         end
         Thread.new(client) do |c|
@@ -55,11 +55,11 @@ class FakeAgent
             @write_io.write(payload)
             @write_io.flush
           end
-        rescue StandardError # rubocop:disable Lint/SuppressedException
+        rescue # rubocop:disable Lint/SuppressedException
         ensure
           begin
             c.close
-          rescue StandardError
+          rescue
             nil
           end
         end
@@ -85,17 +85,17 @@ class FakeAgent
 
   def stop
     Process.kill("TERM", @pid)
-  rescue StandardError
+  rescue
     nil
   ensure
     begin
       Process.wait(@pid)
-    rescue StandardError
+    rescue
       nil
     end
     begin
       @read_io.close unless @read_io.closed?
-    rescue StandardError
+    rescue
       nil
     end
   end
@@ -133,10 +133,16 @@ Datadog.configure do |c|
 end
 component = Datadog.send(:components).telemetry
 run_scenario(ARGV[1], component)
-# One heartbeat beat, so the native worker flushes pending lifecycle events
-# before the shutdown cancel deadline cuts the final POST in flight.
-sleep 3
-component.shutdown!
+# Two heartbeat beats, so the native worker flushes the scenario's metrics
+# and logs before the shutdown cancel deadline cuts the final POST in flight.
+# Pending data flushes on heartbeat beats only: the stop flush sends
+# app-closing.
+sleep 5
+component.backend.flush
+# The full components shutdown is the production exit path: it enqueues
+# app-closing (the telemetry component shutdown alone does not) and flushes
+# it through the backend.
+Datadog.send(:components).shutdown!
 sleep 1 # both backends deliver the final flush asynchronously
 requests = agent.read_requests
 report = {backend: component.backend.class.name, requests: requests}

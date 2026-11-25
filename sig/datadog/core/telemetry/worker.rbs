@@ -16,6 +16,7 @@ module Datadog
         @sent_started_event: bool
         @shutdown_timeout: Float | Integer
         @buffer_size: Integer
+        @start_thread_on_fork: bool
         @dependency_collection: bool
         @ticks_per_heartbeat: Integer
         @ticks_per_extended_heartbeat: Integer
@@ -34,13 +35,15 @@ module Datadog
 
         def start: (Telemetry::Event::AppStarted initial_event) -> void
 
+        def prepare_initial_event: (Telemetry::Event::AppStarted initial_event) -> void
+
         def sent_initial_event?: () -> bool
 
         def failed_initial_event?: () -> bool
 
         def need_initial_event?: () -> bool
 
-        def enqueue: (Event::Base event) -> void
+        def enqueue: (Event::Base event) -> (true | nil)
 
         def dequeue: () -> Array[Event::Base]
 
