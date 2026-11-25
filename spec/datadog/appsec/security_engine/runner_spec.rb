@@ -209,6 +209,36 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       end
     end
 
+    context "when persist is false" do
+      let(:waf_subcontext) { instance_double(Datadog::AppSec::WAF::Subcontext) }
+      let(:waf_result) do
+        instance_double(
+          Datadog::AppSec::WAF::Result,
+          status: :ok,
+          events: [],
+          actions: {},
+          attributes: {},
+          duration: 100,
+          keep?: false,
+          timeout?: false,
+          input_truncated?: false,
+        )
+      end
+
+      before do
+        allow(waf_context).to receive(:build_subcontext).and_yield(waf_subcontext)
+        allow(waf_subcontext).to receive(:eval).with({"addr.a" => "a"}, 1_000).and_return(waf_result)
+      end
+
+      it "evaluates data in a subcontext" do
+        expect(waf_context).not_to receive(:eval)
+
+        expect(runner.run({"addr.a" => "a"}, 1_000, persist: false))
+          .to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+        expect(waf_subcontext).to have_received(:eval).with({"addr.a" => "a"}, 1_000)
+      end
+    end
+
     context "when run failed with libddwaf error result" do
       before do
         allow(waf_context).to receive(:eval)

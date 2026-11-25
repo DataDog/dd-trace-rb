@@ -211,7 +211,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when request body is nil" do
     before { RestClient.post("http://example.com/application-json", nil, {"Content-Type" => "application/json"}) }
 
-    it "excludes body from ephemeral data" do
+    it "excludes body from evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
@@ -222,7 +222,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
     context "when JSON is valid" do
       before { RestClient.post("http://example.com/application-json", '{"key":"value"}', {"Content-Type" => "application/json"}) }
 
-      it "does not include request body in ephemeral data" do
+      it "does not include request body in evaluation data" do
         expect(context).to have_received(:run_rasp).with(
           "ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request",
         )
@@ -236,7 +236,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
         RestClient.post("http://example.com/application-json", "not json", {"Content-Type" => "application/json"})
       end
 
-      it "does not include body in ephemeral data or report telemetry" do
+      it "does not include body in evaluation data or report telemetry" do
         expect(context).to have_received(:run_rasp)
           .with("ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request")
 
@@ -257,7 +257,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       end
     end
 
-    it "does not include request body in ephemeral data" do
+    it "does not include request body in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
@@ -267,7 +267,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when request content-type is not JSON" do
     before { RestClient.post("http://example.com/application-json", '{"key":"value"}', {"Content-Type" => "text/plain"}) }
 
-    it "does not include request body in ephemeral data" do
+    it "does not include request body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
@@ -278,7 +278,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when request content-type is application/x-www-form-urlencoded" do
     before { RestClient.post("http://example.com/application-json", {key: "value", foo: "bar"}) }
 
-    it "does not include request body in ephemeral data" do
+    it "does not include request body in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
@@ -288,7 +288,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when response body is valid JSON" do
     before { RestClient.post("http://example.com/application-json", nil) }
 
-    it "includes parsed body in ephemeral data" do
+    it "includes parsed body in evaluation data" do
       expect(context).to have_received(:run_rasp).with("ssrf", anything, anything, phase: "request")
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
@@ -307,7 +307,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       RestClient.post("http://example.com/invalid-json", nil)
     end
 
-    it "does not include body in ephemeral data and reports error to telemetry" do
+    it "does not include body in evaluation data and reports error to telemetry" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
 
@@ -319,7 +319,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when response content-type is not JSON" do
     before { RestClient.post("http://example.com/text-plain?z=1", nil) }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -332,7 +332,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when response content-length is missing" do
     before { RestClient.post("http://example.com/application-json-no-content-length", nil) }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -345,7 +345,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when response content-length is zero" do
     before { RestClient.post("http://example.com/application-json-zero-content-length", nil) }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -358,7 +358,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when response content-length is invalid" do
     before { RestClient.post("http://example.com/application-json-invalid-content-length", nil) }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -375,7 +375,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       RestClient.post("http://example.com/application-json-too-big", nil)
     end
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -388,7 +388,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when response content-length is smaller than the body" do
     before { RestClient.post("http://example.com/application-json-content-length-lie", nil) }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -452,17 +452,17 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       # NOTE: RestClient raises exceptions for POST redirects instead of auto-following
     end
 
-    it "does not include request body in ephemeral data" do
+    it "does not include request body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request")
     end
 
-    it "does not include redirect response body in ephemeral data" do
+    it "does not include redirect response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it "includes redirect response status and headers in ephemeral data" do
+    it "includes redirect response status and headers in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf",
         hash_including(
@@ -482,12 +482,12 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       # NOTE: RestClient raises exceptions for POST redirects instead of auto-following
     end
 
-    it "does not include redirect response body in ephemeral data" do
+    it "does not include redirect response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it "includes redirect response status in ephemeral data" do
+    it "includes redirect response status in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.status" => "302"), anything, phase: "response")
     end
@@ -500,7 +500,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       # NOTE: RestClient raises exceptions for POST redirects instead of auto-following
     end
 
-    it "includes response body in ephemeral data since it is not a true redirect" do
+    it "includes response body in evaluation data since it is not a true redirect" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"redirect" => "body"}), anything, phase: "response")
     end
@@ -509,7 +509,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   context "when GET request auto-follows redirect chain" do
     before { RestClient.get("http://example.com/redirect-chain-start") }
 
-    it "includes request URL for each hop in ephemeral data" do
+    it "includes request URL for each hop in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-start"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
@@ -518,14 +518,14 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-finish"), anything, phase: "request")
     end
 
-    it "does not include redirect response bodies in ephemeral data" do
+    it "does not include redirect response bodies in evaluation data" do
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "1"}), anything, phase: "response")
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "2"}), anything, phase: "response")
     end
 
-    it "includes final response body in ephemeral data" do
+    it "includes final response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end
@@ -608,7 +608,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       end
     end
 
-    it "includes final response body in ephemeral data" do
+    it "includes final response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end

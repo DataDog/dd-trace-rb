@@ -20,7 +20,7 @@ module Datadog
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:eval"
         end
 
-        def run(data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT, ephemeral: false)
+        def run(data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT, persist: true)
           @mutex.lock
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
@@ -30,7 +30,7 @@ module Datadog
             v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
-          result = try_run(data, timeout, ephemeral: ephemeral)
+          result = try_run(data, timeout, persist: persist)
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
           report_execution(result)
@@ -70,11 +70,11 @@ module Datadog
 
         private
 
-        def try_run(data, timeout, ephemeral:)
-          if ephemeral
-            waf_context.build_subcontext { |child| child.eval(data, timeout) }
-          else
+        def try_run(data, timeout, persist:)
+          if persist
             waf_context.eval(data, timeout)
+          else
+            waf_context.build_subcontext { |child| child.eval(data, timeout) }
           end
         rescue WAF::LibDDWAFError => e
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e.class}: #{e.message} backtrace: #{e.backtrace&.first(3)}" }

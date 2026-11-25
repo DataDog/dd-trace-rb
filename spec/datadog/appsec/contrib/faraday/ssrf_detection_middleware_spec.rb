@@ -166,7 +166,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when request body is nil" do
     before { client.post("/application-json", nil, {"Content-Type" => "application/json"}) }
 
-    it "excludes body from ephemeral data" do
+    it "excludes body from evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
@@ -177,7 +177,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
     context "when JSON is valid" do
       before { client.post("/application-json", '{"key":"value"}', {"Content-Type" => "application/json"}) }
 
-      it "includes parsed body in ephemeral data" do
+      it "includes parsed body in evaluation data" do
         expect(context).to have_received(:run_rasp).with(
           "ssrf", hash_including("server.io.net.request.body" => {"key" => "value"}), anything, phase: "request",
         )
@@ -191,7 +191,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         client.post("/application-json", "not json", {"Content-Type" => "application/json"})
       end
 
-      it "does not include body in ephemeral data and reports error to telemetry" do
+      it "does not include body in evaluation data and reports error to telemetry" do
         expect(context).to have_received(:run_rasp)
           .with("ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request")
 
@@ -208,12 +208,12 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       client.post("/application-json", "key=value&foo=bar&baz=qux", {"Content-Type" => "application/x-www-form-urlencoded"})
     end
 
-    it "does not include request body in ephemeral data" do
+    it "does not include request body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request")
     end
 
-    it "includes response body in ephemeral data" do
+    it "includes response body in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
       )
@@ -227,7 +227,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when request content-type is not JSON" do
     before { client.post("/application-json", '{"key":"value"}', {"Content-Type" => "text/plain"}) }
 
-    it "does not include request body in ephemeral data" do
+    it "does not include request body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.request.body"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
@@ -238,7 +238,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when request content-type is application/x-www-form-urlencoded" do
     before { client.post("/application-json", "key=value&foo=bar", {"Content-Type" => "application/x-www-form-urlencoded"}) }
 
-    it "includes parsed body in ephemeral data" do
+    it "includes parsed body in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_including("server.io.net.request.body" => {"key" => "value", "foo" => "bar"}), anything, phase: "request",
       )
@@ -248,7 +248,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response body is valid JSON" do
     before { client.post("/application-json") }
 
-    it "includes parsed body in ephemeral data" do
+    it "includes parsed body in evaluation data" do
       expect(context).to have_received(:run_rasp).with("ssrf", anything, anything, phase: "request")
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
@@ -263,7 +263,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response body is valid vendor JSON" do
     before { client.post("/application-vnd-json") }
 
-    it "includes parsed body in ephemeral data" do
+    it "includes parsed body in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf", hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
       )
@@ -273,7 +273,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response body is a form" do
     before { client.post("/application-form") }
 
-    it "includes parsed body in ephemeral data" do
+    it "includes parsed body in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf",
         hash_including("server.io.net.response.body" => {"key" => "value", "foo" => "bar"}),
@@ -290,7 +290,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       client.post("/invalid-json")
     end
 
-    it "does not include body in ephemeral data and reports error to telemetry" do
+    it "does not include body in evaluation data and reports error to telemetry" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
 
@@ -302,7 +302,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response content-type is not JSON" do
     before { client.post("/text-plain?z=1") }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -315,7 +315,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response content-length is missing" do
     before { client.post("/application-json-no-content-length") }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -328,7 +328,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response content-length is zero" do
     before { client.post("/application-json-zero-content-length") }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -341,7 +341,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response content-length is invalid" do
     before { client.post("/application-json-invalid-content-length") }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -358,7 +358,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       client.post("/application-json-too-big")
     end
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -371,7 +371,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response content-length is smaller than the body" do
     before { client.post("/application-json-content-length-lie") }
 
-    it "does not include body in ephemeral data" do
+    it "does not include body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
@@ -441,17 +441,17 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response is 301 redirect with Location header" do
     before { client.post("/redirect-301", '{"key":"value"}', {"Content-Type" => "application/json"}) }
 
-    it "includes request body in ephemeral data" do
+    it "includes request body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.request.body" => {"key" => "value"}), anything, phase: "request")
     end
 
-    it "does not include redirect response body in ephemeral data" do
+    it "does not include redirect response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it "includes redirect response status and headers in ephemeral data" do
+    it "includes redirect response status and headers in evaluation data" do
       expect(context).to have_received(:run_rasp).with(
         "ssrf",
         hash_including(
@@ -467,12 +467,12 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response is 302 redirect with non-JSON content-type" do
     before { client.post("/redirect-302", '{"key":"value"}', {"Content-Type" => "application/json"}) }
 
-    it "does not include redirect response body in ephemeral data" do
+    it "does not include redirect response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it "includes redirect response status in ephemeral data" do
+    it "includes redirect response status in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.status" => "302"), anything, phase: "response")
     end
@@ -481,7 +481,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   context "when response is 301 without Location header" do
     before { client.post("/redirect-no-location", '{"key":"value"}', {"Content-Type" => "application/json"}) }
 
-    it "includes response body in ephemeral data since it is not a true redirect" do
+    it "includes response body in evaluation data since it is not a true redirect" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"redirect" => "body"}), anything, phase: "response")
     end
@@ -496,7 +496,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       client.get("/redirect-chain-finish")
     end
 
-    it "includes request URL for each hop in ephemeral data" do
+    it "includes request URL for each hop in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-start"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
@@ -505,14 +505,14 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-finish"), anything, phase: "request")
     end
 
-    it "does not include redirect response bodies in ephemeral data" do
+    it "does not include redirect response bodies in evaluation data" do
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "1"}), anything, phase: "response")
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "2"}), anything, phase: "response")
     end
 
-    it "includes final response body in ephemeral data" do
+    it "includes final response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end
@@ -551,7 +551,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       end
     end
 
-    it "includes request URL for each hop in ephemeral data" do
+    it "includes request URL for each hop in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-start"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
@@ -560,14 +560,14 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-finish"), anything, phase: "request")
     end
 
-    it "does not include redirect response bodies in ephemeral data" do
+    it "does not include redirect response bodies in evaluation data" do
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "1"}), anything, phase: "response")
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "2"}), anything, phase: "response")
     end
 
-    it "includes final response body in ephemeral data" do
+    it "includes final response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end
@@ -603,7 +603,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       end
     end
 
-    it "includes request URL for each hop in ephemeral data" do
+    it "includes request URL for each hop in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-start"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
@@ -612,14 +612,14 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         .with("ssrf", hash_including("server.io.net.url" => "http://example.com/redirect-chain-finish"), anything, phase: "request")
     end
 
-    it "does not include redirect response bodies in ephemeral data" do
+    it "does not include redirect response bodies in evaluation data" do
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "1"}), anything, phase: "response")
       expect(context).not_to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"hop" => "2"}), anything, phase: "response")
     end
 
-    it "includes final response body in ephemeral data" do
+    it "includes final response body in evaluation data" do
       expect(context).to have_received(:run_rasp)
         .with("ssrf", hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end
