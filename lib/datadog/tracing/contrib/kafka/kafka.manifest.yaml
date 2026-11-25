@@ -1,0 +1,13 @@
+_v: 1
+name: kafka
+display_name: ruby-kafka
+description: Instruments ruby-kafka producer sends, consumer processing and group operations, connection requests, and optional
+  Data Streams Monitoring checkpoints for Apache Kafka.
+packages:
+- name: ruby-kafka
+category:
+- messaging.consumer
+- messaging.producer
+systems:
+- kafka
+creation_date: '2020-06-06'

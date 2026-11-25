@@ -1,0 +1,12 @@
+_v: 1
+name: waterdrop
+display_name: WaterDrop
+description: Instruments WaterDrop Kafka message production with producer spans, optional trace-context propagation, and Data
+  Streams Monitoring checkpoints.
+packages:
+- name: waterdrop
+category:
+- messaging.producer
+systems:
+- kafka
+creation_date: '2025-08-28'
