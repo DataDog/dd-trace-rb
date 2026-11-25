@@ -3012,24 +3012,39 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls).to eq([true])
         end
 
-        it "skips a hit nested in other DI processing and keeps the guard held" do
-          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+        context "with a targeted trace point" do
+          include_context "with code tracking"
 
-          hook_line(probe) do |payload|
-            observed_calls << payload
+          let(:hook_line_targeted_path) { File.join(File.dirname(__FILE__), "hook_line_targeted.rb") }
+
+          before do
+            load hook_line_targeted_path
           end
 
-          guard_after_hit = nil
-          Datadog::DI.enter_probe
-          begin
-            HookLineTestClass.new.test_method
-            guard_after_hit = Datadog::DI.in_probe?
-          ensure
-            Datadog::DI.leave_probe
+          let(:probe) do
+            Datadog::DI::Probe.new(file: "hook_line_targeted.rb", line_no: 13, id: 1, type: :log)
           end
 
-          expect(observed_calls).to be_empty
-          expect(guard_after_hit).to be(true)
+          it "skips a hit nested in other DI processing and keeps the guard held" do
+            target_iseq = code_tracker.iseqs_for_path_suffix(hook_line_targeted_path).last
+            expect_any_instance_of(TracePoint).to receive(:enable).with(target: target_iseq, target_line: 13).and_call_original
+
+            hook_line(probe) do |payload|
+              observed_calls << payload
+            end
+
+            guard_after_hit = nil
+            Datadog::DI.enter_probe
+            begin
+              HookLineTargetedTestClass.new.test_method
+              guard_after_hit = Datadog::DI.in_probe?
+            ensure
+              Datadog::DI.leave_probe
+            end
+
+            expect(observed_calls).to be_empty
+            expect(guard_after_hit).to be(true)
+          end
         end
 
         it "short-circuits a method probe nested in the callback's dispatches" do
