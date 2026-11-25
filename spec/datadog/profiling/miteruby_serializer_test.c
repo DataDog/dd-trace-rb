@@ -68,7 +68,7 @@ static VALUE test_wrap_encoded_profile(ddog_prof_EncodedProfile profile) {
   return from_ddog_prof_EncodedProfile(profile);
 }
 
-static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct) {
+static bool test_pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t type, uint32_t tag) {
   if (during_preparation != NULL) {
     void (*callback)(void) = during_preparation;
     during_preparation = NULL;
@@ -76,6 +76,10 @@ static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
   }
   if (fail_preparation_encoding) rb_raise(rb_eRuntimeError, "Interrupted preparation");
   if (fail_preparation_return) return false;
+  return pb_encode_tag(stream, type, tag);
+}
+
+static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct) {
   if (no_gvl_mode == GATE_DURING && !ruby_thread_has_gvl_p()) pause_no_gvl(NULL);
   return pb_encode(stream, fields, src_struct);
 }
@@ -83,9 +87,11 @@ static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
 #define from_ddog_prof_EncodedProfile test_wrap_encoded_profile
 #define miteruby_allocator_alloc test_allocator_alloc
 #define pb_encode test_pb_encode
+#define pb_encode_tag test_pb_encode_tag
 #define rb_thread_call_without_gvl test_call_without_gvl
 #include "../../../ext/datadog_profiling_native_extension/miteruby/serializer.c"
 #undef rb_thread_call_without_gvl
+#undef pb_encode_tag
 #undef pb_encode
 #undef miteruby_allocator_alloc
 #undef from_ddog_prof_EncodedProfile
@@ -107,6 +113,28 @@ static miteruby_serializer_exit_reason_t prepare_batch(
 ) {
   miteruby_serializer_exit_reason_t reason = serializer_step1_serialize_with_gvl_with_consumer_lock(serializer, queue, size, functions, locations, threads);
   return reason == MITERUBY_SERIALIZER_OK ? serializer_step2_serialize_with_gvl_no_consumer_lock(serializer) : reason;
+}
+
+static void test_location_wire_encoding(void) {
+  const uint64_t ids[] = {0, 1, 127, 128, 16383, 16384, UINT64_MAX};
+  const int64_t lines[] = {0, 1, 127, 128, INT64_MAX, -1, INT64_MIN};
+  for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
+    for (size_t j = 0; j < sizeof(ids) / sizeof(ids[0]); j++) {
+      for (size_t k = 0; k < sizeof(lines) / sizeof(lines[0]); k++) {
+        uint8_t expected[MITERUBY_PPROF_FRAGMENT_LOCATION_SIZE], actual[sizeof(expected)];
+        pb_ostream_t reference = pb_ostream_from_buffer(expected, sizeof(expected));
+        miteruby_pprof_fragment_location_t fragment = {.has_location = true, .location = {
+          .id = ids[i], .has_line = true, .line = {.function_id = ids[j], .line = lines[k]},
+        }};
+        assert(pb_encode(&reference, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment));
+        pb_ostream_t output = pb_ostream_from_buffer(actual, reference.bytes_written);
+        assert(emit_location_fragment(&output, ids[i], ids[j], lines[k]) == MITERUBY_SERIALIZER_OK);
+        assert(output.bytes_written == reference.bytes_written && memcmp(actual, expected, output.bytes_written) == 0);
+        output = pb_ostream_from_buffer(actual, reference.bytes_written - 1);
+        assert(emit_location_fragment(&output, ids[i], ids[j], lines[k]) == MITERUBY_SERIALIZER_LOCATION_ENCODING_ERROR);
+      }
+    }
+  }
 }
 
 static void test_safe_line_lookup(void) {
@@ -709,6 +737,7 @@ int main(int argc, char **argv) {
   encoded_profile_init(profiling);
   private_vm_api_access_init();
   setup_signal_handler_init(profiling);
+  test_location_wire_encoding();
   test_safe_line_lookup();
   test_sample_values();
   test_reuse_after_error();
