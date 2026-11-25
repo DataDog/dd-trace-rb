@@ -3,19 +3,21 @@
 
 require "open3"
 
-# CI check for RBS signatures, run from check.yml.
-# Fails when a pull request adds a leading `::` to a Ruby core class or to the
-# library's own `Datadog` namespace in sig/**/*.rbs, as .agents/skills/write-rbs
-# requires. Only added lines are checked, so signatures that predate the rule
-# never fail the build.
+# CI check for RBS signatures, run by `rake rbs:leading_colon`, which the
+# steep:check task requires. Fails when a pull request adds a leading `::` to a
+# Ruby core class or to the library's own `Datadog` namespace in sig/**/*.rbs,
+# as .agents/skills/write-rbs requires. Only added lines are checked, so
+# signatures that predate the rule never fail the build.
 #
 # The `::` stays legal when an enclosing namespace declares a constant with the
 # same name, for example `Hash` inside `Datadog::Core::Utils`. The check finds
 # those by indexing every declaration in sig/.
 #
-# Run `BASE_REF=master ruby .github/scripts/check/rbs_leading_colon.rb` to check
-# the current branch against origin/master, or add `--self-test` to verify the
-# detection logic.
+# The base branch comes from BASE_REF, or from GITHUB_BASE_REF on pull request
+# runs. Without either, there is nothing to compare against and the check is
+# skipped. Run `BASE_REF=master ruby .github/scripts/check/rbs_leading_colon.rb`
+# to check the current branch against origin/master, or add `--self-test` to
+# verify the detection logic.
 
 # Core classes and modules that need no `require`. Standard-library and
 # third-party names (`::Logger`, `::Rack`) are deliberately absent.
@@ -107,10 +109,44 @@ def parse_added_lines(diff)
   added
 end
 
+def git(*args)
+  Open3.capture3("git", "-c", "core.quotepath=off", "-c", "safe.directory=*", *args)
+end
+
+# Pull request checkouts are shallow, so a merge base needs more history than
+# they carry. Fetching is a no-op on a full clone. Any failure aborts instead of
+# passing, because a check that compared nothing would report success.
+HISTORY_DEPTH = 200
+
+def fetch_history(base_ref)
+  _out, error, status = git(
+    "fetch", "--no-tags", "--depth=#{HISTORY_DEPTH}", "origin", "+refs/heads/#{base_ref}:refs/remotes/origin/#{base_ref}"
+  )
+  abort("Could not fetch origin/#{base_ref}, so nothing was checked: #{error}") unless status.success?
+
+  shallow, _err, _status = git("rev-parse", "--is-shallow-repository")
+  return unless shallow.strip == "true"
+
+  _out, error, status = git("fetch", "--no-tags", "--deepen=#{HISTORY_DEPTH}", "origin")
+  abort("Could not deepen the checkout, so nothing was checked: #{error}") unless status.success?
+end
+
+# Compares against the merge base, so changes that landed on the base branch
+# after this branch started are not mistaken for additions.
+def comparison_point(base_ref)
+  merge_base, _err, status = git("merge-base", "origin/#{base_ref}", "HEAD")
+  return merge_base.strip if status.success?
+
+  fetch_history(base_ref)
+  merge_base, error, status = git("merge-base", "origin/#{base_ref}", "HEAD")
+  abort("No merge base with origin/#{base_ref}, so nothing was checked: #{error}") unless status.success?
+
+  merge_base.strip
+end
+
 def changed_signatures(base_ref)
-  diff, error, status = Open3.capture3(
-    "git", "-c", "core.quotepath=off", "diff", "-U0", "-M", "--diff-filter=AMR",
-    "origin/#{base_ref}...HEAD", "--", "sig/*.rbs"
+  diff, error, status = git(
+    "diff", "-U0", "-M", "--diff-filter=AMR", comparison_point(base_ref), "HEAD", "--", "sig/*.rbs"
   )
   abort("git diff against origin/#{base_ref} failed, so nothing was checked: #{error}") unless status.success?
 
@@ -228,7 +264,11 @@ if ARGV.first == "--self-test"
 end
 
 base_ref = ENV["BASE_REF"].to_s
-abort("BASE_REF is not set. Set it to the pull request base branch, for example BASE_REF=master.") if base_ref.empty?
+base_ref = ENV["GITHUB_BASE_REF"].to_s if base_ref.empty?
+if base_ref.empty?
+  puts "RBS leading :: check skipped: no BASE_REF or GITHUB_BASE_REF, so there is nothing to compare against"
+  exit
+end
 
 changed = changed_signatures(base_ref)
 declared = declared_names(Dir.glob("sig/**/*.rbs").sort.map { |path| File.readlines(path) })
