@@ -23,6 +23,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
     instance_double(
       Datadog::AppSec::SecurityEngine::Result::Ok,
       match?: false,
+      rule_triggered?: false,
       attributes: [],
       actions: {},
       keep?: false,

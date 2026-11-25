@@ -48,11 +48,8 @@ module Datadog
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
-            end
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
 
             # NOTE: RestClient raises exceptions for non-2xx responses. For POST/PUT/PATCH
             #       requests with 3xx redirects, RestClient raises instead of auto-following.
@@ -97,11 +94,8 @@ module Datadog
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
-            end
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
           end
 
           private

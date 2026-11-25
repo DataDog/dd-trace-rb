@@ -15,7 +15,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
     )
   end
   let(:waf_response) do
-    instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false, attributes: {}, keep?: false)
+    instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false, rule_triggered?: false, attributes: {}, keep?: false)
   end
   let(:metrics) do
     instance_double(

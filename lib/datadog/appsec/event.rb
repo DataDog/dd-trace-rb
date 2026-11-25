@@ -33,15 +33,8 @@ module Datadog
       ].freeze
 
       class << self
-        def tag(context, waf_result)
+        def tag(context)
           return if context.span.nil?
-          # libddwaf 2.0 can report a match for attributes alone, without a rule match.
-          # Attribute-only output does not need the appsec.event tag.
-          return if waf_result.events.empty? && waf_result.actions.empty?
-
-          if waf_result.actions.key?("block_request") || waf_result.actions.key?("redirect_request")
-            context.span.set_tag("appsec.blocked", "true")
-          end
 
           context.span.set_tag("appsec.event", "true")
         end

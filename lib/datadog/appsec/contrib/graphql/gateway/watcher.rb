@@ -37,11 +37,8 @@ module Datadog
                     end
 
                     TraceKeeper.keep!(context.trace) if result.keep?
-
-                    if result.match?
-                      AppSec::Event.tag(context, result)
-                      AppSec::ActionsHandler.handle(result.actions)
-                    end
+                    AppSec::Event.tag(context) if result.rule_triggered?
+                    AppSec::ActionsHandler.handle(result.actions) if result.match?
                   end
 
                   stack.call(gateway_multiplex.arguments)

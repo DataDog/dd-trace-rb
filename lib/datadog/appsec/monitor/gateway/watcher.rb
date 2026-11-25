@@ -46,10 +46,8 @@ module Datadog
                   context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                 end
 
-                if result.match?
-                  AppSec::Event.tag(context, result)
-                  AppSec::ActionsHandler.handle(result.actions)
-                end
+                AppSec::Event.tag(context) if result.rule_triggered?
+                AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                 stack.call(user)
               end
@@ -71,10 +69,8 @@ module Datadog
                   context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                 end
 
-                if result.match?
-                  AppSec::Event.tag(context, result)
-                  AppSec::ActionsHandler.handle(result.actions)
-                end
+                AppSec::Event.tag(context) if result.rule_triggered?
+                AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                 stack.call(kind)
               end

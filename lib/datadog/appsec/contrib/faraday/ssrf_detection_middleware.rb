@@ -50,11 +50,8 @@ module Datadog
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
-            end
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
 
             @app.call(env).on_complete { |response_env| on_complete(response_env, context: context) }
           end
@@ -86,11 +83,8 @@ module Datadog
             end
 
             TraceKeeper.keep!(context.trace) if result.keep?
-
-            if result.match?
-              AppSec::Event.tag(context, result)
-              AppSec::ActionsHandler.handle(result.actions)
-            end
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
           end
 
           def mark_body_sampling!(env, context:)

@@ -447,17 +447,6 @@ RSpec.describe Datadog::AppSec::Event do
     let(:with_trace) { true }
     let(:with_span) { true }
 
-    let(:waf_events) { [{"rule" => {"id" => "test-rule"}}] }
-    let(:waf_actions) { {} }
-    let(:waf_result) do
-      dbl = double
-
-      allow(dbl).to receive(:actions).and_return(waf_actions)
-      allow(dbl).to receive(:events).and_return(waf_events)
-
-      dbl
-    end
-
     let(:context) do
       context_trace = nil
       context_span = nil
@@ -480,72 +469,27 @@ RSpec.describe Datadog::AppSec::Event do
       # prevent rate limiter to bias tests
       Datadog::AppSec::RateLimiter.reset!
 
-      described_class.tag(context, waf_result)
+      described_class.tag(context)
     end
 
-    context "with no actions" do
-      it "does not add appsec.blocked tag to span" do
-        expect(context.span.send(:meta)).to_not include("appsec.blocked")
-        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-      end
-    end
-
-    context "without events or actions" do
-      let(:waf_events) { [] }
-
-      it "does not add AppSec event tags to span" do
-        expect(context.span.send(:meta)).to_not include("appsec.event", "appsec.blocked")
-      end
-    end
-
-    context "with block_request action" do
-      let(:waf_events) { [] }
-
-      let(:waf_actions) do
-        {"block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}}
-      end
-
-      it "adds appsec.blocked tag to span" do
-        expect(context.span.send(:meta)["appsec.blocked"]).to eq("true")
-        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-      end
-    end
-
-    context "with redirect_request action" do
-      let(:waf_events) { [] }
-
-      let(:waf_actions) do
-        {"redirect_request" => {"status_code" => "302", "location" => "https://datadoghq.com"}}
-      end
-
-      it "adds appsec.blocked tag to span" do
-        expect(context.span.send(:meta)["appsec.blocked"]).to eq("true")
-        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-      end
+    it "adds only appsec.event tag to span" do
+      expect(context.span.send(:meta)["appsec.event"]).to eq("true")
+      expect(context.span.send(:meta)).to_not include("appsec.blocked")
     end
 
     context "without trace" do
       let(:with_trace) { false }
 
-      context "with no actions" do
-        it "does not add distributed tags but still add appsec span tags" do
-          expect(context.trace).to be nil
-          expect(context.span.send(:meta)["appsec.blocked"]).to be nil
-          expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-        end
+      it "still adds appsec.event tag to span" do
+        expect(context.trace).to be nil
+        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
       end
+    end
 
-      context "with block action" do
-        let(:waf_actions) do
-          {"block_request" => {"grpc_status_code" => "10", "status_core" => "403", "type" => "auto"}}
-        end
+    context "without span" do
+      let(:with_span) { false }
 
-        it "does not add distributed tags but still add appsec span tags" do
-          expect(context.trace).to be nil
-          expect(context.span.send(:meta)["appsec.blocked"]).to eq("true")
-          expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-        end
-      end
+      it { expect(context.span).to be nil }
     end
   end
 end

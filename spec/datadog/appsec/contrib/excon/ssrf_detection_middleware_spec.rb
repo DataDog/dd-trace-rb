@@ -16,7 +16,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
       state: {downstream_body_analyzed_count: 0},
     )
   end
-  let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false, attributes: {}, keep?: false) }
+  let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false, rule_triggered?: false, attributes: {}, keep?: false) }
   let(:metrics) do
     instance_double(
       Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil,
