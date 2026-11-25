@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include "../../../ext/datadog_profiling_native_extension/encoded_profile.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.h"
 #include "../../../ext/datadog_profiling_native_extension/ruby_helpers.h"
@@ -16,13 +17,14 @@
 #include <assert.h>
 
 void setup_signal_handler_init(VALUE profiling_module);
+void encoded_profile_init(VALUE profiling_module);
 RUBY_EXTERN const rb_iseq_t *rb_proc_get_iseq(VALUE proc, int *is_proc);
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 static bool fail_allocations;
 static const char *failed_allocation_name;
 static void (*during_preparation)(void);
-static bool fail_string_allocation;
+static bool fail_profile_wrapping;
 static bool fail_preparation_encoding;
 static bool fail_preparation_return;
 static enum { NO_GATE, GATE_BEFORE, GATE_DURING } no_gvl_mode;
@@ -58,9 +60,12 @@ static void *test_allocator_alloc(size_t size, const char *name) {
   return miteruby_allocator_alloc(size, name);
 }
 
-static VALUE test_str_new(const char *bytes, long size) {
-  if (fail_string_allocation) rb_raise(rb_eRuntimeError, "String allocation failed");
-  return rb_str_new(bytes, size);
+static VALUE test_wrap_encoded_profile(ddog_prof_EncodedProfile profile) {
+  if (fail_profile_wrapping) {
+    ddog_prof_EncodedProfile_drop(&profile);
+    rb_raise(rb_eRuntimeError, "Profile wrapping failed");
+  }
+  return from_ddog_prof_EncodedProfile(profile);
 }
 
 static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct) {
@@ -75,8 +80,7 @@ static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
   return pb_encode(stream, fields, src_struct);
 }
 
-#undef rb_str_new
-#define rb_str_new test_str_new
+#define from_ddog_prof_EncodedProfile test_wrap_encoded_profile
 #define miteruby_allocator_alloc test_allocator_alloc
 #define pb_encode test_pb_encode
 #define rb_thread_call_without_gvl test_call_without_gvl
@@ -84,7 +88,7 @@ static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
 #undef rb_thread_call_without_gvl
 #undef pb_encode
 #undef miteruby_allocator_alloc
-#undef rb_str_new
+#undef from_ddog_prof_EncodedProfile
 
 #define miteruby_allocator_alloc test_allocator_alloc
 #include "../../../ext/datadog_profiling_native_extension/miteruby/consumer.c"
@@ -393,10 +397,6 @@ static VALUE prepare_empty_profile(VALUE serializer) {
   return Qnil;
 }
 
-static VALUE profile_from_custom(VALUE klass, VALUE start, VALUE finish, VALUE bytes) {
-  return bytes;
-}
-
 static VALUE finish_profile_thread(void *serializer) {
   miteruby_consumer_prepare_serialize((VALUE)serializer);
   return INT2FIX(MITERUBY_SERIALIZER_OK);
@@ -500,10 +500,12 @@ static void test_compressed_buffer_lifecycle(void) {
     prepare_empty_profile(serializer);
     assert(miteruby_allocator_currently_allocated_bytes_stat() == idle_bytes);
     uint8_t *previous_buffer = state->compressed_serialization_buffer;
+    VALUE expected_bytes = rb_str_new((const char *) previous_buffer, state->compressed_serialization_size);
     VALUE result = native_serialize(Qnil, serializer);
     assert(state->compressed_serialization_buffer != previous_buffer);
     assert(state->compressed_serialization_buffer[0] == 0);
-    assert(RSTRING_LEN(rb_ary_entry(result, 2)) > 0);
+    VALUE actual_bytes = rb_funcall(rb_ary_entry(result, 2), rb_intern("_native_bytes"), 0);
+    assert(rb_str_equal(actual_bytes, expected_bytes) == Qtrue);
     assert(state->status == SERIALIZER_EMPTY);
     assert(state->compressed_serialization_buffer != NULL);
     assert(state->compressed_serialization_size == 0);
@@ -513,15 +515,17 @@ static void test_compressed_buffer_lifecycle(void) {
   prepare_empty_profile(serializer);
   uint8_t *previous_buffer = state->compressed_serialization_buffer;
   size_t previous_size = state->compressed_serialization_size;
-  fail_string_allocation = true;
+  int64_t lost_finish = state->finish_time_ns;
+  fail_profile_wrapping = true;
   int error = 0;
   rb_protect(serialize_working_profile, serializer, &error);
-  fail_string_allocation = false;
+  fail_profile_wrapping = false;
   assert(error != 0);
   rb_set_errinfo(Qnil);
   assert(state->status == SERIALIZER_EMPTY);
   assert(state->compressed_serialization_buffer == previous_buffer);
   assert(state->compressed_serialization_size == previous_size);
+  assert(state->start_time_ns == lost_finish);
   assert(miteruby_allocator_currently_allocated_bytes_stat() == idle_bytes);
 
   prepare_empty_profile(serializer);
@@ -702,8 +706,7 @@ int main(int argc, char **argv) {
   assert(ruby_exec_node(ruby_options(4, ruby_args)) == 0);
   VALUE datadog = rb_define_module("Datadog");
   VALUE profiling = rb_define_module_under(datadog, "Profiling");
-  VALUE encoded_profile = rb_define_class_under(profiling, "EncodedProfile", rb_cObject);
-  rb_define_singleton_method(encoded_profile, "from_custom", profile_from_custom, 3);
+  encoded_profile_init(profiling);
   private_vm_api_access_init();
   setup_signal_handler_init(profiling);
   test_safe_line_lookup();

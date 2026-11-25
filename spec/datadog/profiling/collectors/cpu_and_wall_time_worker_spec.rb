@@ -113,13 +113,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "prepares streaming profiles with contiguous time intervals" do
-        expect(Datadog::Profiling::EncodedProfile).to receive(:from_custom).twice.and_wrap_original do |original, start, finish, bytes|
-          encoded = original.call(start, finish, bytes)
-          profile = decode_profile(encoded)
-          expect(profile.time_nanos).to eq((start.to_r * 1_000_000_000).to_i)
-          expect(profile.duration_nanos).to eq(((finish.to_r - start.to_r) * 1_000_000_000).to_i)
-          encoded
-        end
         expect(described_class).to receive(:_native_miteruby_consumer_prepare_serialize).with(
           an_instance_of(Datadog::Profiling::Miteruby::Serializer),
         ).twice.and_call_original
@@ -127,9 +120,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         serializer = cpu_and_wall_time_worker.prepare_serialize
 
         expect(serializer).to be_a(Datadog::Profiling::Miteruby::Serializer)
-        encoded = serializer.serialize!
+        start, finish, encoded = serializer.serialize
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
         profile = decode_profile(encoded)
+        expect(profile.time_nanos).to eq((start.to_r * one_second_in_ns).to_i)
+        expect(profile.duration_nanos).to eq(((finish.to_r - start.to_r) * one_second_in_ns).to_i)
         expect(profile.string_table.first(20)).to eq(
           [
             "", "cpu-time", "nanoseconds", "cpu-samples", "count", "wall-time", "alloc-samples", "alloc-samples-unscaled", "timeline",
@@ -150,7 +145,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(profile.time_nanos).to be > 0
         expect(profile.duration_nanos).to be > 0
         expect(cpu_and_wall_time_worker.prepare_serialize).to equal(serializer)
-        next_profile = decode_profile(serializer.serialize!)
+        next_start, next_finish, next_encoded = serializer.serialize
+        next_profile = decode_profile(next_encoded)
+        expect(next_profile.time_nanos).to eq((next_start.to_r * one_second_in_ns).to_i)
+        expect(next_profile.duration_nanos).to eq(((next_finish.to_r - next_start.to_r) * one_second_in_ns).to_i)
         expect(next_profile.time_nanos).to eq(profile.time_nanos + profile.duration_nanos)
         expect(next_profile.duration_nanos).to be > 0
         expect(next_profile.to_h.reject { |key, _| [:time_nanos, :duration_nanos].include?(key) }).to eq(
@@ -2601,26 +2599,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect { serializer.serialize! }
         .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
       expect(recorded_miteruby_samples).to be_empty
-    end
-
-    it "consumes a prepared profile even when constructing the result fails" do
-      described_class._native_miteruby_consumer_prepare_serialize(serializer)
-      lost_finish = nil
-      expect(Datadog::Profiling::EncodedProfile).to receive(:from_custom) do |_start, finish, _bytes|
-        lost_finish = finish
-        expect { serializer.serialize! }
-          .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
-        raise "result construction failed"
-      end
-
-      expect { serializer.serialize! }.to raise_error(RuntimeError, "result construction failed")
-      expect { serializer.serialize! }
-        .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
-
-      allow(Datadog::Profiling::EncodedProfile).to receive(:from_custom).and_call_original
-      described_class._native_miteruby_consumer_prepare_serialize(serializer)
-      start, = serializer.serialize
-      expect(start).to eq(lost_finish)
     end
 
     it "discards the batch on compressed buffer exhaustion and can collect a new profile" do
