@@ -444,8 +444,8 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
       backend.enqueue(event)
 
       expect(native_worker).to have_received(:_add_endpoint)
-        .with("REST", "GET", "/events", "http.request", "GET /events")
-        .with("REST", "POST", "/events", "http.request", "POST /events")
+        .with("GET", "/events", "http.request", "GET /events")
+        .with("POST", "/events", "http.request", "POST /events")
     end
 
     it "drops closing and heartbeat events, emitted by the native worker itself" do
