@@ -501,20 +501,13 @@ static miteruby_serializer_exit_reason_t emit_location_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-static bool encode_tag_and_varint(pb_ostream_t *stream, pb_wire_type_t wire_type, uint32_t tag, uint64_t value) {
-  return pb_encode_tag(stream, wire_type, tag) && pb_encode_varint(stream, value);
-}
-
-static bool encode_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
-  pb_ostream_t sizing = PB_OSTREAM_SIZING;
+static bool __attribute__((flatten)) encode_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
+  uint8_t bytes[10 * count + 1];
+  pb_ostream_t packed = pb_ostream_from_buffer(bytes, sizeof(bytes));
   for (size_t i = 0; i < count; i++) {
-    if (!pb_encode_varint(&sizing, values[i])) return false;
+    if (!pb_encode_varint(&packed, values[i])) return false;
   }
-  if (!encode_tag_and_varint(stream, PB_WT_STRING, tag, sizing.bytes_written)) return false;
-  for (size_t i = 0; i < count; i++) {
-    if (!pb_encode_varint(stream, values[i])) return false;
-  }
-  return true;
+  return pb_encode_tag(stream, PB_WT_STRING, tag) && pb_encode_string(stream, bytes, packed.bytes_written);
 }
 
 static bool encode_sample(
@@ -524,8 +517,11 @@ static bool encode_sample(
   if (!encode_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LOCATION_ID_TAG, location_ids, location_count) ||
       !encode_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_VALUE_TAG, values, value_count)) return false;
   for (size_t i = 0; i < label_count; i++) {
-    if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
-        !pb_encode_submessage(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS, &labels[i])) return false;
+    uint8_t bytes[MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_SIZE];
+    pb_ostream_t label = pb_ostream_from_buffer(bytes, sizeof(bytes));
+    if (!pb_encode(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS, &labels[i]) ||
+        !pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
+        !pb_encode_string(stream, bytes, label.bytes_written)) return false;
   }
   return true;
 }
