@@ -2,8 +2,6 @@
 #include "datadog_ruby_common.h"
 #include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
-#include <stdlib.h>
-#include <string.h>
 
 // This class exists to wrap a ddog_prof_EncodedProfile into a Ruby object
 // This file implements the native bits of the Datadog::Profiling::EncodedProfile class
@@ -94,13 +92,6 @@ VALUE enforce_encoded_profile_instance(VALUE object) {
   return object;
 }
 
-// Temporary HACK for miteruby exports: libdatadog lacks a constructor accepting arbitrary encoded bytes.
-// Serialize an empty profile so libdatadog initializes timestamps and endpoint statistics, then
-// replace its buffer while preserving normal export/drop ownership. This assumes Rust's private
-// Vec layout at the start of the object, checked against libdatadog's bytes API before mutation.
-//
-// @ivoanjo: Added a new API for this in https://github.com/DataDog/libdatadog/pull/2875, we just need to wait for
-// libdatadog v50 to throw this away
 static VALUE from_custom(DDTRACE_UNUSED VALUE self, VALUE start, VALUE end, VALUE bytes_string) {
   if (!rb_obj_is_kind_of(start, rb_cTime) || !rb_obj_is_kind_of(end, rb_cTime)) {
     raise_error(rb_eTypeError, "start and end must be Time objects");
@@ -112,45 +103,14 @@ static VALUE from_custom(DDTRACE_UNUSED VALUE self, VALUE start, VALUE end, VALU
   ddog_Timespec profile_start = {.seconds = start_time.tv_sec, .nanoseconds = start_time.tv_nsec};
   ddog_Timespec profile_end = {.seconds = end_time.tv_sec, .nanoseconds = end_time.tv_nsec};
 
-  // Allocate the Ruby owner first so exceptions cannot leak the native profile.
-  ddog_prof_EncodedProfile *state;
-  VALUE result = TypedData_Make_Struct(encoded_profile_class, ddog_prof_EncodedProfile, &encoded_profile_typed_data, state);
-  ddog_prof_SampleType sample_type = DDOG_PROF_SAMPLE_TYPE_WALL_TIME;
-  ddog_prof_Profile_NewResult profile = ddog_prof_Profile_new(
-    (ddog_prof_Slice_SampleType) {.ptr = &sample_type, .len = 1}, NULL
+  ddog_prof_EncodedProfile_Result encoded = ddog_prof_EncodedProfile_from_bytes(
+    (ddog_ByteSlice) {.ptr = (const uint8_t *) RSTRING_PTR(bytes_string), .len = RSTRING_LEN(bytes_string)},
+    profile_start,
+    profile_end
   );
-  if (profile.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to create profile: %"PRIsVALUE, get_error_details_and_drop(&profile.err));
-  }
-
-  ddog_prof_Profile_SerializeResult encoded = ddog_prof_Profile_serialize(&profile.ok, &profile_start, &profile_end);
-  ddog_prof_Profile_drop(&profile.ok);
-  if (encoded.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to serialize profile: %"PRIsVALUE, get_error_details_and_drop(&encoded.err));
-  }
-  *state = encoded.ok;
-
-  struct {
-    size_t capacity;
-    uint8_t *pointer;
-    size_t length;
-  } buffer;
-  ddog_ByteSlice bytes = get_bytes(state);
-  memcpy(&buffer, state->inner, sizeof(buffer));
-  if (buffer.pointer != bytes.ptr || buffer.length != bytes.len || buffer.capacity < buffer.length || buffer.length == 0) {
-    raise_error(rb_eRuntimeError, "EncodedProfile.from_custom: incompatible libdatadog buffer layout");
-  }
-
-  size_t length = RSTRING_LEN(bytes_string);
-  size_t capacity = length > 0 ? length : 1;
-  // libdatadog uses the system allocator, so this must not use Ruby's allocators.
-  uint8_t *pointer = realloc(buffer.pointer, capacity);
-  if (pointer == NULL) rb_memerror();
-  if (length > 0) memcpy(pointer, RSTRING_PTR(bytes_string), length);
-  buffer.capacity = capacity;
-  buffer.pointer = pointer;
-  buffer.length = length;
-  memcpy(state->inner, &buffer, sizeof(buffer));
   RB_GC_GUARD(bytes_string);
-  return result;
+  if (encoded.tag == DDOG_PROF_ENCODED_PROFILE_RESULT_ERR_HANDLE_ENCODED_PROFILE) {
+    raise_error(rb_eRuntimeError, "Failed to create encoded profile: %"PRIsVALUE, get_error_details_and_drop(&encoded.err));
+  }
+  return from_ddog_prof_EncodedProfile(encoded.ok);
 }
