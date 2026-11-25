@@ -195,3 +195,6 @@
 
 # CI guard
 /.github/workflows/team-freeze-guard.yml @DataDog/lang-platform-ruby
+
+# Instrumentation manifests
+/lib/datadog/**/*.manifest.yaml @DataDog/apm-idm-ruby

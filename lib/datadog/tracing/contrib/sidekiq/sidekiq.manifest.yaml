@@ -1,0 +1,12 @@
+_v: 1
+name: sidekiq
+display_name: Sidekiq
+description: Instruments Sidekiq job enqueueing and execution, with optional distributed trace-context propagation and version-gated
+  server-internal lifecycle tracing.
+packages:
+- name: sidekiq
+category:
+- messaging.consumer
+- messaging.producer
+systems: []
+creation_date: '2017-02-24'

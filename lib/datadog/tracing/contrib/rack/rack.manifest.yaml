@@ -1,0 +1,11 @@
+_v: 1
+name: rack
+display_name: Rack
+description: Instruments Rack HTTP server requests, optional upstream-proxy queue timing and inferred AWS API Gateway proxy
+  spans, App and API Protection request analysis and blocking, and AI Guard request-context capture.
+packages:
+- name: rack
+category:
+- http.server
+systems: []
+creation_date: '2017-04-13'
