@@ -84,3 +84,6 @@ namespace :steep do
 end
 
 task typecheck: :"steep:check"
+
+# Signature style rules that Steep cannot check run first, so a typecheck run reports them too.
+task "steep:check" => "rbs:leading_colon"
