@@ -282,28 +282,28 @@ static void test_empty_stack_before_nonempty(void) {
   miteruby_event_stack_sample_t *event = &storage.event;
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, true).offset == 0);
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, false).offset == 0);
-  assert(consumer_state.interned_events_pos == 48);
+  assert(consumer_state.interned_events_pos == 40);
   assert(get_stack((miteruby_stack_dedup_id_t) {.offset = 0}).frame_count == 0);
 
   event->header.frame_count = 1;
   bytecode_positions_for(event)[0].value = 7;
-  assert(assert_dedup(event, true).offset == 48);
-  assert(consumer_state.interned_events_pos == 96);
-  miteruby_stack_t stored = get_stack((miteruby_stack_dedup_id_t) {.offset = 48});
+  assert(assert_dedup(event, true).offset == 40);
+  assert(consumer_state.interned_events_pos == 88);
+  miteruby_stack_t stored = get_stack((miteruby_stack_dedup_id_t) {.offset = 40});
   assert(stored.frame_count == 1);
   assert(stack_location_id(stored, 0).value.value == 7);
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, false).offset == 0);
   assert(get_stack((miteruby_stack_dedup_id_t) {.offset = 0}).frame_count == 0);
-  assert(assert_dedup(event, false).offset == 48);
-  assert(consumer_state.interned_events_pos == 96);
+  assert(assert_dedup(event, false).offset == 40);
+  assert(consumer_state.interned_events_pos == 88);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
   event->header.frame_count = 2;
   bytecode_positions_for(event)[0].value = 9;
   bytecode_positions_for(event)[1].value = 8;
-  assert(assert_dedup(event, true).offset == 96);
-  stored = get_stack((miteruby_stack_dedup_id_t) {.offset = 96});
+  assert(assert_dedup(event, true).offset == 88);
+  stored = get_stack((miteruby_stack_dedup_id_t) {.offset = 88});
   assert(stack_location_id(stored, 0).value.value == 9 && stack_location_id(stored, 1).value.value == 9);
-  assert(consumer_state.interned_events_pos == 144);
+  assert(consumer_state.interned_events_pos == 136);
   reset_stacks();
 }
 
@@ -355,7 +355,7 @@ static void test_stack_identity(void) {
   miteruby_stack_dedup_id_t empty = assert_dedup(event, true);
   assert(empty.offset == used);
   assert(assert_dedup(event, false).offset == empty.offset);
-  assert(consumer_state.interned_events_pos == used + 48);
+  assert(consumer_state.interned_events_pos == used + 40);
   assert(get_stack(empty).frame_count == 0);
   assert(get_stack(first).frame_count == 2);
 }
@@ -541,7 +541,7 @@ static void test_fixed_array_capacity(void) {
   miteruby_event_stack_sample_t *event = &full_storage.event;
   event->header.frame_count = frame_count;
   miteruby_bytecode_pos_t *bytecode_positions = bytecode_positions_for(event);
-  size_t compact_stack_size = 1848;
+  size_t compact_stack_size = 1840;
   uint16_t bytecode_pos = 0;
   while (INTERNED_EVENTS_QUEUE_MAX_SIZE - consumer_state.interned_events_pos >= compact_stack_size) {
     bytecode_positions[0].value = bytecode_pos++;
@@ -641,11 +641,12 @@ static void test_compact_events_and_reset(void) {
   assert(miteruby_allocator_currently_allocated_bytes_stat() == allocated_bytes);
   bytecode_positions_for(event)[0].value--;
 
-  for (size_t i = 0; i < capacity; i++) {
-    const miteruby_event_deduped_sample_t *deduped = (const miteruby_event_deduped_sample_t *)(queue + i * sizeof(*deduped));
+  for (size_t i = 0, pos = 0; i < capacity; i++) {
+    const miteruby_event_deduped_sample_t *deduped = (const miteruby_event_deduped_sample_t *)(queue + pos);
+    pos += deduped->header.size_bytes;
     assert(deduped->stack.frame_count == (i == 0 ? 2 : 0));
     assert(deduped->stack.ids_size == (i == 0 ? 2 : 0));
-    assert(deduped->header.size_bytes == sizeof(*deduped));
+    assert(deduped->header.size_bytes == (i == 0 ? 48 : 40));
     assert(deduped->header.frame_count == 2);
     assert(deduped->header.stack_truncated == event->header.stack_truncated);
     assert(deduped->header.timestamp.ns == (long)(123 + i));
@@ -1157,17 +1158,17 @@ static void test_compressed_stack_storage(void) {
   miteruby_stack_t stored = get_stack(result.ok.id);
   assert((size_t) (stored.end - stored.ids) == sizeof(expected));
   assert(memcmp(stored.ids, expected, sizeof(expected)) == 0);
-  assert(consumer_state.interned_events_pos == 64);
+  assert(consumer_state.interned_events_pos == 56);
   for (uint16_t i = 0; i < 7; i++) assert(stack_location_id(stored, i).value.value == values[i].value);
 
   hash.hash++;
   result = reserve_stack(1, hash);
-  assert(!result.error_storage_full && result.ok.reserved && result.ok.id.offset == 64);
+  assert(!result.error_storage_full && result.ok.reserved && result.ok.id.offset == 56);
   cursor = result.ok.stack.ids;
   assert(miteruby_compressed_deltas_write((uint20_t) {0}, (uint20_t) {.value = 1}, &cursor, result.ok.stack.end));
   assert(commit_stack(result.ok.id, hash, cursor));
   assert(stack_location_id(get_stack(result.ok.id), 0).value.value == 1);
-  assert(consumer_state.interned_events_pos == 112);
+  assert(consumer_state.interned_events_pos == 104);
   assert(stack_location_id(stored, 6).value.value == 8192);
   size_t pos = consumer_state.interned_events_pos;
   size_t capacity = pos + sizeof(miteruby_event_deduped_sample_t);
@@ -1176,7 +1177,7 @@ static void test_compressed_stack_storage(void) {
   result = miteruby_stack_dedup_get_or_reserve(7, (miteruby_stack_hash_t) {.hash = 1}, consumer_state.interned_events_queue, pos, capacity);
   assert(!result.error_storage_full && !result.ok.reserved && result.ok.id.offset == 0);
   miteruby_event_deduped_sample_t *duplicate = (miteruby_event_deduped_sample_t *)(consumer_state.interned_events_queue + pos);
-  assert(duplicate->header.size_bytes == 48 && duplicate->stack.frame_count == 0 && duplicate->stack.ids_size == 0);
+  assert(duplicate->header.size_bytes == 40 && duplicate->stack.frame_count == 0 && duplicate->stack.ids_size == 0);
   assert(stack_location_id(get_stack(result.ok.id), 6).value.value == 8192);
   reset_stacks();
 }
