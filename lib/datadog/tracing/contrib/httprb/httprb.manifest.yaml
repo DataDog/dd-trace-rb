@@ -1,0 +1,10 @@
+_v: 1
+name: httprb
+display_name: http.rb
+description: Instruments http.rb outbound HTTP requests, creating client spans and propagating distributed trace context.
+packages:
+- name: http
+category:
+- http.client
+systems: []
+creation_date: '2019-11-05'
