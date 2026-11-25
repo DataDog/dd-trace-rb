@@ -1,0 +1,11 @@
+_v: 1
+name: pg
+display_name: Postgres
+description: Instruments PostgreSQL queries issued through the pg gem and optionally injects SQL comments for database monitoring.
+packages:
+- name: pg
+category:
+- db.client
+systems:
+- postgresql
+creation_date: '2022-06-02'

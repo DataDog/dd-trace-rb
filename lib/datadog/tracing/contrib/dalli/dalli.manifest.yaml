@@ -1,0 +1,11 @@
+_v: 1
+name: dalli
+display_name: Dalli
+description: Instruments Dalli client cache operations against Memcached servers, optionally capturing commands as span tags.
+packages:
+- name: dalli
+category:
+- db.client
+systems:
+- memcached
+creation_date: '2017-09-25'

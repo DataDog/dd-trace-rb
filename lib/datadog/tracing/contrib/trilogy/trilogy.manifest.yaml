@@ -1,0 +1,12 @@
+_v: 1
+name: trilogy
+display_name: Trilogy
+description: Instruments SQL queries through the Trilogy MySQL client and optionally injects trace-context comments for Database
+  Monitoring.
+packages:
+- name: trilogy
+category:
+- db.client
+systems:
+- mysql
+creation_date: '2024-01-23'

@@ -1,0 +1,11 @@
+_v: 1
+name: sequel
+display_name: Sequel
+description: Instruments Sequel database and dataset SQL queries, including raw, data-definition, data-manipulation, and prepared-statement
+  operations.
+packages:
+- name: sequel
+category:
+- db.client
+systems: []
+creation_date: '2017-07-21'

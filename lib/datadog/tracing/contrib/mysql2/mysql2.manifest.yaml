@@ -1,0 +1,12 @@
+_v: 1
+name: mysql2
+display_name: MySQL2
+description: Instruments SQL queries made through the MySQL2 client and optionally injects trace-context comments for Database
+  Monitoring.
+packages:
+- name: mysql2
+category:
+- db.client
+systems:
+- mysql
+creation_date: '2018-06-09'
