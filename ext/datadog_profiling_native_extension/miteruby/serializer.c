@@ -501,6 +501,10 @@ static miteruby_serializer_exit_reason_t emit_location_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
+static bool encode_label_field(pb_ostream_t *stream, uint32_t tag, uint64_t value) {
+  return value == 0 || (pb_encode_tag(stream, PB_WT_VARINT, tag) && pb_encode_varint(stream, value));
+}
+
 static bool __attribute__((flatten)) encode_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
   uint8_t bytes[10 * count + 1];
   pb_ostream_t packed = pb_ostream_from_buffer(bytes, sizeof(bytes));
@@ -519,7 +523,9 @@ static bool encode_sample(
   for (size_t i = 0; i < label_count; i++) {
     uint8_t bytes[MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_SIZE];
     pb_ostream_t label = pb_ostream_from_buffer(bytes, sizeof(bytes));
-    if (!pb_encode(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS, &labels[i]) ||
+    if (!encode_label_field(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_KEY_TAG, labels[i].key) ||
+        !encode_label_field(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_STR_TAG, labels[i].str) ||
+        !encode_label_field(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_NUM_TAG, labels[i].num) ||
         !pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
         !pb_encode_string(stream, bytes, label.bytes_written)) return false;
   }
