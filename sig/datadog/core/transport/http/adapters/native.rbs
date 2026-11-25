@@ -6,7 +6,21 @@ module Datadog
           class Native
             UDS_PLACEHOLDER_BASE_URL: String
 
+            FORK_GUARD: InFlight
+
+            REGISTER_FORK_HOOKS_MUTEX: Thread::Mutex
+
+            self.@fork_hooks_registered: bool?
+
             @client: untyped
+
+            @in_flight: InFlight
+
+            def self.unsupported_reason: () -> String?
+
+            def self.supported?: () -> bool
+
+            def self.register_fork_hooks: () -> bool
 
             attr_reader base_url: String
 
@@ -20,11 +34,15 @@ module Datadog
 
             def call: (untyped env) -> Response
 
-            def close: () -> untyped
+            def close: () -> nil
 
             def url: () -> String
 
             private
+
+            def create_client: () -> untyped
+
+            def send_request: (Hash[Symbol, untyped] request) -> Array[untyped]
 
             def multipart?: (untyped env) -> bool
 
@@ -64,12 +82,44 @@ module Datadog
               def internal_error?: () -> bool
             end
 
+            class InFlight
+              class Closed < StandardError
+              end
+
+              @mutex: Thread::Mutex
+
+              @condition: Thread::ConditionVariable
+
+              @active: Integer
+
+              @pauses: Integer
+
+              @closed: bool
+
+              def initialize: () -> void
+
+              def track: [T] () { () -> T } -> T
+
+              def pause: () -> nil
+
+              def resume: () -> nil
+
+              def close: () -> bool
+            end
+
+            # Defined by the `libdatadog_api` C extension (ext/libdatadog_api/http_client.c).
             class Client
               def self._native_new: (Hash[Symbol, untyped] config) -> Client
 
+              def self._native_before_fork: () -> nil
+
+              def self._native_after_fork_in_parent: () -> nil
+
+              def self._native_after_fork_in_child: () -> nil
+
               def _native_send: (Hash[Symbol, untyped] request) -> Array[untyped]
 
-              def _native_close: () -> untyped
+              def _native_close: () -> nil
             end
           end
         end

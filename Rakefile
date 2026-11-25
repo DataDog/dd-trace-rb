@@ -45,6 +45,13 @@ NATIVE_TRANSPORT_SPECS = [
   "spec/datadog/tracing/transport/native/**/*_spec.rb",
 ].freeze
 
+# Native HTTP adapter integration specs. They need the libdatadog_api extension built with a libdatadog that
+# includes the HTTP client, and they fork with live native clients (and so the runtime they share), so they run in
+# their own process like NATIVE_TRANSPORT_SPECS.
+NATIVE_HTTP_SPECS = [
+  "spec/datadog/core/transport/http/adapters/native_integration_spec.rb",
+].freeze
+
 DI_WITH_EXT = %w[
   spec/datadog/di/*_spec.rb
   spec/datadog/di/**/*_spec.rb
@@ -99,7 +106,7 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :native_transport, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :native_transport, :native_http, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -114,7 +121,8 @@ namespace :spec do
                         " spec/datadog/di/**/*_spec.rb," \
                         " spec/datadog/gem_packaging_spec.rb," \
                         + CORE_WITH_LIBDATADOG_API.join(", ") + ", " \
-                        + NATIVE_TRANSPORT_SPECS.join(", ")
+                        + NATIVE_TRANSPORT_SPECS.join(", ") + ", " \
+                        + NATIVE_HTTP_SPECS.join(", ")
     t.rspec_opts = args.to_a.join(" ")
   end
 
@@ -306,6 +314,15 @@ namespace :spec do
   # run in their own process (see NATIVE_TRANSPORT_SPECS) to avoid sharing with
   # the fork-heavy ProcessDiscovery specs.
   Rake::Task["spec:native_transport"].enhance([:compile])
+
+  desc "" # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:native_http) do |t, args|
+    t.pattern = NATIVE_HTTP_SPECS.join(", ")
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  # Needs the libdatadog_api extension; own process, see NATIVE_HTTP_SPECS.
+  Rake::Task["spec:native_http"].enhance([:compile])
 
   desc "Run native transport cleanup specs with memory leak checking"
   if Gem.loaded_specs.key?("ruby_memcheck")
