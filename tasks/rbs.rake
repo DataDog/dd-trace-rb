@@ -90,6 +90,11 @@ namespace :rbs do
     end
   end
 
+  desc "Fail when a changed sig/*.rbs line adds a leading :: to a core class or Datadog (skipped without BASE_REF or GITHUB_BASE_REF)"
+  task :leading_colon do
+    sh "ruby", ".github/scripts/check/rbs_leading_colon.rb"
+  end
+
   desc "Delete stale sig/*.rbs files whose matching lib/*.rb no longer exists"
   task :clean do |_task, args|
     glob = args.to_a.map { |g| /\.rbs$/.match?(g) ? g : "#{g}/**/*.rbs" }
