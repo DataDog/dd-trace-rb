@@ -1,0 +1,13 @@
+_v: 1
+name: rails
+display_name: Rails
+description: Instruments Rails HTTP requests and runner execution, enriches Rails logs, and applies App and API Protection
+  plus request attributes for AI Guard evaluation.
+packages:
+- name: railties
+category:
+- cli.internal
+- http.server
+- log.emission
+systems: []
+creation_date: '2016-10-06'

@@ -1,0 +1,10 @@
+_v: 1
+name: action_pack
+display_name: Action Pack
+description: Instruments Action Pack controller processing for inbound HTTP requests and enriches traces with resolved routes.
+packages:
+- name: actionpack
+category:
+- http.server
+systems: []
+creation_date: '2019-08-16'
