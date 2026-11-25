@@ -395,19 +395,23 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     include_examples "correctly reports profiling data"
 
-    context "with a custom encoded profile" do
-      let(:start) { Time.at(1_700_000_001, 123_456_789, :nanosecond).utc }
-      let(:finish) { Time.at(1_700_000_067, 987_654_321, :nanosecond).utc }
-      let(:encoded_profile) { Datadog::Profiling::EncodedProfile.from_custom(start, finish, "custom\x00\xffpayload".b) }
+    context "with a miteruby profile" do
+      let(:serialize_result) do
+        serializer = Datadog::Profiling::Miteruby::Serializer.new
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_miteruby_consumer_prepare_serialize(serializer)
+        serializer.serialize
+      end
+      let(:start_timestamp) { start.getutc.iso8601(9) }
+      let(:end_timestamp) { finish.getutc.iso8601(9) }
 
-      it "exports the custom bytes unchanged without endpoint stats" do
+      it "exports the miteruby bytes unchanged without endpoint stats" do
         expect(http_transport.export(flush)).to be true
 
         boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(body.fetch(pprof_file_name)).to eq("custom\x00\xffpayload".b)
+        expect(body.fetch(pprof_file_name)).to eq(encoded_profile_bytes)
         expect(event_data.fetch("endpoint_counts")).to be_nil
         expect(event_data.fetch("start")).to eq(start_timestamp)
         expect(event_data.fetch("end")).to eq(end_timestamp)

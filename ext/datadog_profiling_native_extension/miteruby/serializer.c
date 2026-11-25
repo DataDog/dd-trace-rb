@@ -5,6 +5,7 @@
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
 #include "../datadog_ruby_common.h"
+#include "../encoded_profile.h"
 #include "../helpers.h"
 #include "../private_vm_api_access.h"
 #include "../time_helpers.h"
@@ -833,17 +834,22 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   if (state->status != SERIALIZER_FINISHED) rb_raise(rb_eRuntimeError, "Streaming profile must be prepared before serialization");
   state->status = SERIALIZER_EMPTY;
-  long start_time_ns = state->start_time_ns;
-  long finish_time_ns = state->finish_time_ns;
+  int64_t start_time_ns = state->start_time_ns;
+  int64_t finish_time_ns = state->finish_time_ns;
   state->start_time_ns = finish_time_ns;
-  VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, state->compressed_serialization_size);
+  ddog_Timespec profile_start = {.seconds = start_time_ns / SECONDS_AS_NS(1), .nanoseconds = start_time_ns % SECONDS_AS_NS(1)};
+  ddog_Timespec profile_end = {.seconds = finish_time_ns / SECONDS_AS_NS(1), .nanoseconds = finish_time_ns % SECONDS_AS_NS(1)};
+
+  ddog_ByteSlice bytes = {.ptr = state->compressed_serialization_buffer, .len = state->compressed_serialization_size};
+  ddog_prof_EncodedProfile_Result encoded = ddog_prof_EncodedProfile_from_bytes(bytes, profile_start, profile_end);
+  if (encoded.tag == DDOG_PROF_ENCODED_PROFILE_RESULT_ERR_HANDLE_ENCODED_PROFILE) {
+    raise_error(rb_eRuntimeError, "Failed to create encoded profile: %"PRIsVALUE, get_error_details_and_drop(&encoded.err));
+  }
+  VALUE profile = from_ddog_prof_EncodedProfile(encoded.ok);
   reset_compressed_buffer(state);
-
-  VALUE start = rb_time_nano_new(start_time_ns / SECONDS_AS_NS(1), start_time_ns % SECONDS_AS_NS(1));
-  VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
-
-  VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
-  result = rb_ary_new_from_args(4, start, finish, result, rb_hash_new());
+  VALUE start = rb_time_nano_new(profile_start.seconds, profile_start.nanoseconds);
+  VALUE finish = rb_time_nano_new(profile_end.seconds, profile_end.nanoseconds);
+  VALUE result = rb_ary_new_from_args(4, start, finish, profile, rb_hash_new());
   RB_GC_GUARD(serializer);
   return result;
 }

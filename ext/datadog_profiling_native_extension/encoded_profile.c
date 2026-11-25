@@ -8,7 +8,6 @@
 
 static void encoded_profile_typed_data_free(void *state_ptr);
 static VALUE _native_bytes(VALUE self);
-static VALUE from_custom(VALUE self, VALUE start, VALUE end, VALUE bytes_string);
 
 static VALUE encoded_profile_class = Qnil;
 
@@ -19,7 +18,6 @@ void encoded_profile_init(VALUE profiling_module) {
   rb_global_variable(&encoded_profile_class);
 
   rb_define_method(encoded_profile_class, "_native_bytes", _native_bytes, 0);
-  rb_define_singleton_method(encoded_profile_class, "from_custom", from_custom, 3);
 }
 
 // This structure is used to define a Ruby object that stores a `ddog_prof_EncodedProfile`
@@ -90,27 +88,4 @@ static VALUE _native_bytes(VALUE self) {
 VALUE enforce_encoded_profile_instance(VALUE object) {
   ENFORCE_TYPED_DATA(object, &encoded_profile_typed_data);
   return object;
-}
-
-static VALUE from_custom(DDTRACE_UNUSED VALUE self, VALUE start, VALUE end, VALUE bytes_string) {
-  if (!rb_obj_is_kind_of(start, rb_cTime) || !rb_obj_is_kind_of(end, rb_cTime)) {
-    raise_error(rb_eTypeError, "start and end must be Time objects");
-  }
-  ENFORCE_TYPE(bytes_string, T_STRING);
-
-  struct timespec start_time = rb_time_timespec(start);
-  struct timespec end_time = rb_time_timespec(end);
-  ddog_Timespec profile_start = {.seconds = start_time.tv_sec, .nanoseconds = start_time.tv_nsec};
-  ddog_Timespec profile_end = {.seconds = end_time.tv_sec, .nanoseconds = end_time.tv_nsec};
-
-  ddog_prof_EncodedProfile_Result encoded = ddog_prof_EncodedProfile_from_bytes(
-    (ddog_ByteSlice) {.ptr = (const uint8_t *) RSTRING_PTR(bytes_string), .len = RSTRING_LEN(bytes_string)},
-    profile_start,
-    profile_end
-  );
-  RB_GC_GUARD(bytes_string);
-  if (encoded.tag == DDOG_PROF_ENCODED_PROFILE_RESULT_ERR_HANDLE_ENCODED_PROFILE) {
-    raise_error(rb_eRuntimeError, "Failed to create encoded profile: %"PRIsVALUE, get_error_details_and_drop(&encoded.err));
-  }
-  return from_ddog_prof_EncodedProfile(encoded.ok);
 }
