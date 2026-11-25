@@ -10,6 +10,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/zstd.c"
+
 #undef NDEBUG
 #include <assert.h>
 

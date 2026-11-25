@@ -1,0 +1,7 @@
+# mkmf reads this file when generating the extension's Makefile. These dependencies tell make
+# to rebuild miteruby_unity.o when a source or header included by miteruby_unity.c changes.
+
+# mkmf skips its default header dependency rule when a depend file exists, so repeat it here.
+$(OBJS): $(HDRS) $(ruby_headers)
+
+miteruby_unity.o: $(srcdir)/miteruby/*.c $(srcdir)/miteruby/pprof/*.c $(srcdir)/miteruby/pprof/*.h

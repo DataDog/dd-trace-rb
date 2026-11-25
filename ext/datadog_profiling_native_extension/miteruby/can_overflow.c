@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include "can_overflow.h"
 
 #include <stdint.h>
@@ -16,7 +15,7 @@
   #error "The stack probe requires Linux or macOS"
 #endif
 
-static size_t system_page_size = 0;
+static size_t can_overflow_page_size = 0;
 
 bool miteruby_init_can_overflow(void) {
 #if defined(__APPLE__)
@@ -31,16 +30,16 @@ bool miteruby_init_can_overflow(void) {
   size_t page_size = (size_t) configured_page_size;
   uintptr_t page = (uintptr_t) &page_size & -page_size;
   if (posix_madvise((void *) page, page_size, STACK_ADVICE) != 0) return false;
-  system_page_size = page_size;
+  can_overflow_page_size = page_size;
   return true;
 }
 
 __attribute__((noinline)) bool miteruby_can_overflow(size_t stack_bytes) {
-  if (system_page_size == 0) return false;
+  if (can_overflow_page_size == 0) return false;
 
   // This needs noinline because inlining would give us the caller's frame pointer.
   uintptr_t frame = (uintptr_t) __builtin_frame_address(0);
   if (stack_bytes > frame) return true;
-  uintptr_t start = (frame - stack_bytes) & -system_page_size;
+  uintptr_t start = (frame - stack_bytes) & -can_overflow_page_size;
   return posix_madvise((void *) start, frame - start, STACK_ADVICE) != 0;
 }

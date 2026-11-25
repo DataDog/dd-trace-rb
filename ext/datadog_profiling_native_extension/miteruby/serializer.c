@@ -4,7 +4,6 @@
 #include "compressed_deltas.h"
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
-#include "pprof/zstd.h"
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
 #include "../private_vm_api_access.h"

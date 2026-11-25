@@ -240,14 +240,7 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
-# Configure miteruby folders for building with Make.
-$srcs = Dir["#{$srcdir}/*.c"]
-["miteruby", "miteruby/pprof", "miteruby/hashtable"].each do |directory|
-  $srcs.concat(Dir["#{$srcdir}/#{directory}/*.c"])
-  $headers.concat(Dir["#{$srcdir}/#{directory}/*.h"])
-  $VPATH.concat(["$(srcdir)/#{directory}"])
-end
-
+$headers.concat(Dir["#{$srcdir}/miteruby/*.h", "#{$srcdir}/miteruby/hashtable/*.h"])
 create_header
 
 # We rely on the datadog-ruby_core_source gem to get access to private VM headers.
