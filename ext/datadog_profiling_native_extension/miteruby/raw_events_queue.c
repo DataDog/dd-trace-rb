@@ -182,7 +182,7 @@ void miteruby_raw_events_queue_close(miteruby_raw_events_queue_t *raw_events_que
   miteruby_raw_events_queue_producer_unlock(raw_events_queue);
 }
 
-miteruby_raw_events_queue_record_t miteruby_raw_events_queue_read(
+extern inline __attribute__((always_inline)) miteruby_raw_events_queue_record_t miteruby_raw_events_queue_read(
   miteruby_raw_events_queue_t *raw_events_queue, atomic_bool *interrupted) {
   uint32_t read_position = raw_events_queue->next_read_position;
   // The caller has finished using the last item. Only now may producers
