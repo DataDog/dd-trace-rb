@@ -509,20 +509,32 @@ static miteruby_consumer_exit_reason_t retain_function(miteruby_function_t funct
   return MITERUBY_CONSUMER_OK;
 }
 
-static __attribute__((flatten)) miteruby_consumer_exit_reason_t intern_location(miteruby_location_t location, miteruby_location_id_t *id) {
+static miteruby_consumer_exit_reason_t insert_location(miteruby_location_array_t *array, miteruby_location_id_t candidate, miteruby_location_id_t *id) {
+  verstable_location_set_itr entry = verstable_location_set_get_or_insert(&consumer_state.location_set, candidate);
+  if (verstable_location_set_is_end(entry)) return MITERUBY_CONSUMER_LOCATION_STORAGE_FULL;
+  *id = entry.data->key;
+  array->count++;
+  return MITERUBY_CONSUMER_OK;
+}
+
+static miteruby_consumer_exit_reason_t intern_location(miteruby_location_t location, bool known_function, miteruby_location_id_t *id) {
   miteruby_location_array_t *array = &consumer_state.location_array;
   if (array->count >= array->capacity) return MITERUBY_CONSUMER_LOCATION_STORAGE_FULL;
 
   // Like retain_function, put the pair in the next unused slot so the set can hash and compare it using an index.
   // A duplicate reuses its existing index; only a new entry keeps this slot and advances count.
   array->entries[array->count] = location;
-  verstable_location_set_itr entry = verstable_location_set_get_or_insert(
-    &consumer_state.location_set, (miteruby_location_id_t) {.value = {.value = (unsigned int) array->count}}
-  );
-  if (verstable_location_set_is_end(entry)) return MITERUBY_CONSUMER_LOCATION_STORAGE_FULL;
-  *id = entry.data->key;
-  if (id->value.value == array->count) array->count++;
-  return MITERUBY_CONSUMER_OK;
+  miteruby_location_id_t candidate = (miteruby_location_id_t) {.value = {.value = (unsigned int) array->count}};
+  if (known_function) {
+    verstable_location_set_itr entry = verstable_location_set_get(&consumer_state.location_set, candidate);
+    if (!verstable_location_set_is_end(entry)) {
+      *id = entry.data->key;
+      return MITERUBY_CONSUMER_OK;
+    }
+  }
+  // Keeping insertion separate makes the common lookup path small enough to inline.
+  // A new function can skip that lookup because its ID is part of every location key.
+  return insert_location(array, candidate, id);
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
@@ -552,7 +564,7 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
       if (reason != MITERUBY_CONSUMER_OK) return reason;
       miteruby_location_id_t location_id;
       reason = intern_location(
-        (miteruby_location_t) {.function_id = function_id, .bytecode_pos = bytecode_positions[i]}, &location_id
+        (miteruby_location_t) {.function_id = function_id, .bytecode_pos = bytecode_positions[i]}, known_function, &location_id
       );
       if (reason != MITERUBY_CONSUMER_OK) return reason;
       // As we turn the (function_id, bytecode_pos), into an id, we write those ids into the deduped stack storage
