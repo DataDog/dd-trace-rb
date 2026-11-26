@@ -13,7 +13,8 @@
 #define MITERUBY_MAX_SIZE_BYTES \
   MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME)
 
-typedef frame_info miteruby_sample_frames_t[MAX_FRAMES_LIMIT + 1];
+#define MAX_FRAMES_LIMIT_PLUS_ONE (MAX_FRAMES_LIMIT + 1) // The 1 is to detect truncation -- if we get LIMIT+1 frames from Ruby we know that LIMIT will be truncated
+typedef frame_info miteruby_sample_frames_t[MAX_FRAMES_LIMIT_PLUS_ONE];
 #define MITERUBY_PUBLISH_STACK_BUDGET (sizeof(miteruby_sample_frames_t) + MITERUBY_MAX_SIZE_BYTES + KiB_AS_BYTES(16))
 
 static bool miteruby_sample_event_publish_internal(
@@ -71,7 +72,7 @@ static __attribute__((noinline)) bool miteruby_sample_event_publish_internal(
 ) {
   monotonic_time_t timestamp = monotonic_time_now();
   miteruby_sample_frames_t frames;
-  int count = ddtrace_rb_profile_frames(thread.value, 0, MAX_FRAMES_LIMIT + 1, frames, true);
+  int count = ddtrace_rb_profile_frames(thread.value, 0, MAX_FRAMES_LIMIT_PLUS_ONE, frames, true);
 
   union {
     miteruby_event_stack_sample_t event;
