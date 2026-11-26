@@ -488,7 +488,7 @@ static bool retain_thread(VALUE thread) {
   return !verstable_mark_threads_set_is_end(verstable_mark_threads_set_get_or_insert(&consumer_state.mark_threads_set, thread));
 }
 
-static miteruby_consumer_exit_reason_t retain_function(miteruby_function_t function, miteruby_function_id_t *id) {
+static miteruby_consumer_exit_reason_t retain_function(miteruby_function_t function, miteruby_function_id_t *id, bool *known_function) {
   if (function.cme == NULL && function.iseq == NULL) return MITERUBY_CONSUMER_INVALID_FUNCTION;
 
   miteruby_mark_function_array_t *array = &consumer_state.mark_function_array;
@@ -504,7 +504,8 @@ static miteruby_consumer_exit_reason_t retain_function(miteruby_function_t funct
   );
   if (verstable_mark_function_set_is_end(entry)) return MITERUBY_CONSUMER_MARK_FUNCTION_FULL;
   *id = entry.data->key;
-  if (id->value == array->count) array->count++;
+  *known_function = id->value < array->count;
+  if (!*known_function) array->count++;
   return MITERUBY_CONSUMER_OK;
 }
 
@@ -546,7 +547,8 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
     const miteruby_bytecode_pos_t *bytecode_positions = (const miteruby_bytecode_pos_t *)&event->frames[header->frame_count];
     for (uint16_t i = 0; i < header->frame_count; i++) {
       miteruby_function_id_t function_id;
-      miteruby_consumer_exit_reason_t reason = retain_function(event->frames[i], &function_id);
+      bool known_function;
+      miteruby_consumer_exit_reason_t reason = retain_function(event->frames[i], &function_id, &known_function);
       if (reason != MITERUBY_CONSUMER_OK) return reason;
       miteruby_location_id_t location_id;
       reason = intern_location(
