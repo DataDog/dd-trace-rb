@@ -67,6 +67,10 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
     allow(native_worker).to receive(:_register_metric_context).and_return(:context)
     allow(native_worker).to receive(:_add_point)
     allow(native_worker).to receive(:_add_log)
+    allow(native_worker).to receive(:_add_config)
+    allow(native_worker).to receive(:_add_dependency)
+    allow(native_worker).to receive(:_add_integration)
+    allow(native_worker).to receive(:_add_endpoint)
   end
 
   after do
@@ -127,6 +131,110 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
         series = backend.metrics_manager.flush!.flat_map { |event| event.payload[:series] }
         expect(series).to include(hash_including(metric: "metric"))
       end
+    end
+  end
+
+  describe "native worker adoption" do
+    let(:previous_backend) do
+      described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+      )
+    end
+    let(:native_worker2) do
+      instance_double(Datadog::Core::Telemetry::Native::Worker).tap do |worker|
+        allow(worker).to receive(:_start)
+        allow(worker).to receive(:_shutdown)
+        allow(worker).to receive(:_register_metric_context).and_return(:context2)
+        allow(worker).to receive(:_add_point)
+        allow(worker).to receive(:_add_log)
+      end
+    end
+
+    it "adopts the previous worker when the settings are unchanged" do
+      previous_backend
+      worker = previous_backend.native_worker
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      expect(new_backend.native_worker).to be(worker)
+      expect(native_worker_class).to have_received(:_native_new).once
+    end
+
+    it "keeps the previous metric context cache so metrics are not registered twice" do
+      previous_backend.inc("tracers", "metric", 1)
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+      new_backend.inc("tracers", "metric", 1)
+
+      expect(native_worker).to have_received(:_register_metric_context).once
+      expect(native_worker).to have_received(:_add_point).twice
+    end
+
+    it "leaves an adopted worker running when the previous backend shuts down" do
+      previous_backend
+      described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      previous_backend.shutdown!
+
+      expect(native_worker).not_to have_received(:_shutdown)
+    end
+
+    it "builds a new worker and stops the old one when the settings diverge" do
+      previous_backend
+      allow(native_worker_class).to receive(:_native_new).and_return(native_worker2)
+      settings.service = "other_service"
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      expect(new_backend.native_worker).to be(native_worker2)
+      expect(previous_backend.native_worker).to be(native_worker)
+
+      previous_backend.shutdown!
+
+      expect(native_worker).to have_received(:_shutdown)
+      expect(native_worker2).not_to have_received(:_shutdown)
+    end
+
+    it "builds a new worker when the previous backend has none" do
+      previous_backend.after_fork
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      expect(new_backend.native_worker).to be(native_worker)
+      expect(native_worker_class).to have_received(:_native_new).twice
     end
   end
 
@@ -198,7 +306,23 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
     it "sends the log to the native worker" do
       backend.add_log(log_event)
 
-      expect(native_worker).to have_received(:_add_log).with("message", "message", :error, "trace")
+      expect(native_worker).to have_received(:_add_log).with("ERROR\0trace\0message", "message", :error, "trace")
+    end
+
+    it "keys log deduplication on level and stack trace as well as the message" do
+      warn_event = Datadog::Core::Telemetry::Event::Log.new(message: "message", level: :warn, stack_trace: "trace")
+      identifiers = []
+      allow(native_worker).to receive(:_add_log) { |identifier, *_| identifiers << identifier }
+
+      backend.add_log(warn_event)
+      backend.add_log(log_event)
+      backend.add_log(warn_event)
+
+      # The native worker counts duplicates by identifier hash alone, so the
+      # warn and error variants must carry different identifiers and the
+      # repeated warn must reuse its own.
+      expect(identifiers).to eq([identifiers.first, identifiers[1], identifiers.first])
+      expect(identifiers[1]).not_to eq(identifiers.first)
     end
 
     it "falls back to the Ruby event queue when there is no native worker" do
@@ -211,11 +335,148 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
   end
 
   describe "#start" do
-    it "starts the native worker and the Ruby event worker" do
-      backend.start(:initial_event)
+    let(:components) do
+      instance_double(Datadog::Core::Configuration::Components).tap do |components|
+        allow(components).to receive(:settings).and_return(settings)
+        allow(components).to receive(:agent_settings).and_return(agent_settings)
+        allow(components).to receive(:appsec).and_return(nil)
+        allow(components).to receive(:profiler).and_return(nil)
+        allow(components).to receive(:dynamic_instrumentation).and_return(nil)
+      end
+    end
+    let(:app_started_event) do
+      Datadog::Core::Telemetry::Event::AppStarted.new(components: components)
+    end
 
-      expect(ruby_worker).to have_received(:start).with(:initial_event)
-      expect(native_worker).to have_received(:_start)
+    before do
+      allow(ruby_worker).to receive(:prepare_initial_event)
+    end
+
+    it "feeds the configuration snapshot through the builder and does not run the Ruby event worker" do
+      allow(native_worker).to receive(:_add_dependency)
+
+      backend.start(app_started_event)
+
+      expect(native_worker_args[:initial_configuration]).to include(
+        ["tracing.auto_instrument.enabled", "false", :default, nil, 1],
+      )
+      expect(native_worker).not_to have_received(:_add_config)
+      expect(native_worker).to have_received(:_start).once
+      expect(ruby_worker).not_to have_received(:start)
+      expect(ruby_worker).to have_received(:prepare_initial_event).with(app_started_event)
+    end
+
+    it "feeds dependencies when collection is enabled" do
+      backend.start(app_started_event)
+
+      expect(native_worker).to have_received(:_add_dependency)
+        .with("rspec-core", Gem.loaded_specs["rspec-core"].version.to_s)
+    end
+
+    context "when dependency collection is disabled" do
+      before { settings.telemetry.dependency_collection = false }
+
+      it "does not feed dependencies" do
+        backend.start(app_started_event)
+
+        expect(native_worker).not_to have_received(:_add_dependency)
+      end
+    end
+
+    it "feeds a reconfigure snapshot through handle calls on an adopted worker" do
+      previous_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+      )
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+      synth = Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange.new(components: components)
+
+      new_backend.start(synth)
+
+      expect(native_worker).to have_received(:_add_config).at_least(:once)
+      expect(native_worker).to have_received(:_start).once
+      expect(ruby_worker).to have_received(:prepare_initial_event).with(synth)
+    end
+
+    context "when there is no native worker" do
+      before { backend.after_fork }
+
+      it "starts the Ruby event worker with the initial event" do
+        backend.start(:initial_event)
+
+        expect(ruby_worker).to have_received(:start).with(:initial_event)
+        expect(native_worker).not_to have_received(:_start)
+      end
+    end
+  end
+
+  describe "#enqueue" do
+    let(:worker_nil_backend) do
+      backend.after_fork
+      backend
+    end
+
+    it "routes remote configuration changes to _add_config" do
+      changes = Datadog::Core::Telemetry::Event::AppClientConfigurationChange.new({"tracing.sample_rate" => 1.0}, "remote_config")
+
+      backend.enqueue(changes)
+
+      expect(native_worker).to have_received(:_add_config)
+        .with("tracing.sample_rate", "1.0", :remote_config, nil, 6)
+    end
+
+    it "routes dependencies-loaded to _add_dependency" do
+      deps = Datadog::Core::Telemetry::Event::AppDependenciesLoaded.new
+
+      backend.enqueue(deps)
+
+      expect(native_worker).to have_received(:_add_dependency).at_least(:once)
+      expect(ruby_worker).not_to have_received(:enqueue)
+    end
+
+    it "routes integrations-change to _add_integration" do
+      integrations = Datadog::Core::Telemetry::Event::AppIntegrationsChange.new
+
+      backend.enqueue(integrations)
+
+      expect(native_worker).to have_received(:_add_integration).at_least(:once)
+    end
+
+    it "routes endpoints to _add_endpoint without page slicing" do
+      endpoints = [
+        {type: "REST", method: "GET", path: "/events", operation_name: "http.request", resource_name: "GET /events"},
+        {type: "REST", method: "POST", path: "/events", operation_name: "http.request", resource_name: "POST /events"},
+      ]
+      event = Datadog::Core::Telemetry::Event::AppEndpointsLoaded.new(endpoints, is_first: true)
+
+      backend.enqueue(event)
+
+      expect(native_worker).to have_received(:_add_endpoint)
+        .with("GET", "/events", "http.request", "GET /events")
+        .with("POST", "/events", "http.request", "POST /events")
+    end
+
+    it "drops closing and heartbeat events, emitted by the native worker itself" do
+      backend.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+      backend.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)
+
+      expect(ruby_worker).not_to have_received(:enqueue)
+    end
+
+    context "when there is no native worker" do
+      it "enqueues on the Ruby event worker" do
+        worker_nil_backend.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+
+        expect(ruby_worker).to have_received(:enqueue)
+      end
     end
   end
 

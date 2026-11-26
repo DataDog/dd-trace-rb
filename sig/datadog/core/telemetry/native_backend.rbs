@@ -6,6 +6,10 @@ module Datadog
 
         @shutdown_timeout_ms: Integer
 
+        @dependency_collection: bool
+
+        @adopted: bool
+
         @native_worker: Native::Worker?
 
         @native_worker_args: Hash[Symbol, untyped]?
@@ -18,7 +22,7 @@ module Datadog
 
         attr_reader native_worker: Native::Worker?
 
-        def initialize: (settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Core::Logger, enabled: bool) -> void
+        def initialize: (settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Core::Logger, enabled: bool, ?previous_backend: RubyBackend?) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
@@ -34,11 +38,25 @@ module Datadog
 
         def start: (Telemetry::Event::AppStarted initial_event) -> void
 
+        def flush: (?timeout: Numeric?) -> bool?
+
+        def enqueue: (Event::Base event) -> (true | nil)
+
         def after_fork: () -> void
 
         def shutdown!: () -> void
 
+        def can_share_native_worker_with?: (Hash[Symbol, untyped]? other_native_worker_args) -> bool
+
+        def hand_over_native_worker: () -> [Native::Worker?, Hash[String, Native::MetricContext]]
+
         private
+
+        def add_native_configurations: (Native::Worker worker, Array[Event::telemetry_configuration] configurations) -> void
+
+        def add_native_dependencies: (Native::Worker worker) -> void
+
+        def adopt_or_start_native_worker: (RubyBackend? previous_backend) -> Native::Worker?
 
         def add_metric_point: (
           Symbol metric_type,
@@ -60,6 +78,8 @@ module Datadog
         def tag_pairs: (Datadog::Core::Telemetry::Metric::tags_input tags) -> Array[Array[String]]
 
         def native_worker_args: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings) -> Hash[Symbol, untyped]?
+
+        def native_initial_configuration: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings) -> Array[[String, String, Symbol, String?, Integer?]]
 
         def start_native_worker: () -> Native::Worker?
       end

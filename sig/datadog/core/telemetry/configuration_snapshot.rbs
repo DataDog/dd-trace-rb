@@ -1,0 +1,29 @@
+module Datadog
+  module Core
+    module Telemetry
+      module ConfigurationSnapshot
+        def self.call: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> Array[Event::telemetry_configuration]
+
+        def self.agent_transport: (Core::Configuration::AgentSettings agent_settings) -> String
+
+        def self.conf_value: (String name, Event::telemetry_value value, Configuration::Option::Precedence::Value precedence) -> Event::telemetry_configuration
+
+        def self.unknown_conf_value: (String name, Event::telemetry_value value) -> Event::telemetry_configuration
+
+        def self.build_conf_value: (String name, Event::telemetry_value value, String origin, Integer seq_id) -> Event::telemetry_configuration
+
+        def self.to_telemetry_value: (any value) -> Event::telemetry_value
+
+        def self.collect_all_configuration_options: (untyped settings) -> Array[Configuration::Option]
+
+        def self.collect_integration_configuration_options: (untyped tracing_settings) -> Array[Configuration::Option]
+
+        def self.collect_configuration_options_from: (untyped settings) -> Array[Configuration::Option]
+
+        def self.option_telemetry_name: (Configuration::Option option) -> String
+
+        def self.resolve_option: (untyped settings, String config_path) -> Configuration::Option
+      end
+    end
+  end
+end

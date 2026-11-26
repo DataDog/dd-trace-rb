@@ -14,7 +14,7 @@ module Datadog
 
         def self.build_runtime_metrics_worker: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Core::Workers::RuntimeMetrics
 
-        def self.build_telemetry: (Settings settings, untyped agent_settings, Core::Logger logger) -> Core::Telemetry::Component
+        def self.build_telemetry: (Settings settings, untyped agent_settings, Core::Logger logger, ?previous_telemetry: Core::Telemetry::Component?) -> Core::Telemetry::Component
 
         def self.build_crashtracker: (Settings settings, untyped agent_settings, logger: Core::Logger) -> Datadog::Core::Crashtracking::Component?
 
@@ -66,7 +66,7 @@ module Datadog
 
         @retiring_data_streams_lock: Thread::Mutex
 
-        def initialize: (Settings settings) -> void
+        def initialize: (Settings settings, ?previous_telemetry: Core::Telemetry::Component?) -> void
 
         def after_fork: () -> void
 

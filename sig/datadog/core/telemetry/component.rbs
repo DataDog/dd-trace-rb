@@ -27,9 +27,9 @@ module Datadog
         include Core::Telemetry::_Logging
         include Core::Utils::Forking
 
-        def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
+        def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings, Datadog::Core::Logger logger, ?previous_telemetry: Component?) -> Component
 
-        def initialize: (logger: Core::Logger, settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, enabled: true | false) -> void
+        def initialize: (logger: Core::Logger, settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, enabled: true | false, ?previous_telemetry: Component?) -> void
 	
         def enabled?: -> bool
 

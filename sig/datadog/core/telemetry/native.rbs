@@ -19,7 +19,9 @@ module Datadog
             ?runtime_id: String?,
             ?kernel_name: String?,
             ?kernel_release: String?,
-            ?kernel_version: String?
+            ?kernel_version: String?,
+            ?initial_configuration: Array[[String, String, Symbol, String?, Integer?]],
+            ?full_flavor: bool
           ) -> Worker
 
           def _start: () -> bool
@@ -28,6 +30,29 @@ module Datadog
           def _register_metric_context: (String name, Symbol metric_type, bool common, Symbol namespace) -> MetricContext
           def _add_point: (MetricContext context, Numeric value, Array[Array[String]] tags_as_array) -> bool
           def _add_log: (String identifier, String message, Symbol level, String? stack_trace) -> bool
+          def _add_config: (
+            String name,
+            String? value,
+            Symbol origin,
+            String? config_id,
+            Integer? seq_id
+          ) -> bool
+
+          def _add_endpoint: (String? method, String path, String operation_name, String resource_name) -> bool
+
+          def _add_dependency: (String name, String version) -> bool
+
+          def _add_integration: (
+            String name,
+            String version,
+            bool enabled,
+            bool? compatible,
+            bool? auto_enabled
+          ) -> bool
+
+          def _flush_data: () -> bool
+
+          def _flush_metrics: () -> bool
         end
 
         class MetricContext

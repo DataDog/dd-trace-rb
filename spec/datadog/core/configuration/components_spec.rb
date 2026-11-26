@@ -464,8 +464,17 @@ RSpec.describe Datadog::Core::Configuration::Components do
     let(:logger) { instance_double(Logger) }
 
     it "invokes Telemetry::Component.build" do
-      expect(Datadog::Core::Telemetry::Component).to receive(:build).with(settings, agent_settings, logger)
+      expect(Datadog::Core::Telemetry::Component).to receive(:build)
+        .with(settings, agent_settings, logger, previous_telemetry: nil)
       build_telemetry
+    end
+
+    it "passes the previous telemetry component so the native worker is adopted" do
+      previous_telemetry = instance_double(Datadog::Core::Telemetry::Component)
+
+      expect(Datadog::Core::Telemetry::Component).to receive(:build)
+        .with(settings, agent_settings, logger, previous_telemetry: previous_telemetry)
+      described_class.build_telemetry(settings, agent_settings, logger, previous_telemetry: previous_telemetry)
     end
   end
 
