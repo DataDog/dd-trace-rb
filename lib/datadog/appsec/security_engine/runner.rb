@@ -30,7 +30,9 @@ module Datadog
             v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
-          result = try_run(data, timeout, persist: persist)
+          result = try_run do
+            with_context(persist_data: persist) { |context| context.eval(data, timeout) }
+          end
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
           report_execution(result)
@@ -70,12 +72,14 @@ module Datadog
 
         private
 
-        def try_run(data, timeout, persist:)
-          if persist
-            waf_context.eval(data, timeout)
-          else
-            waf_context.build_subcontext { |child| child.eval(data, timeout) }
-          end
+        def with_context(persist_data:)
+          return yield(waf_context) if persist_data
+
+          waf_context.build_subcontext { |subcontext| yield subcontext }
+        end
+
+        def try_run
+          yield
         rescue WAF::LibDDWAFError => e
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e.class}: #{e.message} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: "libddwaf-rb internal low-level error")

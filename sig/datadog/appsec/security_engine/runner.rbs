@@ -32,7 +32,9 @@ module Datadog
 
         private
 
-        def try_run: (input_data data, Integer timeout, persist: bool) -> WAF::Result
+        def with_context: [T] (persist_data: bool) { (WAF::Context | WAF::Subcontext) -> T } -> T
+
+        def try_run: () { () -> WAF::Result } -> WAF::Result
 
         def report_execution: (WAF::Result result) -> void
       end
