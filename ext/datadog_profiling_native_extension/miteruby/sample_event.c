@@ -8,6 +8,8 @@
 #include "../time_helpers.h"
 
 #include <errno.h>
+#include <alloca.h>
+#include <string.h>
 
 #define MITERUBY_BYTES_PER_FRAME (sizeof(miteruby_function_t) + sizeof(miteruby_bytecode_pos_t))
 #define MITERUBY_MAX_SIZE_BYTES \
@@ -74,21 +76,22 @@ static __attribute__((noinline)) bool miteruby_sample_event_publish_internal(
   miteruby_sample_frames_t frames;
   int count = ddtrace_rb_profile_frames(thread.value, 0, MAX_FRAMES_LIMIT_PLUS_ONE, frames, true);
 
-  union {
-    miteruby_event_stack_sample_t event;
-    uint64_t words[MITERUBY_MAX_SIZE_BYTES / sizeof(uint64_t)];
-  } storage = {.words = {0}};
-  miteruby_event_stack_sample_t *event = &storage.event;
+  bool truncated = count > MAX_FRAMES_LIMIT;
+  if (count < 0) count = 0;
+  if (truncated) count = MAX_FRAMES_LIMIT;
+
+  size_t used_bytes = sizeof(miteruby_event_stack_sample_t) + count * MITERUBY_BYTES_PER_FRAME;
+  size_t size_bytes = MITERUBY_ROUND_UP_TO_8_BYTES(used_bytes);
+
+  // Note: We use stack-allocated storage, and thus it's not zero-initialized. So we need to make sure to never read or
+  // use garbage. Every byte the queue copies should be initialized, including the padding it reads when it copies the final whole word.
+  miteruby_event_stack_sample_t *event = alloca(size_bytes);
+  memset(event, 0, sizeof(miteruby_event_stack_sample_t)); // Zero the event
 
   event->header.timestamp = timestamp;
   event->header.cpu_time = cpu_time;
   event->thread = thread;
-  if (count <= 0) {
-    count = 0;
-  } else if (count > MAX_FRAMES_LIMIT) {
-    event->header.stack_truncated = true;
-    count = MAX_FRAMES_LIMIT;
-  }
+  event->header.stack_truncated = truncated;
   event->header.frame_count = count;
 
   miteruby_bytecode_pos_t *bytecode_positions = (miteruby_bytecode_pos_t *)&event->frames[count];
@@ -101,8 +104,8 @@ static __attribute__((noinline)) bool miteruby_sample_event_publish_internal(
     bytecode_positions[i].value =
       bytecode_position >= 0 && bytecode_position < UINT16_MAX ? (uint16_t) bytecode_position : UINT16_MAX;
   }
-  size_t size_bytes = MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + count * MITERUBY_BYTES_PER_FRAME);
+  memset((uint8_t *)event + used_bytes, 0, size_bytes - used_bytes); // Zero the tail padding
   event->header.size_bytes = size_bytes;
 
-  return miteruby_raw_events_queue_try_write(raw_events_queue, storage.words, event->header.size_bytes / sizeof(uint64_t), signal_mask);
+  return miteruby_raw_events_queue_try_write(raw_events_queue, (const uint64_t *)event, size_bytes / sizeof(uint64_t), signal_mask);
 }
