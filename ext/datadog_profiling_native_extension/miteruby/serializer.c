@@ -319,13 +319,16 @@ static miteruby_serializer_exit_reason_t compress_buffer(miteruby_serializer_per
   return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_persistent_state_t *state) {
-  if (RB_LIKELY(state->stream.bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return MITERUBY_SERIALIZER_OK;
-
+static miteruby_serializer_exit_reason_t flush_buffer(miteruby_serializer_persistent_state_t *state) {
   RETURN_IF_ERROR(compress_buffer(state, ZSTD_e_continue));
   uint8_t *buffer = state->uncompressed_serialization_buffer;
   state->stream = pb_ostream_from_buffer(buffer, miteruby_allocator_alloc_size(buffer));
   return MITERUBY_SERIALIZER_OK;
+}
+
+static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_persistent_state_t *state) {
+  if (RB_LIKELY(state->stream.bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return MITERUBY_SERIALIZER_OK;
+  return flush_buffer(state);
 }
 
 static void reset_compressed_buffer(miteruby_serializer_persistent_state_t *state) {
