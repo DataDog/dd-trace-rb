@@ -31,7 +31,11 @@ module Datadog
           end
 
           result = try_run do
-            with_context(persist_data: persist) { |context| context.eval(data, timeout) }
+            if persist
+              waf_context.eval(data, timeout)
+            else
+              waf_context.build_subcontext { |subcontext| subcontext.eval(data, timeout) }
+            end
           end
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -71,12 +75,6 @@ module Datadog
         end
 
         private
-
-        def with_context(persist_data:)
-          return yield(waf_context) if persist_data
-
-          waf_context.build_subcontext { |subcontext| yield subcontext }
-        end
 
         def try_run
           yield
