@@ -306,7 +306,23 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
     it "sends the log to the native worker" do
       backend.add_log(log_event)
 
-      expect(native_worker).to have_received(:_add_log).with("message", "message", :error, "trace")
+      expect(native_worker).to have_received(:_add_log).with("ERROR\0trace\0message", "message", :error, "trace")
+    end
+
+    it "keys log deduplication on level and stack trace as well as the message" do
+      warn_event = Datadog::Core::Telemetry::Event::Log.new(message: "message", level: :warn, stack_trace: "trace")
+      identifiers = []
+      allow(native_worker).to receive(:_add_log) { |identifier, *_| identifiers << identifier }
+
+      backend.add_log(warn_event)
+      backend.add_log(log_event)
+      backend.add_log(warn_event)
+
+      # The native worker counts duplicates by identifier hash alone, so the
+      # warn and error variants must carry different identifiers and the
+      # repeated warn must reuse its own.
+      expect(identifiers).to eq([identifiers.first, identifiers[1], identifiers.first])
+      expect(identifiers[1]).not_to eq(identifiers.first)
     end
 
     it "falls back to the Ruby event queue when there is no native worker" do

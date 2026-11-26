@@ -87,7 +87,11 @@ module Datadog
           worker = @native_worker
           return super if worker.nil?
 
-          worker._add_log(event.message, event.message, LOG_LEVELS.fetch(event.level), event.stack_trace || "")
+          # The native worker deduplicates logs by identifier hash alone, so the
+          # identifier must carry the full key (level, stack trace, message) the
+          # Ruby event layer groups by. The wire payload uses only the message.
+          identifier = [event.level, event.stack_trace, event.message].join("\0")
+          worker._add_log(identifier, event.message, LOG_LEVELS.fetch(event.level), event.stack_trace || "")
         rescue
           nil
         end
@@ -297,7 +301,7 @@ module Datadog
             kernel_name: Core::Environment::Platform.kernel_name,
             kernel_release: Core::Environment::Platform.kernel_release,
             kernel_version: Core::Environment::Platform.kernel_version,
-            # libdatadog has no interval FFI; the native worker reads the
+            # libdatadog has no interval FFI. The native worker reads the
             # DD_TELEMETRY_HEARTBEAT_INTERVAL and
             # DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL environment variables.
             # Code-set intervals apply to the Ruby backend only.
