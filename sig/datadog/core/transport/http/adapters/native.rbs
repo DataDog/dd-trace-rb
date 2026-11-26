@@ -80,6 +80,10 @@ module Datadog
               def server_error?: () -> bool
 
               def internal_error?: () -> bool
+
+              private
+
+              def headers_by_name: (Array[[String, String]] headers) -> Hash[String, String]
             end
 
             class InFlight

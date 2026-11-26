@@ -416,9 +416,51 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Native do
 
     let(:status) { 200 }
 
-    it "looks up headers case-insensitively through lowercased names" do
-      expect(response.headers["etag"]).to eq("abc")
-      expect(response.headers).to eq("etag" => "abc", "x-y" => "1")
+    describe "#headers" do
+      it "stores the names lowercased" do
+        expect(response.headers).to eq("etag" => "abc", "x-y" => "1")
+      end
+
+      it "finds a header whatever the case of the name" do
+        expect(response.headers["etag"]).to eq("abc")
+        expect(response.headers["ETag"]).to eq("abc")
+        expect(response.headers["ETAG"]).to eq("abc")
+        expect(response.headers["X-Y"]).to eq("1")
+      end
+
+      it "finds a header with dig" do
+        expect(response.headers.dig("ETag")).to eq("abc")
+      end
+
+      it "returns nil for a missing header, or for a name that is not a string" do
+        expect(response.headers["Missing"]).to be_nil
+        expect(response.headers[:etag]).to be_nil
+        expect(response.headers[nil]).to be_nil
+      end
+
+      it "does not add the names that are looked up" do
+        response.headers["Missing"]
+        response.headers["ETag"]
+
+        expect(response.headers.keys).to eq(%w[etag x-y])
+      end
+
+      context "with a repeated header" do
+        subject(:response) { described_class.new(status, [["Set-Cookie", "a=1"], ["set-cookie", "b=2"]], "body") }
+
+        it "keeps the last value" do
+          expect(response.headers["Set-Cookie"]).to eq("b=2")
+        end
+      end
+
+      context "without headers" do
+        subject(:response) { described_class.new(status, [], "body") }
+
+        it "is empty, and returns nil on lookups" do
+          expect(response.headers).to be_empty
+          expect(response.headers["ETag"]).to be_nil
+        end
+      end
     end
 
     {

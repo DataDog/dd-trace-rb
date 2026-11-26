@@ -247,8 +247,7 @@ module Datadog
               # @param payload [String] response body
               def initialize(code, headers, payload)
                 @code = code
-                # Names are case-insensitive: keep them lowercased. A repeated header keeps its last value.
-                @headers = headers.each_with_object({}) { |(name, value), h| h[name.downcase] = value }
+                @headers = headers_by_name(headers)
                 @payload = payload
               end
 
@@ -274,6 +273,26 @@ module Datadog
 
               def internal_error?
                 false
+              end
+
+              private
+
+              # Header names are case-insensitive. They are stored lowercased, and a lookup with `[]` (or `dig`) finds
+              # them whatever the case of the name, for example `headers["Datadog-Container-Tags-Hash"]`. A repeated
+              # header keeps its last value.
+              #
+              # `fetch`, `key?` and the like do not go through the default, and only know the lowercase names.
+              def headers_by_name(headers)
+                # @type var by_name: Hash[String, String]
+                by_name = {}
+                headers.each { |name, value| by_name[name.downcase] = value }
+
+                # The names that are looked up do not have to be strings.
+                by_name.default_proc = proc do |hash, name|
+                  hash.fetch(name.downcase, nil) if name.respond_to?(:downcase)
+                end
+
+                by_name
               end
             end
           end
