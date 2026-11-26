@@ -44,9 +44,10 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     end
 
     allow(Datadog.logger).to receive(:warn)
-    allow_any_instance_of(Datadog::AppSec::Context).to receive(:detach).and_wrap_original do |method|
-      method.call
-      live_signals[:detached].push(Thread.current)
+    # NOTE: `allow_any_instance_of` installs stubs on the first call, so the
+    #       request and Live threads calling the same context race on it
+    allow(Datadog::AppSec::Context).to receive(:new).and_wrap_original do |method, *args, &block|
+      method.call(*args, &block).tap { |context| stub_context(context) }
     end
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
@@ -94,6 +95,13 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   end
   let(:live_signals) do
     {resumed: Queue.new, result: Queue.new, detached: Queue.new, decided: Queue.new, steps: [], streams: []}
+  end
+
+  def stub_context(context)
+    allow(context).to receive(:detach).and_wrap_original do |method|
+      method.call
+      live_signals[:detached].push(Thread.current)
+    end
   end
 
   def get_live(params = {})
@@ -304,17 +312,22 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
 
         method.call(name, *args, &block)
       end
-      allow_any_instance_of(Datadog::AppSec::Context).to receive(:run_rasp).and_wrap_original do |method, *args, **kwargs|
-        rasp_threads << Thread.current
-        method.call(*args, **kwargs)
-      end
-      allow_any_instance_of(Datadog::AppSec::Context).to receive(:shared?).and_wrap_original do |method|
-        method.call.tap { live_signals[:decided].push(true) }
-      end
 
       Timeout.timeout(5) do
         get_live
         wait_for_controller_thread
+      end
+    end
+
+    def stub_context(context)
+      super
+
+      allow(context).to receive(:run_rasp).and_wrap_original do |method, *args, **kwargs|
+        rasp_threads << Thread.current
+        method.call(*args, **kwargs)
+      end
+      allow(context).to receive(:shared?).and_wrap_original do |method|
+        method.call.tap { live_signals[:decided].push(true) }
       end
     end
 
