@@ -50,6 +50,7 @@ NATIVE_TRANSPORT_SPECS = [
 # their own process like NATIVE_TRANSPORT_SPECS.
 NATIVE_HTTP_SPECS = [
   "spec/datadog/core/transport/http/adapters/native_integration_spec.rb",
+  "spec/datadog/core/transport/http/adapters/native_consumers_integration_spec.rb",
 ].freeze
 
 DI_WITH_EXT = %w[

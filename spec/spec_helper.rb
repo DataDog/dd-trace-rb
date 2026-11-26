@@ -306,6 +306,20 @@ RSpec.configure do |config|
   end
   # rubocop:enable Style/GlobalVars
 
+  # Keeps the unit specs independent of `DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED`.
+  #
+  # With it enabled, the requests of the consumers of the agent (remote configuration, telemetry, DI...) go through
+  # the native HTTP client, which neither `Net::HTTP` stubs nor WebMock can see. Most specs assert on the Net path,
+  # so they run without the variable. The ones that exercise the native client set the `:native_http` metadata
+  # and see the environment as it is (for example, `rake spec:native_http`).
+  config.around do |example|
+    if ENV.key?("DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED") && !example.metadata[:native_http]
+      ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED" => nil) { example.run }
+    else
+      example.run
+    end
+  end
+
   # Closes the global testing tracer.
   #
   # Execute this after the test has finished
