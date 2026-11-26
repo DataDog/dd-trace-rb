@@ -508,7 +508,7 @@ static miteruby_consumer_exit_reason_t retain_function(miteruby_function_t funct
   return MITERUBY_CONSUMER_OK;
 }
 
-static miteruby_consumer_exit_reason_t intern_location(miteruby_location_t location, miteruby_location_id_t *id) {
+static __attribute__((flatten)) miteruby_consumer_exit_reason_t intern_location(miteruby_location_t location, miteruby_location_id_t *id) {
   miteruby_location_array_t *array = &consumer_state.location_array;
   if (array->count >= array->capacity) return MITERUBY_CONSUMER_LOCATION_STORAGE_FULL;
 
