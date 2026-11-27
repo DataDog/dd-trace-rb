@@ -137,6 +137,11 @@ the entire method execution.
   `method_missing` or similar metaprogramming will be omitted from the
   call chain because they don't have a source location in Ruby's
   internal representation
+- Method arguments are captured under their source parameter names.
+  Arguments without an available name — positions absorbed by a splat,
+  parameters of generated methods (such as `attr_writer`), and arguments
+  to virtual or C-implemented methods — fall back to the `arg1`, `arg2`,
+  ... labels
 
 **Use method probes when:**
 - You want to understand method inputs and outputs
