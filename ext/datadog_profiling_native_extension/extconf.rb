@@ -112,6 +112,9 @@ if have_macro("__clang__")
   # Clang warns whenever it adds padding to align struct fields, even when the struct is already as small as it can be.
   # We leave this warning off in normal builds and use it when tuning a specific struct's size.
   append_cflags "-Wno-padded"
+
+  # We use _native_* for C callbacks so they're easy to match to their Ruby methods.
+  append_cflags "-Wno-reserved-identifier"
 end
 
 # If we forget to include a Ruby header, the function call may still appear to work, but then
