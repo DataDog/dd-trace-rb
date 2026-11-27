@@ -129,6 +129,25 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
         include_context "Fargate 1.4+ v2 environment"
         include_examples "parsing cgroup file into an array of entries"
       end
+
+      context "in a cgroup v2 private namespace environment" do
+        include_context "cgroup v2 private namespace environment"
+        include_examples "parsing cgroup file into an array of entries"
+
+        context "when the cgroup filesystem root exists" do
+          let(:inode) { 12345 }
+
+          before do
+            allow(File).to receive(:exist?).with("/sys/fs/cgroup/").and_return(true)
+            allow(File).to receive(:stat).and_call_original
+            allow(File).to receive(:stat).with("/sys/fs/cgroup/").and_return(double(ino: inode))
+          end
+
+          it "parses the root path without the trailing newline" do
+            is_expected.to contain_exactly(have_attributes(path: "/", inode: inode))
+          end
+        end
+      end
     end
   end
 

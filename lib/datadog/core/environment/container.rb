@@ -112,9 +112,8 @@ module Datadog
           end
         end
 
-        # All cgroup entries have the same container identity.
-        # The first valid one is sufficient.
-        # v2 entries are preferred over v1.
+        # Prefer a container ID over an inode.
+        # Within either choice, prefer v2 entries over v1.
         def self.entry
           return @entry if defined?(@entry)
 
@@ -127,6 +126,7 @@ module Datadog
           # All v2 entries have the `hierarchy` set to zero.
           # v1 entries have a non-zero `hierarchy`.
           entries = Cgroup.entries.partition { |d| d.hierarchy == "0" }.flatten(1)
+          inode_entry = nil
           entries.each do |entry_obj|
             path = entry_obj.path
             next unless path
@@ -136,10 +136,11 @@ module Datadog
             path.delete_prefix!("/")
             parts = path.split("/")
 
-            # With not path information, we can still use the inode
             if parts.empty? && entry_obj.inode && !running_on_host?
-              return @entry = Entry.new(nil, nil, nil, entry_obj.inode)
+              inode_entry ||= Entry.new(nil, nil, nil, entry_obj.inode)
             end
+
+            next if parts.empty?
 
             platform = parts[0][PLATFORM_REGEX, :platform]
 
@@ -163,11 +164,11 @@ module Datadog
             if container_id
               return @entry = Entry.new(platform, task_uid, container_id)
             elsif entry_obj.inode && !running_on_host?
-              return @entry = Entry.new(platform, task_uid, nil, entry_obj.inode)
+              inode_entry ||= Entry.new(platform, task_uid, nil, entry_obj.inode)
             end
           end
 
-          @entry = Entry.new # Empty entry if no valid cgroup entry is found
+          @entry = inode_entry || Entry.new
         rescue => e
           Datadog.logger.debug(
             "Error while reading container entry. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
