@@ -3,6 +3,9 @@
     "*.gemfile": "ruby",
     "Matrixfile": "ruby",
     "Dockerfile*": "dockerfile",
-    "threads.h": "c"
+    "threads.h": "c",
+    "raw_events_queue.h": "c",
+    "consumer.h": "c",
+    "can_overflow.h": "c"
   }
 }
