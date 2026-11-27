@@ -4,11 +4,33 @@ module Datadog
       module Aws
         module Service
           class Lambda < Base
+            SERVICE: String
+
+            MAX_FUNCTION_NAME_LENGTH: Integer
+
+            NAME_FORMAT: Regexp
+
+            QUALIFIER_FORMAT: Regexp
+
+            QUALIFIED_NAME: Regexp
+
+            FUNCTION_RESOURCE: Regexp
+
+            REGION_FORMAT: Regexp
+
+            BARE_NAME_FORMAT: Regexp
+
+            PARTIAL_ARN_FORMAT: Regexp
+
+            AMBIGUOUS_NAME_FORMAT: Regexp
+
+            FUNCTION_RESOURCE_FORMAT: Regexp
+
             def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
 
             private
 
-            def function_arn: (Object? function_name) -> String?
+            def parse_function_name: (any function_name) -> [String, String?, String?]?
           end
         end
       end

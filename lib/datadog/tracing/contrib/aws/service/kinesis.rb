@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
+require_relative "../arn"
 require_relative "../ext"
 
 module Datadog
@@ -10,20 +11,33 @@ module Datadog
         module Service
           # Kinesis tag handlers.
           class Kinesis < Base
+            SERVICE = "kinesis"
+
+            # A consumer ARN, `stream/my-stream/consumer/my-consumer:1699999999`,
+            # still names the stream it reads from.
+            # @see https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonkinesis.html
+            STREAM_RESOURCE_FORMAT = %r{\Astream/(?<name>[^:/]+)(?:/consumer/[^:/]+:\d+)?\z}
+
             def add_tags(span, params)
-              stream_arn = params[:stream_arn]
-              stream_name = params[:stream_name]
+              stream_name, stream_arn, account_id = parse_stream_arn(params[:stream_arn])
+              stream_name ||= params[:stream_name]
 
-              if stream_arn
-                # example stream_arn: arn:aws:kinesis:us-east-1:123456789012:stream/my-stream
-                parts = stream_arn.split(":")
-                stream_name = parts[-1].split("/")[-1]
-                aws_account = parts[-2]
-                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
-                span.set_tag(Aws::Ext::TAG_STREAM_ARN, stream_arn)
-              end
-
+              span.set_tag(Aws::Ext::TAG_STREAM_ARN, stream_arn) if stream_arn
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
               span.set_tag(Aws::Ext::TAG_STREAM_NAME, stream_name)
+              return if stream_name.nil? || stream_name == ""
+
+              span.set_tag(Aws::Ext::TAG_AWS_STREAM_NAME, stream_name)
+            end
+
+            private
+
+            def parse_stream_arn(value)
+              arn = Aws::Arn.parse(value)
+              name = arn&.resource_name(SERVICE, STREAM_RESOURCE_FORMAT)
+              return unless arn && name
+
+              [name, value, arn.account_id]
             end
           end
         end

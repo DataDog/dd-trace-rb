@@ -62,9 +62,19 @@ module Datadog
 
           TAG_STATE_MACHINE_ARN: "aws.state_machine.arn"
 
+          TAG_EXECUTION_ARN: "aws.execution.arn"
+
           TAG_TABLE_ARN: "aws.table.arn"
 
           TAG_FUNCTION_ARN: "aws.function.arn"
+
+          TAG_AWS_TABLE_NAME: "aws.table.name"
+
+          TAG_AWS_TOPIC_NAME: "aws.topic.name"
+
+          TAG_AWS_STREAM_NAME: "aws.stream.name"
+
+          TAG_AWS_FUNCTION_NAME: "aws.function.name"
 
           PEER_SERVICE_SOURCE_AWS: Array[string]
         end

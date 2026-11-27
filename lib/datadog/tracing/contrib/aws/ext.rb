@@ -37,8 +37,14 @@ module Datadog
           TAG_TOPIC_ARN = "aws.sns.topic_arn"
           TAG_STREAM_ARN = "aws.stream.arn"
           TAG_STATE_MACHINE_ARN = "aws.state_machine.arn"
+          TAG_EXECUTION_ARN = "aws.execution.arn"
           TAG_TABLE_ARN = "aws.table.arn"
           TAG_FUNCTION_ARN = "aws.function.arn"
+          TAG_AWS_TABLE_NAME = "aws.table.name"
+          TAG_AWS_TOPIC_NAME = "aws.topic.name"
+          TAG_AWS_STREAM_NAME = "aws.stream.name"
+          TAG_AWS_FUNCTION_NAME = "aws.function.name"
+          # `aws.function.name` is left out so Lambda `peer.service` stays `peer.hostname`, as in the other tracers.
           PEER_SERVICE_SOURCES = [TAG_QUEUE_NAME,
             TAG_TOPIC_NAME,
             TAG_STREAM_NAME,

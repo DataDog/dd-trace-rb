@@ -4,7 +4,17 @@ module Datadog
       module Aws
         module Service
           class States < Base
-            def add_tags: (untyped span, untyped params) -> untyped
+            SERVICE: String
+
+            STATE_MACHINE_RESOURCE_FORMAT: Regexp
+
+            EXECUTION_RESOURCE_FORMAT: Regexp
+
+            def add_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, any] params) -> void
+
+            private
+
+            def parse_state_machine: (any execution_arn, any state_machine_arn) -> [String, String?]?
           end
         end
       end

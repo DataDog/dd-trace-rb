@@ -1,0 +1,7 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6510",
+  "message": "Add the `aws.table.name`, `aws.stream.name`, `aws.topic.name` and `aws.function.name` tags to AWS SDK spans, and `aws.execution.arn` to Step Functions spans that carry an execution ARN.",
+  "author": "@pedramsafaei"
+}
