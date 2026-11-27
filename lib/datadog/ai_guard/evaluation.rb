@@ -56,15 +56,28 @@ module Datadog
             span.set_tag(Ext::REASON_TAG, result.reason)
             span.set_tag(Ext::REDACTED_TAG, redaction.redacted?) if redaction.performed?
 
-            span.set_metastruct_tag(
-              Ext::METASTRUCT_TAG,
-              {
-                messages: truncate_content(truncate_messages(result.messages).map(&:to_h)),
-                attack_categories: result.tags,
-                sds: result.sds_findings,
-                tag_probs: result.tag_probabilities,
-              },
-            )
+            outcome.extra_tags.each do |key, value|
+              next if Ext::RESERVED_EXTRA_SPAN_TAGS.include?(key)
+              next if key.start_with?("_dd")
+
+              span.set_tag(key, value)
+            end
+
+            # @type var metastruct: span_metadata
+            metastruct = {
+              messages: truncate_content(truncate_messages(result.messages).map(&:to_h)),
+              attack_categories: result.tags,
+              sds: result.sds_findings,
+              tag_probs: result.tag_probabilities,
+            }
+
+            outcome.extra_metastruct.each do |key, value|
+              next if Ext::RESERVED_EXTRA_METASTRUCT_KEYS.include?(key)
+
+              metastruct[key] = value
+            end
+
+            span.set_metastruct_tag(Ext::METASTRUCT_TAG, metastruct)
 
             blocked = allow_raise && outcome.block?
             Metrics::Telemetry.report_evaluation(outcome, blocked: blocked)

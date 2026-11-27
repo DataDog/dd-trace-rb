@@ -23,6 +23,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
     instance_double(
       Datadog::AppSec::SecurityEngine::Result::Ok,
       match?: false,
+      rule_triggered?: false,
       attributes: [],
       actions: {},
       keep?: false,
@@ -55,7 +56,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             "server.request.path_params" => {id: "1"},
             "server.request.body.byte_length" => 9,
             "server.request.body" => {"name" => "john"},
-          }, {}, anything,
+          }, anything,
         )
       end
     end
@@ -73,7 +74,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           {
             "server.request.path_params" => {id: "1"},
             "server.request.body.byte_length" => 9,
-          }, {}, anything,
+          }, anything,
         )
       end
 
@@ -94,7 +95,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           {
             "server.request.path_params" => {id: "1"},
             "server.request.body" => {"name" => "john"},
-          }, {}, anything,
+          }, anything,
         )
       end
     end
@@ -106,7 +107,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push("rails.request.action", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.path_params" => {id: "1"}}, {}, anything,
+          {"server.request.path_params" => {id: "1"}}, anything,
         )
       end
 
@@ -124,7 +125,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push("rails.request.action", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.path_params" => {id: "1"}}, {}, anything,
+          {"server.request.path_params" => {id: "1"}}, anything,
         )
       end
 
@@ -145,7 +146,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           {
             "server.request.path_params" => {id: "1"},
             "server.request.body.byte_length" => 9,
-          }, {}, anything,
+          }, anything,
         )
       end
     end
@@ -160,7 +161,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           {
             "server.request.path_params" => {id: "1"},
             "server.request.body.byte_length" => 9,
-          }, {}, anything,
+          }, anything,
         )
       end
     end
@@ -183,7 +184,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         {
           "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
           "server.response.body.byte_length" => 7,
-        }, {}, anything,
+        }, anything,
       )
     end
 
@@ -209,7 +210,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           {
             "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
             "server.response.body.byte_length" => 25,
-          }, {}, anything,
+          }, anything,
         )
       end
 
@@ -227,7 +228,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('["({"]')),
               "server.response.body.byte_length" => 24,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -244,7 +245,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("app.callback(42)")),
               "server.response.body.byte_length" => 16,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -258,7 +259,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           gateway.push("rails.response.body.json", container)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.response.body.byte_length" => 19}, {}, anything,
+            {"server.response.body.byte_length" => 19}, anything,
           )
         end
       end
@@ -272,7 +273,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           gateway.push("rails.response.body.json", container)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.response.body.byte_length" => 19}, {}, anything,
+            {"server.response.body.byte_length" => 19}, anything,
           )
         end
       end
@@ -289,7 +290,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("42")),
               "server.response.body.byte_length" => 20,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -310,7 +311,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('"text (value)"')),
               "server.response.body.byte_length" => 32,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -327,7 +328,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("false")),
               "server.response.body.byte_length" => 23,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -344,7 +345,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("null")),
               "server.response.body.byte_length" => 22,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -358,7 +359,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           gateway.push("rails.response.body.json", container)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.response.body.byte_length" => 25}, {}, anything,
+            {"server.response.body.byte_length" => 25}, anything,
           )
         end
       end
@@ -375,7 +376,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
               "server.response.body.byte_length" => 15,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -396,7 +397,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":"(value)"}')),
               "server.response.body.byte_length" => 33,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -417,7 +418,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
             {
               "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":"("}')),
               "server.response.body.byte_length" => 27,
-            }, {}, anything,
+            }, anything,
           )
         end
       end
@@ -432,7 +433,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push("rails.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything,
+          {"server.response.body.byte_length" => 7}, anything,
         )
       end
     end
@@ -450,7 +451,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push("rails.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 4}, {}, anything,
+          {"server.response.body.byte_length" => 4}, anything,
         )
       end
     end
@@ -462,7 +463,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push("rails.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything,
+          {"server.response.body.byte_length" => 7}, anything,
         )
       end
     end
@@ -474,7 +475,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push("rails.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything,
+          {"server.response.body.byte_length" => 7}, anything,
         )
       end
     end

@@ -115,6 +115,18 @@ RSpec.describe "Rails Railtie", execute_in_fork: true do
     end
   end
 
+  describe "with Rails integration #web_service_name option" do
+    context "set to a custom value" do
+      let(:rails_options) { super().merge(web_service_name: "nginx") }
+
+      it "propagates the web service name to the rack integration" do
+        app
+
+        expect(Datadog.configuration.tracing[:rack][:web_service_name]).to eq "nginx"
+      end
+    end
+  end
+
   describe "when load hooks run twice" do
     subject! do
       # Set expectations

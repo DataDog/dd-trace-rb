@@ -127,10 +127,10 @@ exceptions. Callers may not blanket-rescue solely from such calls.
 - Never mention telemetry in customer-facing Dynamic Instrumentation documentation such as `docs/DynamicInstrumentation.md`. Telemetry is internal and inaccessible to customers; only mention observable behavior, while internal code comments may describe telemetry.
 - All user-facing product documentation lives in `docs/GettingStarted.md`; update it when adding user-facing settings or environment variables.
 
-## Environment variables
+## Configuration and environment variables
 
 - Use `DATADOG_ENV`, never `ENV` directly (see `docs/AccessEnvironmentVariables.md`).
-- Run `rake local_config_map:generate` when adding new environment variables.
+- When adding, renaming, or changing a configuration or `DD_`/`OTEL_` environment variable (including its type, default, aliases, or deprecation), read and follow every step in `docs/AccessEnvironmentVariables.md`. The Configuration Registry is internal-only; if you cannot update it, tell the user.
 
 # Testing
 

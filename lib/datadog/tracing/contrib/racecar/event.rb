@@ -4,6 +4,7 @@ require_relative "../../metadata/ext"
 require_relative "../active_support/notifications/event"
 require_relative "../analytics"
 require_relative "ext"
+require_relative "../kafka/ext"
 
 module Datadog
   module Tracing
@@ -56,6 +57,9 @@ module Datadog
               span.set_tag(Ext::TAG_FIRST_OFFSET, payload[:first_offset]) if payload.key?(:first_offset)
               span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
               span.set_error(payload[:exception_object]) if payload[:exception_object]
+
+              brokers = Array(::Racecar.config.brokers) if defined?(::Racecar) && ::Racecar.respond_to?(:config)
+              span.set_tag(Contrib::Kafka::Ext::TAG_KAFKA_BOOTSTRAP_SERVERS, brokers.join(",")) if brokers&.any?
             end
 
             private

@@ -20,6 +20,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_NAME, "MyQueueName")
     end
+
+    it "sets the queue url tag" do
+      sqs.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_URL, queue_url)
+    end
   end
 
   context "when queue_name is present" do
@@ -29,6 +34,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
     it "sets queue name tag" do
       sqs.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_NAME, "AnotherQueueName")
+    end
+
+    it "does not set the queue url tag" do
+      sqs.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_URL, anything)
     end
   end
 end

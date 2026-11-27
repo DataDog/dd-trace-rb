@@ -27,8 +27,6 @@ module Datadog
           def normalize_request_headers: () -> headers
 
           def normalize_response_headers: (::RestClient::Response response) -> headers
-
-          def handle: (SecurityEngine::result result, context: Context) -> void
         end
       end
     end

@@ -499,15 +499,15 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       describe "#enabled" do
         subject(:enabled) { settings.tracing.partial_flush.enabled }
 
-        it { is_expected.to be false }
+        it { is_expected.to be true }
       end
 
       describe "#enabled=" do
         it "updates the #enabled setting" do
-          expect { settings.tracing.partial_flush.enabled = true }
+          expect { settings.tracing.partial_flush.enabled = false }
             .to change { settings.tracing.partial_flush.enabled }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
 

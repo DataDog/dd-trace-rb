@@ -5,7 +5,7 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION: untyped
+          MINIMUM_VERSION: Gem::Version
 
           def self.version: () -> untyped
 

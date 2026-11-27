@@ -34,38 +34,33 @@ module Datadog
                   limit = Datadog.configuration.appsec.body_parsing_size_limit
                   next stack.call(request) if limit.zero?
 
-                  persistent_data = {}
+                  evaluation_data = {}
                   byte_length = gateway_request.body_bytesize(limit)
 
                   if byte_length
-                    persistent_data["server.request.body.byte_length"] = byte_length
+                    evaluation_data["server.request.body.byte_length"] = byte_length
 
                     if byte_length <= limit
                       body = gateway_request.form_hash
-                      persistent_data["server.request.body"] = body if body
+                      evaluation_data["server.request.body"] = body if body
                     end
                   # NOTE: Body was parsed before measurement, keep byte_length unset
                   elsif gateway_request.env.key?("rack.request.form_hash")
                     body = gateway_request.env["rack.request.form_hash"]
-                    persistent_data["server.request.body"] = body if body
+                    evaluation_data["server.request.body"] = body if body
                   end
 
-                  next stack.call(request) if persistent_data.empty?
+                  next stack.call(request) if evaluation_data.empty?
 
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || !result.attributes.empty?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
 
-                  if result.match?
-                    AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    AppSec::ActionsHandler.handle(result.actions)
-                  end
+                  TraceKeeper.keep!(context.trace) if result.keep?
+                  AppSec::Event.tag(context) if result.rule_triggered?
+                  AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                   stack.call(gateway_request.request)
                 end
@@ -76,22 +71,19 @@ module Datadog
                   gateway_request, gateway_route_params = args # : [Gateway::Request, Gateway::RouteParams]
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
-                  persistent_data = {
+                  evaluation_data = {
                     "server.request.path_params" => gateway_route_params.params,
                   }
 
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match?
-                    AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
-                    AppSec::ActionsHandler.handle(result.actions)
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
+                  AppSec::Event.tag(context) if result.rule_triggered?
+                  AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                   stack.call(gateway_request.request)
                 end
@@ -104,30 +96,27 @@ module Datadog
                   body_bytesize = container.data.bytesize
                   limit = Datadog.configuration.appsec.body_parsing_size_limit
 
-                  persistent_data = {
+                  evaluation_data = {
                     "server.response.body.byte_length" => body_bytesize,
                   }
 
                   if limit > 0 && body_bytesize <= limit
-                    persistent_data["server.response.body"] = WAF::JSONString.new(container.data)
+                    evaluation_data["server.response.body"] = WAF::JSONString.new(container.data)
                   end
 
                   result = begin
-                    context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                    context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
                   rescue WAF::ConversionError
                     next stack.call(container)
                   end
 
-                  if result.match?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
-                    AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    AppSec::ActionsHandler.handle(result.actions)
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
+                  AppSec::Event.tag(context) if result.rule_triggered?
+                  AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                   stack.call(container)
                 end

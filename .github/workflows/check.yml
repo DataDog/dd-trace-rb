@@ -18,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -132,7 +132,7 @@ jobs:
         (github.event_name == 'pull_request' && startsWith(github.head_ref, 'bump_to_version_'))
       )
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -144,13 +144,13 @@ jobs:
     name: simple-english
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Lint docs and agent skills
-        uses: TonyCTHsu/simple-english@1f6e849a0d88acf66a6bf60a814d8968c15ef2c1 # v0.13.0
+        uses: TonyCTHsu/simple-english@7148d29423c2e4b3e8ee2a03cf48ca54a8eaeb1e # v0.13.1
         with:
           files: |
             docs/DependencyAudit.md
@@ -189,7 +189,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true
@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"

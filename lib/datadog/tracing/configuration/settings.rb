@@ -276,9 +276,9 @@ module Datadog
               settings :partial_flush do
                 # Enable partial trace flushing.
                 #
-                # @default `false`
+                # @default `true`
                 # @return [Boolean]
-                option :enabled, default: false, type: :bool
+                option :enabled, default: true, type: :bool
 
                 # Minimum number of finished spans required in a single unfinished trace before
                 # the tracer will consider that trace for partial flushing.

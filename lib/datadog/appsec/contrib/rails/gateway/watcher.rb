@@ -25,7 +25,7 @@ module Datadog
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
                   limit = Datadog.configuration.appsec.body_parsing_size_limit
 
-                  persistent_data = {
+                  evaluation_data = {
                     "server.request.path_params" => gateway_request.route_params,
                   }
 
@@ -36,27 +36,24 @@ module Datadog
                       # NOTE: Params may be parsed before this hook, leaving the
                       #       body stream at EOF. Keep byte_length unset for that
                       #       case, but still inspect cached params
-                      persistent_data["server.request.body.byte_length"] = byte_length if byte_length.positive?
+                      evaluation_data["server.request.body.byte_length"] = byte_length if byte_length.positive?
 
                       if byte_length <= limit
                         body = gateway_request.parsed_body
-                        persistent_data["server.request.body"] = body unless body.nil? || body.empty?
+                        evaluation_data["server.request.body"] = body unless body.nil? || body.empty?
                       end
                     end
                   end
 
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
-                    AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    AppSec::ActionsHandler.handle(result.actions)
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
+                  AppSec::Event.tag(context) if result.rule_triggered?
+                  AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                   stack.call(gateway_request.request)
                 end
@@ -69,31 +66,28 @@ module Datadog
                   body_bytesize = container.data.bytesize
                   limit = Datadog.configuration.appsec.body_parsing_size_limit
 
-                  persistent_data = {
+                  evaluation_data = {
                     "server.response.body.byte_length" => body_bytesize,
                   }
 
                   if limit > 0 && body_bytesize <= limit
                     json = extract_json(container.data)
-                    persistent_data["server.response.body"] = WAF::JSONString.new(json) if json
+                    evaluation_data["server.response.body"] = WAF::JSONString.new(json) if json
                   end
 
                   result = begin
-                    context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                    context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
                   rescue WAF::ConversionError
                     next stack.call(container)
                   end
 
-                  if result.match?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                    )
-
-                    AppSec::Event.tag(context, result)
-                    TraceKeeper.keep!(context.trace) if result.keep?
-
-                    AppSec::ActionsHandler.handle(result.actions)
+                  if SecurityEvent.record?(result)
+                    context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                   end
+
+                  TraceKeeper.keep!(context.trace) if result.keep?
+                  AppSec::Event.tag(context) if result.rule_triggered?
+                  AppSec::ActionsHandler.handle(result.actions) if result.match?
 
                   stack.call(container)
                 end

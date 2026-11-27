@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "ext"
+require_relative "../kafka/ext"
+require_relative "../karafka/kafka_config"
 
 module Datadog
   module Tracing
@@ -36,12 +38,16 @@ module Datadog
               partitions << message[:partition] if message.key?(:partition)
             end
 
+            span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
             span.set_tag(Ext::TAG_PRODUCER, id)
             span.set_tag(Contrib::Karafka::Ext::TAG_MESSAGE_COUNT, messages.size)
             span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Contrib::Karafka::Ext::TAG_SYSTEM)
 
             span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, topics.uniq.sort.join(","))
             span.set_tag(Contrib::Karafka::Ext::TAG_PARTITION, partitions.uniq.sort.join(",")) if partitions.any?
+
+            bootstrap_servers = Contrib::Karafka::KafkaConfig.bootstrap_servers(config&.kafka)
+            span.set_tag(Contrib::Kafka::Ext::TAG_KAFKA_BOOTSTRAP_SERVERS, bootstrap_servers) if bootstrap_servers
           end
         end
       end

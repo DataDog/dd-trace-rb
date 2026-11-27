@@ -219,6 +219,12 @@ static inline void check_shared_runtime_error(const char *context,
  * Config helpers
  * ======================================================================== */
 
+// libdatadog v49 deprecated ddog_trace_exporter_config_* for a new builder API, but
+// ddog_trace_exporter_config_enable_observations has no builder equivalent yet.
+// Config and Builder are separate types, so we can't migrate piecemeal.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 typedef ddog_TraceExporterError *(*config_setter_fn)(
     ddog_TraceExporterConfig *, ddog_CharSlice);
 
@@ -242,6 +248,8 @@ static inline void set_config_field(
     check_exporter_error(label, err);
   }
 }
+
+#pragma GCC diagnostic pop
 
 /* ========================================================================
  * Conversion helpers (Ruby -> C, require the GVL)
@@ -1464,6 +1472,8 @@ static VALUE _native_exporter_new(
   }
 
   /* Phase 2: configure before creating the separately-owned runtime. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
   ddog_TraceExporterError *observation_error = ddog_trace_exporter_config_enable_observations(config);
@@ -1530,6 +1540,7 @@ static VALUE _native_exporter_new(
   ddog_TraceExporter *exporter = NULL;
   ddog_TraceExporterError *err = ddog_trace_exporter_new(&exporter, config);
   ddog_trace_exporter_config_free(config);
+#pragma GCC diagnostic pop
   config = NULL;
 
   if (err) {

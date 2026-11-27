@@ -6,7 +6,8 @@ module Datadog
       # SecurityEngine::Engine creates WAF builder and manages its configuration.
       # It also rebuilds WAF handle from the WAF builder when configuration changes.
       class Engine
-        DEFAULT_RULES_CONFIG_PATH = "ASM_DD/default"
+        RULESET_PATH_PREFIX = "ASM_DD"
+        DEFAULT_RULES_CONFIG_PATH = "#{RULESET_PATH_PREFIX}/default"
         TELEMETRY_ACTIONS = %w[init update].freeze
         DIAGNOSTICS_CONFIG_KEYS = %w[
           rules
@@ -35,9 +36,10 @@ module Datadog
             },
           )
 
-          diagnostics = load_default_config(telemetry: telemetry)
-          report_configuration_diagnostics(diagnostics, action: "init", telemetry: telemetry)
-          @ruleset_version = diagnostics["ruleset_version"]
+          result = load_default_config(telemetry: telemetry)
+          diagnostics = result.diagnostics
+          report_configuration_diagnostics(diagnostics, action: "init", telemetry: telemetry) if diagnostics
+          @ruleset_version = diagnostics&.[]("ruleset_version")
 
           @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
 
@@ -50,6 +52,7 @@ module Datadog
 
           metric("init", success: false, ruleset_version: @ruleset_version, telemetry: telemetry)
 
+          @waf_builder&.finalize!
           raise e
         end
 
@@ -58,49 +61,38 @@ module Datadog
         end
 
         def add_or_update_config(config, path:)
-          is_ruleset_update = path.include?("ASM_DD")
+          is_ruleset_update = path.include?(RULESET_PATH_PREFIX)
 
           # default config has to be removed when adding an ASM_DD config
-          remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if is_ruleset_update
+          @waf_builder.remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if is_ruleset_update
 
-          diagnostics = @waf_builder.add_or_update_config(config, path: path)
-          @reconfigured_ruleset_version = diagnostics["ruleset_version"] if diagnostics.key?("ruleset_version")
-          report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
+          result = @waf_builder.add_or_update_config(config, path: path)
+          diagnostics = result.diagnostics
+          report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry) if diagnostics
 
-          # we need to load default config if diagnostics contains top-level error for rules or processors
-          if is_ruleset_update &&
-              (diagnostics.key?("error") ||
-              diagnostics.dig("rules", "error") ||
-              diagnostics.dig("processors", "error"))
-            @waf_builder.remove_config_at_path(path)
-            diagnostics = load_default_config(telemetry: AppSec.telemetry)
-            @reconfigured_ruleset_version = diagnostics["ruleset_version"]
-            report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
+          if !result.success? || (is_ruleset_update && diagnostics &&
+              (diagnostics.key?("error") || diagnostics.dig("rules", "error") || diagnostics.dig("processors", "error")))
+            restore_default_config(rejected_path: path) if is_ruleset_update
+            return false
           end
 
-          diagnostics
+          @reconfigured_ruleset_version = diagnostics["ruleset_version"] if diagnostics&.key?("ruleset_version")
+          true
         rescue WAF::Error => e
           error_message = "libddwaf builder failed to add or update config at path: #{path}"
 
           Datadog.logger.debug("#{error_message}, error: #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
+          restore_default_config(rejected_path: path) if is_ruleset_update
+          false
         end
 
         def remove_config_at_path(path)
           result = @waf_builder.remove_config_at_path(path)
 
-          if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?("ASM_DD")
-            diagnostics = load_default_config(telemetry: AppSec.telemetry)
-            @reconfigured_ruleset_version = diagnostics["ruleset_version"]
-            report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
-          end
+          restore_default_config if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?(RULESET_PATH_PREFIX)
 
           result
-        rescue WAF::Error => e
-          error_message = "libddwaf handle builder failed to remove config at path: #{path}"
-
-          Datadog.logger.error("#{error_message}, error: #{e.inspect}")
-          AppSec.telemetry.report(e, description: error_message)
         end
 
         def reconfigure!
@@ -149,6 +141,19 @@ module Datadog
           config["exclusions"] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: @default_ip_passlist)
 
           @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
+        end
+
+        def restore_default_config(rejected_path: nil)
+          @waf_builder.remove_config_at_path(rejected_path) if rejected_path
+
+          result = load_default_config(telemetry: AppSec.telemetry)
+          diagnostics = result.diagnostics
+
+          @reconfigured_ruleset_version = diagnostics["ruleset_version"] if diagnostics&.key?("ruleset_version")
+        rescue WAF::Error => e
+          error_message = "AppSec security engine failed to restore config at path: #{DEFAULT_RULES_CONFIG_PATH}"
+          Datadog.logger.error("#{error_message}, error: #{e.inspect}")
+          AppSec.telemetry.report(e, description: error_message)
         end
 
         def report_configuration_diagnostics(diagnostics, action:, telemetry:)

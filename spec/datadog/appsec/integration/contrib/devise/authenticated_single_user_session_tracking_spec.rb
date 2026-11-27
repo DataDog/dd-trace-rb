@@ -300,7 +300,7 @@ RSpec.describe "Devise auto login and signup events session tracking" do
 
       it "tracks it with SDK values and session id from auto-instrumentation" do
         expect_any_instance_of(Datadog::AppSec::Context).to receive(:run_waf)
-          .with(hash_including("usr.session_id" => String), anything, anything).once
+          .with(hash_including("usr.session_id" => String), anything).once
           .and_call_original
 
         get("/public")
@@ -336,7 +336,7 @@ RSpec.describe "Devise auto login and signup events session tracking" do
 
       it "tracks it with SDK values and customer session id" do
         expect_any_instance_of(Datadog::AppSec::Context).to receive(:run_waf)
-          .with(hash_including("usr.session_id" => "1234567890"), anything, anything).once
+          .with(hash_including("usr.session_id" => "1234567890"), anything).once
           .and_call_original
 
         get("/public")

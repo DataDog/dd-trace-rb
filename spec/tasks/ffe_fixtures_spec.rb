@@ -103,20 +103,24 @@ RSpec.describe FfeFixtures do
       expect(File.directory?(root)).to be(true)
     end
 
-    it "copies only the configuration and flat evaluation cases, skipping the rest of the tarball" do
+    it "copies only the configuration, flat evaluation cases, and flag selection vectors, skipping the rest of the tarball" do
       stub_upstream(
         commit => files_by_path.merge(
           "README.md" => "documentation",
           "ci/lint.yml" => "jobs",
           "evaluation-cases/nested/case.json" => "[]",
           "evaluation-cases/notes.txt" => "not a case",
+          "flag-selection/selection-vectors.json" => '{"cases":[]}',
+          "flag-selection/README.md" => "documentation",
+          "flag-selection/nested/vectors.json" => "{}",
         ),
       )
 
       root = described_class.download(repository)
 
-      expect(Dir.children(root).sort).to eq(["evaluation-cases", "ufc-config.json"])
+      expect(Dir.children(root).sort).to eq(["evaluation-cases", "flag-selection", "ufc-config.json"])
       expect(Dir.children(File.join(root, "evaluation-cases"))).to eq(["cases.json"])
+      expect(Dir.children(File.join(root, "flag-selection"))).to eq(["selection-vectors.json"])
     end
 
     it "rejects a corpus without the configuration or cases, without leaving a cache entry" do

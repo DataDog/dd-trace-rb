@@ -55,11 +55,11 @@ Gem::Specification.new do |spec|
   spec.add_dependency "datadog-ruby_core_source", "~> 3.5", ">= 3.5.6"
 
   # Used by appsec
-  spec.add_dependency "libddwaf", "~> 1.30.0.1.0"
+  spec.add_dependency "libddwaf", "~> 2.0.1.0.1"
 
   # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
   # (and yes we have a test for it)
-  spec.add_dependency "libdatadog", "~> 48.0.0.1.1"
+  spec.add_dependency "libdatadog", "~> 49.0.0.1.1"
 
   # No longer a default gem on Ruby 4.0.
   # We support all versions of this gem and don't particularly require any version restriction.

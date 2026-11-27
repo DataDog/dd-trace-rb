@@ -1040,23 +1040,6 @@ void self_test_current_fiber_for(void) { } // Nothing to do
 // Also, those functions are static functions in vm_backtrace.c so not reusable.
 // There is also AFAIK no reasonable way to create a rb_backtrace_location_t from outside that file.
 
-// Return true if a given location is a C method or supposed to behave like one.
-static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
-  if (!cme) {
-    return false;
-  }
-
-  switch (cme->def->type) {
-    case VM_METHOD_TYPE_CFUNC:
-      return true;
-    // Upstream, but we don't want that behavior:
-    // case VM_METHOD_TYPE_ISEQ:
-    //   return is_internal_location(loc->cme->def->body.iseq.iseqptr);
-    default:
-      return false;
-  }
-}
-
 // RCLASS_SINGLETON_P() is only defined on Ruby 3.4+, so we have a copy for older versions
 static bool ddtrace_RCLASS_SINGLETON_P(VALUE klass) {
   return RB_TYPE_P(klass, T_CLASS) && FL_TEST_RAW(klass, FL_SINGLETON);
@@ -1181,7 +1164,7 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
     case ISEQ_TYPE_METHOD:
       return rb_gen_method_name(owner, ISEQ_BODY(iseq)->location.label, buf, buf_size);
 
-#ifdef ISEQ_TYPE_PLAIN /* 2.5 does not have it */
+#ifndef NO_ISEQ_TYPE_PLAIN
     case ISEQ_TYPE_PLAIN:
 #endif
     case ISEQ_TYPE_BLOCK: {
@@ -1223,9 +1206,17 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
 }
 
 // MRI: location_label()
-// C methods don't have an iseq, only Ruby methods have
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
-  if (location_cfunc_p(cme)) {
+  // The upstream `location_label` uses `location_cfunc_p` instead of testing `iseq == NULL`, which checks cme->def->type.
+  // Between capturing the stack and naming its frames, a refinement can replace cme->def
+  // with a VM_METHOD_TYPE_REFINED definition. The captured frame is still a C frame with
+  // no ISEQ, so we use its captured frame kind rather than the method entry's current type.
+  //
+  // Upstream also names internal Ruby methods like C ones:
+  //   case VM_METHOD_TYPE_ISEQ:
+  //     return is_internal_location(loc->cme->def->body.iseq.iseqptr);
+  // but we don't want that behavior.
+  if (iseq == NULL) {
     VALUE method_name = rb_id2str(cme->def->original_id);
     if (method_name == Qfalse) {
       return NO_METHOD_NAME;
@@ -1239,7 +1230,8 @@ ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_i
 
 // Returns a String or Qfalse (like rb_id2str())
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
-  if (location_cfunc_p(cme)) {
+  // We test `iseq == NULL` and not `location_cfunc_p` for the same reason as `ddtrace_location_label` above
+  if (iseq == NULL) {
     return rb_id2str(cme->def->original_id);
   } else {
     return rb_iseq_base_label(iseq);
