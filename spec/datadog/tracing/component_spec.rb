@@ -553,8 +553,8 @@ RSpec.describe Datadog::Tracing::Component do
         end
       end
 
-      context "with context_scope" do
-        context "set to 'fiber_isolated' (default)" do
+      context "with fiber_inheritance_enabled" do
+        context "disabled (default)" do
           it "builds tracer with FiberLocalContext-based context provider" do
             tracer = build_tracer
             provider = tracer.instance_variable_get(:@provider)
@@ -566,9 +566,9 @@ RSpec.describe Datadog::Tracing::Component do
           end
         end
 
-        context "set to 'fiber_inherited'" do
+        context "enabled" do
           before do
-            settings.tracing.context_scope = "fiber_inherited"
+            settings.tracing.fiber_inheritance_enabled = true
           end
 
           context "when Fiber storage is supported" do
@@ -588,7 +588,7 @@ RSpec.describe Datadog::Tracing::Component do
             before { allow(Fiber).to receive(:respond_to?).with(:[]).and_return(false) }
 
             it "falls back to FiberLocalContext with a warning" do
-              expect(logger).to receive(:warn).with(/'fiber_inherited' requires Ruby 3.2\+/)
+              expect(logger).to receive(:warn).with(/fiber_inheritance_enabled requires Ruby 3.2\+/)
 
               tracer = build_tracer
               provider = tracer.instance_variable_get(:@provider)

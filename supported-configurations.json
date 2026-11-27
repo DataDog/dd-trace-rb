@@ -1184,13 +1184,6 @@
         "default": "true"
       }
     ],
-    "DD_TRACE_CONTEXT_SCOPE": [
-      {
-        "version": "A",
-        "type": "string",
-        "default": "fiber_isolated"
-      }
-    ],
     "DD_TRACE_DALLI_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1443,6 +1436,13 @@
         "version": "A",
         "type": "string",
         "default": "faraday"
+      }
+    ],
+    "DD_TRACE_FIBER_INHERITANCE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_GRAPE_ANALYTICS_ENABLED": [

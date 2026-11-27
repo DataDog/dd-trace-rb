@@ -55,16 +55,14 @@ module Datadog
       end
 
       def self.build_context_provider(settings, otel_thread_context, logger)
-        local_context = if settings.tracing.context_scope == "fiber_inherited"
-          if Fiber.respond_to?(:[])
-            Tracing::FiberInheritedContext.new(otel_thread_context: otel_thread_context)
-          else
-            logger.warn("context_scope 'fiber_inherited' requires Ruby 3.2+. Using 'fiber_isolated'.")
-            Tracing::FiberLocalContext.new(otel_thread_context: otel_thread_context)
-          end
-        else
-          Tracing::FiberLocalContext.new(otel_thread_context: otel_thread_context)
+        fiber_inheritance = settings.tracing.fiber_inheritance_enabled
+        if fiber_inheritance && !Fiber.respond_to?(:[])
+          logger.warn("tracing.fiber_inheritance_enabled requires Ruby 3.2+. Ignoring it.")
+          fiber_inheritance = false
         end
+
+        local_context_class = fiber_inheritance ? Tracing::FiberInheritedContext : Tracing::FiberLocalContext
+        local_context = local_context_class.new(otel_thread_context: otel_thread_context)
 
         Tracing::DefaultContextProvider.new(otel_thread_context: otel_thread_context, local_context: local_context)
       end
