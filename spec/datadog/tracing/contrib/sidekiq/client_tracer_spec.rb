@@ -34,6 +34,22 @@ RSpec.describe "ClientTracerTest" do
     expect(span.get_tag("messaging.system")).to eq("sidekiq")
   end
 
+  context "when tracing is disabled" do
+    before { Datadog.configure { |c| c.tracing.enabled = false } }
+
+    it "yields to the next middleware without creating a span" do
+      expect(Datadog::Tracing).not_to receive(:trace)
+
+      job = {"class" => "EmptyWorker", "jid" => "123", "queue" => "default"}
+      expect do |next_middleware|
+        Datadog::Tracing::Contrib::Sidekiq::ClientTracer.new.call(job_class, job, "default", nil, &next_middleware)
+      end.to yield_control
+
+      perform_async
+      expect(spans).to be_empty
+    end
+  end
+
   context "with nested trace" do
     it "traces job push" do
       tracer.trace("parent.span", service: "parent-service") do

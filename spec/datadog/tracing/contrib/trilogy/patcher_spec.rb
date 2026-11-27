@@ -62,6 +62,24 @@ RSpec.describe "Trlogy::Client patcher" do
 
           expect(spans).to be_empty
         end
+
+        it "runs the query without building a span" do
+          expect(Datadog::Tracing).not_to receive(:trace)
+
+          expect(query.to_a).to eq([[1]])
+        end
+
+        context "with `comment_propagation` enabled" do
+          let(:configuration_options) { {service_name: service_name, comment_propagation: "service"} }
+
+          it "still prepends the sql comment" do
+            allow(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).and_call_original
+
+            query
+
+            expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment)
+          end
+        end
       end
 
       context "when the client is configured directly" do

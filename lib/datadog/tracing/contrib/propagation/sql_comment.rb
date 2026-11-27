@@ -11,6 +11,11 @@ module Datadog
       module Propagation
         # Implements sql comment propagation related contracts.
         module SqlComment
+          # Comments are injected even when tracing is disabled, and are built from the span's tags.
+          def self.instrument?(comment_propagation)
+            Tracing.enabled? || Mode.new(comment_propagation).enabled?
+          end
+
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 

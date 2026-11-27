@@ -20,6 +20,8 @@ module Datadog
           # Trilogy patch instance methods
           module InstanceMethods
             def query(sql)
+              return super unless Contrib::Propagation::SqlComment.instrument?(comment_propagation)
+
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               on_error = Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
 
