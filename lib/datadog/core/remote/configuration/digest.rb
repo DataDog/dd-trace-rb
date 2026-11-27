@@ -2,6 +2,8 @@
 
 require "digest"
 
+require_relative "error"
+
 module Datadog
   module Core
     module Remote
@@ -36,7 +38,7 @@ module Datadog
                 # It still doesn't work in the present implementation.
                 # Flag the nil data now to get earlier diagnostics when
                 # developing tests for example.
-                raise ArgumentError, "Invalid type for data: #{data.class}: expected String"
+                raise Configuration::Error.invalid_data_type(data, field: "data", expected_type: String)
               end
 
               d = case type
