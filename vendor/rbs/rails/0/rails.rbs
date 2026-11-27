@@ -36,3 +36,8 @@ module Rails
 
   def self.env: -> String
 end
+
+module ActiveJob
+  class Base
+  end
+end

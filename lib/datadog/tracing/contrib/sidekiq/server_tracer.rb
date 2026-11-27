@@ -6,6 +6,7 @@ require_relative "ext"
 require_relative "utils"
 require_relative "../utils/quantization/hash_formatter"
 require_relative "distributed/propagation"
+require_relative "data_streams"
 
 module Datadog
   module Tracing
@@ -72,7 +73,7 @@ module Datadog
                 span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::HashFormatter.format(args, @quantize[:args] || {}))
               end
 
-              yield
+              DataStreams.consume(job, queue) { yield }
             end
           end
 

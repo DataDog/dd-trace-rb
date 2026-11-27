@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        module DataStreams
+          RUNNING_JID_KEY: :datadog_sidekiq_data_streams_running_jid
+
+          type saved_state = { context: Datadog::DataStreams::PathwayContext?, processor: Datadog::DataStreams::Processor?, jid: String? }
+
+          def self.produce: (Hash[String, untyped] job) -> void
+
+          def self.consume: (Hash[String, untyped] job, String queue) { () -> untyped } -> untyped
+
+          def self.repush?: (Hash[String, untyped] job) -> bool
+
+          def self.hand_over_to_active_job: (Hash[String, untyped] job) -> void
+
+          def self.wrapped_payload: (Hash[String, untyped] job) -> Hash[String, untyped]?
+
+          def self.active_job_handles?: (Hash[String, untyped] job) -> bool
+
+          def self.save_state: (Hash[String, untyped] job) -> saved_state?
+
+          def self.restore_state: (saved_state? saved) -> void
+        end
+      end
+    end
+  end
+end
