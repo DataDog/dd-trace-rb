@@ -10,6 +10,10 @@ description: 'Use whenever writing or reviewing a code comment anywhere in this 
 Default to **no comment**: a comment must earn its place by saying something
 the code cannot.
 
+Write for someone who comes across this code later and missed the discussion.
+What would they wonder about this line? Give them the context they need to
+understand why we made that choice.
+
 **Exception:** `@public_api` docstrings follow normal YARD conventions
 (`@param`, `@return`, `@raise`, `@example`, `@see`). They are shipped
 customer docs (`docs/PublicApi.md`). The method body still follows the rules

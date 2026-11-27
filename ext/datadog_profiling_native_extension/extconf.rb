@@ -100,6 +100,23 @@ append_cflags "-Wshadow"
 # Allow defining variables at any point in a function
 append_cflags "-Wno-declaration-after-statement"
 
+# GCC silently accepts unknown -Wno-* flags when append_cflags compiles its test program.
+# It only reports them when something else triggers a diagnostic, so keep these Clang flags out of GCC builds.
+if have_macro("__clang__")
+  # Ruby defines RUBY_Qnil as a cast of the enum constant with the same name, so Clang warns every time we use Qnil.
+  append_cflags "-Wno-disabled-macro-expansion"
+
+  # We require C11 above, so using _Atomic and _Static_assert is fine.
+  append_cflags "-Wno-pre-c11-compat"
+
+  # Clang warns whenever it adds padding to align struct fields, even when the struct is already as small as it can be.
+  # We leave this warning off in normal builds and use it when tuning a specific struct's size.
+  append_cflags "-Wno-padded"
+
+  # We use _native_* for C callbacks so they're easy to match to their Ruby methods.
+  append_cflags "-Wno-reserved-identifier"
+end
+
 # If we forget to include a Ruby header, the function call may still appear to work, but then
 # cause a segfault later. Let's ensure that never happens.
 append_cflags "-Werror-implicit-function-declaration"
