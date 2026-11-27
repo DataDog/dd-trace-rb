@@ -1,1 +1,1 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:4.0-centos-g63fa2083a2632159fdfccba0106614dd88a4f742
+FROM ghcr.io/datadog/images-rb/engines/ruby:4.0-centos-gd1c928bd5cfe2e60d03d871a68497e556a8706b3
