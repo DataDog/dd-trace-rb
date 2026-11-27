@@ -31,6 +31,8 @@ module Datadog
         def self._native_hold_signals: () -> void
         def self._native_resume_signals: () -> void
 
+        def _native_profiler_internal_thread_started: () -> nil
+
         def _native_profiler_internal_thread_done: () -> nil
 
         def self._native_prepare_serialize: (CpuAndWallTimeWorker self_instance) -> Datadog::Profiling::StackRecorder
