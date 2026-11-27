@@ -1,4 +1,7 @@
 #define _GNU_SOURCE 1 // For can_overflow.c, needs to come before other system headers
+
+// Bundled zstd and nanopb declare static functions the profiler never uses.
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "miteruby_unity.h"
 
 // Poor person's LTO. Building miteruby as one translation unit lets the compiler

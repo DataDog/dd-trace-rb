@@ -17,6 +17,9 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
+
+// miteruby_unity.h declares static helpers whose definitions live in miteruby_unity.c.
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "miteruby_unity.h"
 
 #ifdef __APPLE__
