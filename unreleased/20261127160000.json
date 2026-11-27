@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6753",
+  "message": "`OTEL_RESOURCE_ATTRIBUTES` is now ignored with a warning when any entry is malformed (for example, an entry without `=`), as the OpenTelemetry specification requires. Previously, the valid entries were kept. `DD_TAGS` is unchanged."
+}
