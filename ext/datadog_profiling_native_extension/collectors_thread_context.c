@@ -1391,6 +1391,7 @@ static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context)
   VALUE context_as_hash = rb_hash_new();
 
   VALUE arguments[] = {
+    ID2SYM(rb_intern("sampling_buffer.pending_sample")), /* => */ thread_context->sampling_buffer.pending_sample ? Qtrue : Qfalse,
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
     ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
