@@ -81,7 +81,10 @@ static __attribute__((noinline)) bool miteruby_sample_event_publish_internal(
 
   // Note: We use stack-allocated storage, and thus it's not zero-initialized. So we need to make sure to never read or
   // use garbage. Every byte the queue copies should be initialized, including the padding it reads when it copies the final whole word.
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Walloca" // The caller probes MITERUBY_PUBLISH_STACK_BUDGET, which includes the largest event.
   miteruby_event_stack_sample_t *event = alloca(size_bytes);
+  #pragma GCC diagnostic pop
   memset(event, 0, sizeof(miteruby_event_stack_sample_t)); // Zero the event
 
   event->header.timestamp = timestamp;
