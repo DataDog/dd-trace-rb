@@ -522,8 +522,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
   ENFORCE_BOOLEAN(allocation_counting_enabled);
   ENFORCE_BOOLEAN(gvl_profiling_enabled);
-  ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
-  ENFORCE_BOOLEAN(sighandler_sampling_enabled)
+  ENFORCE_BOOLEAN(skip_idle_samples_for_testing);
+  ENFORCE_BOOLEAN(sighandler_sampling_enabled);
   ENFORCE_BOOLEAN(miteruby_enabled);
   ENFORCE_TYPE(cpu_sampling_interval_ms, T_FIXNUM);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);

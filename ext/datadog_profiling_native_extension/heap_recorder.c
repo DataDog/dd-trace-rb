@@ -967,7 +967,7 @@ static void cleanup_heap_record_if_unused(heap_recorder_t *heap_recorder, heap_r
 
   if (!st_delete(heap_recorder->heap_records, (st_data_t*) &heap_record, NULL)) {
     raise_error(rb_eRuntimeError, "Attempted to cleanup an untracked heap_record");
-  };
+  }
   heap_record_free(heap_recorder, heap_record, true);
 }
 

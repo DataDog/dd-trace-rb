@@ -32,13 +32,19 @@ void datadog_ruby_common_init(void);
 // Ruby has a Check_Type(value, type) that is roughly equivalent to this BUT Ruby's version is rather cryptic when it fails
 // e.g. "wrong argument type nil (expected String)". This is a replacement that prints more information to help debugging.
 #define ENFORCE_TYPE(value, type) \
-  { if (RB_UNLIKELY(!RB_TYPE_P(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
+  do { \
+    if (RB_UNLIKELY(!RB_TYPE_P(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), ADD_QUOTES(type), __FILE__, __LINE__, __func__); \
+  } while (0)
 
 #define ENFORCE_BOOLEAN(value) \
-  { if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); }
+  do { \
+    if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); \
+  } while (0)
 
 #define ENFORCE_TYPED_DATA(value, type) \
-  { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), "TypedData of type " ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
+  do { \
+    if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), "TypedData of type " ADD_QUOTES(type), __FILE__, __LINE__, __func__); \
+  } while (0)
 
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
