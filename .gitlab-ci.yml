@@ -17,6 +17,19 @@ include:
   - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
     file: ".gitlab/ci-ruby-acme-parallel.yml"
     ref: "e6d019540e3522c644914f175e5669fc18baee87" # apm-sdks-benchmarks#303 merge commit
+  # Manual, allowed-to-fail Speedlab macrobenchmarks measuring this pipeline's build.
+  - project: "DataDog/apm-reliability/speedlab"
+    file: ".gitlab/ci-sdk-ruby-acme.yml"
+    ref: "fayssal/sdk-ci-dd-trace-rb"
+    inputs:
+      stage: macrobenchmarks
+      speedlab_ref: "fayssal/sdk-ci-dd-trace-rb"
+  - project: "DataDog/apm-reliability/speedlab"
+    file: ".gitlab/ci-sdk-ruby-gitlab.yml"
+    ref: "fayssal/sdk-ci-dd-trace-rb"
+    inputs:
+      stage: macrobenchmarks
+      speedlab_ref: "fayssal/sdk-ci-dd-trace-rb"
   # LLM validation gate (prompt/AGENTS.md regression testing) — see ci/README.md in that repo.
   # Pin both refs identically; bump together to adopt a new release.
   - project: "ddoghq/llm-validation-platform"
