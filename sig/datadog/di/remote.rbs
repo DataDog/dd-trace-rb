@@ -17,17 +17,19 @@ module Datadog
 
       def self.receiver: (?Array[String] products) { (Core::Remote::Configuration::Repository, Array[Core::Remote::Configuration::Repository::change]) -> void } -> Array[Core::Remote::Dispatcher::Receiver]
 
-      private
+      private def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, untyped]
 
-      def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, untyped]
+      private def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
 
-      def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
-      def self.remove_withdrawn_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
-      def self.probe_known?: (untyped probe_id, Component component) -> bool
-      def self.probe_in_content_known?: (Core::Remote::Configuration::Content content, Component component) -> bool
+      private def self.remove_withdrawn_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
 
-      def self.add_probe: (Core::Remote::Configuration::Content content, Component component) -> void
-      def self.remove_probe: (Core::Remote::Configuration::Content previous_content, Component component) -> void
+      private def self.probe_known?: (untyped probe_id, Component component) -> bool
+
+      private def self.probe_in_content_known?: (Core::Remote::Configuration::Content content, Component component) -> bool
+
+      private def self.add_probe: (Core::Remote::Configuration::Content content, Component component) -> void
+
+      private def self.remove_probe: (Core::Remote::Configuration::Content previous_content, Component component) -> void
     end
   end
 end

@@ -79,7 +79,6 @@ module Datadog
       # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
-      attr_reader :agent_settings
       attr_reader :probe_repository
       attr_reader :probe_notification_builder
 
@@ -217,6 +216,10 @@ module Datadog
 
       attr_reader :wake
       attr_reader :thread
+
+      # The agent connection settings the worker's transports are built with.
+      # @return [Datadog::Core::Configuration::AgentSettings]
+      attr_reader :agent_settings
 
       # Convenience method to keep line length reasonable in the rest of the file.
       def min_send_interval
