@@ -31,7 +31,7 @@ module Datadog
     #
     # @api private
     class Uploader
-      MAX_PAYLOAD_SIZE = 50 * 1024 * 1024  # 50MB
+      MAX_PAYLOAD_SIZE_BYTES = 50 * 1024 * 1024  # 50MB
 
       # Initialize uploader.
       # @param settings [Configuration::Settings] Tracer settings (for service, env, version metadata)
@@ -81,8 +81,8 @@ module Datadog
         # symbol probe results for those classes. Java handles the same case
         # by splitting the payload across multiple requests; we have not
         # implemented splitting here. Deferred for a post-MVP follow-up.
-        if compressed_data.bytesize > MAX_PAYLOAD_SIZE
-          @logger.debug { "symdb: payload too large: #{compressed_data.bytesize}/#{MAX_PAYLOAD_SIZE} bytes, skipping" }
+        if compressed_data.bytesize > MAX_PAYLOAD_SIZE_BYTES
+          @logger.debug { "symdb: payload too large: #{compressed_data.bytesize}/#{MAX_PAYLOAD_SIZE_BYTES} bytes, skipping" }
           return
         end
 
