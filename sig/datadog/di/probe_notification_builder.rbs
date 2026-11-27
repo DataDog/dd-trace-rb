@@ -51,13 +51,6 @@ module Datadog
       def tag_process_tags!: (Hash[Symbol | String, untyped] payload, Core::Configuration::Settings settings) -> void
 
       def timestamp_now: () -> Integer
-
-      def envelope_trace: (Context context) -> Datadog::Tracing::TraceOperation?
-
-      def envelope_span: (Context context) -> Datadog::Tracing::SpanOperation?
-
-      def active_trace: () -> Datadog::Tracing::TraceOperation?
-      def active_span: () -> Datadog::Tracing::SpanOperation?
     end
   end
 end

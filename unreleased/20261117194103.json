@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6715",
+  "message": "Fix method-probe snapshots reporting a trace ID and a span ID from two different traces when the probed method switches traces, for example after `Datadog::Tracing.continue_trace!`."
+}

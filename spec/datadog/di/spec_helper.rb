@@ -264,21 +264,16 @@ module DIHelpers
     end
 
     # Stub the active APM trace that the correlation gate and the snapshot
-    # builder read through the Datadog::DI seam, plus the active span the
-    # builder reports.
+    # builder read through the Datadog::DI seam, with the span active in it.
     def stub_active_trace(trace_id, span_id: nil)
-      trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
+      span = (instance_double(Datadog::Tracing::SpanOperation, id: span_id) if span_id)
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id, active_span: span)
       allow(Datadog::DI).to receive(:active_trace).and_return(trace)
-      if span_id
-        span = instance_double(Datadog::Tracing::SpanOperation, id: span_id)
-        allow(Datadog::DI).to receive(:active_span).and_return(span)
-      end
     end
 
     # Stub the absence of an active APM trace.
     def stub_no_trace
       allow(Datadog::DI).to receive(:active_trace).and_return(nil)
-      allow(Datadog::DI).to receive(:active_span).and_return(nil)
     end
 
     # Freeze the time provider the rate limiters refill from, so their

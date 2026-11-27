@@ -155,14 +155,6 @@ module Datadog
         built_tracer&.active_trace
       end
 
-      # Returns the active APM span, or nil when tracing is not loaded or no
-      # span is active.
-      #
-      # @return [Datadog::Tracing::SpanOperation, nil]
-      def active_span
-        built_tracer&.active_span
-      end
-
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:

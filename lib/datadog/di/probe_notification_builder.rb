@@ -348,6 +348,17 @@ module Datadog
           format_caller_locations(caller_locations)
         end
 
+        # The envelope reports a trace and a span of the same trace: the pair
+        # captured when the gate admitted the hit (method probes), nil values
+        # included, or else the trace active at build time with its span.
+        if correlation = context.admission_correlation
+          trace = correlation.trace
+          span = correlation.span
+        else
+          trace = Datadog::DI.active_trace
+          span = trace&.active_span
+        end
+
         payload = {
           service: settings.service,
           debugger: {
@@ -400,8 +411,8 @@ module Datadog
           # Per-process identity, distinguishing snapshots before and after a
           # restart inside the same container.
           runtime_id: Core::Environment::Identity.id,
-          "dd.trace_id": envelope_trace(context)&.id&.to_s,
-          "dd.span_id": envelope_span(context)&.id&.to_s,
+          "dd.trace_id": trace&.id&.to_s,
+          "dd.span_id": span&.id&.to_s,
           ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
@@ -484,47 +495,6 @@ module Datadog
 
       def timestamp_now
         (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
-      end
-
-      # Returns the trace the envelope's correlation fields report: the
-      # trace captured when the gate admitted the hit, when the context
-      # carries one (method probes), otherwise the trace active when the
-      # snapshot is built (line probes, condition failures).
-      #
-      # @param context [Context] the context of the probe hit
-      # @return [Datadog::Tracing::TraceOperation, nil]
-      def envelope_trace(context)
-        context.admission_trace || active_trace
-      end
-
-      # Returns the span the envelope's correlation fields report: the span
-      # captured when the gate admitted the hit, when the context carries
-      # one (method probes), otherwise the span active when the snapshot is
-      # built (line probes, condition failures).
-      #
-      # @param context [Context] the context of the probe hit
-      # @return [Datadog::Tracing::SpanOperation, nil]
-      def envelope_span(context)
-        context.admission_span || active_span
-      end
-
-      # Returns the active APM trace supplying the snapshot's trace id,
-      # or nil when no trace is active.
-      #
-      # @return [Datadog::Tracing::TraceOperation, nil]
-      def active_trace
-        Datadog::DI.active_trace
-      end
-
-      # Returns the active APM span, or nil when no span is active. The
-      # lookup passes +allow_initialization: false+ and reads existing
-      # components; it runs on the application thread inside the probe
-      # wrapper and the line-probe TracePoint callback, for the same
-      # reason as {active_trace}.
-      #
-      # @return [Datadog::Tracing::SpanOperation, nil]
-      def active_span
-        Datadog::DI.active_span
       end
     end
   end
