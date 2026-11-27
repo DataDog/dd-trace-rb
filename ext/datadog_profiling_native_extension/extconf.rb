@@ -108,6 +108,10 @@ if have_macro("__clang__")
 
   # We require C11 above, so using _Atomic and _Static_assert is fine.
   append_cflags "-Wno-pre-c11-compat"
+
+  # Clang warns whenever it adds padding to align struct fields, even when the struct is already as small as it can be.
+  # We leave this warning off in normal builds and use it when tuning a specific struct's size.
+  append_cflags "-Wno-padded"
 end
 
 # If we forget to include a Ruby header, the function call may still appear to work, but then
