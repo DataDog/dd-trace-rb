@@ -1,0 +1,11 @@
+_v: 1
+name: ethon
+display_name: Ethon
+description: Instruments outbound HTTP requests made through Ethon Easy and Multi objects, including distributed trace-context
+  propagation.
+packages:
+- name: ethon
+category:
+- http.client
+systems: []
+creation_date: '2019-06-17'

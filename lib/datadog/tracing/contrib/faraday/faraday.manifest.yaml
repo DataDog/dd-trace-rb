@@ -1,0 +1,11 @@
+_v: 1
+name: faraday
+display_name: Faraday
+description: Instruments Faraday outbound HTTP requests and, with App and API Protection RASP enabled, analyzes requests and
+  responses for SSRF.
+packages:
+- name: faraday
+category:
+- http.client
+systems: []
+creation_date: '2017-09-05'

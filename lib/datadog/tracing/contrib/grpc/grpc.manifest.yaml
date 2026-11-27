@@ -1,0 +1,12 @@
+_v: 1
+name: grpc
+display_name: gRPC
+description: Instruments gRPC client and server remote procedure calls and propagates distributed trace context.
+packages:
+- name: grpc
+category:
+- rpc.client
+- rpc.server
+systems:
+- grpc
+creation_date: '2018-04-12'

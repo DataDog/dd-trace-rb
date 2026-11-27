@@ -1,0 +1,11 @@
+_v: 1
+name: rest_client
+display_name: Rest Client
+description: Instruments Rest Client outbound HTTP requests and optionally analyzes request and response data for App and
+  API Protection SSRF detection.
+packages:
+- name: rest-client
+category:
+- http.client
+systems: []
+creation_date: '2018-08-06'

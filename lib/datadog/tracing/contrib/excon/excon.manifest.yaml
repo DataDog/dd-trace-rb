@@ -1,0 +1,11 @@
+_v: 1
+name: excon
+display_name: Excon
+description: Instruments Excon outbound HTTP requests and optionally analyzes them for SSRF and downstream request and response
+  body threats.
+packages:
+- name: excon
+category:
+- http.client
+systems: []
+creation_date: '2017-10-01'

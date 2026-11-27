@@ -1,0 +1,10 @@
+_v: 1
+name: http
+display_name: Net::HTTP
+description: Instruments outbound HTTP requests made with Ruby's Net::HTTP client, creating spans and propagating distributed
+  trace context.
+packages: []
+category:
+- http.client
+systems: []
+creation_date: '2017-01-16'

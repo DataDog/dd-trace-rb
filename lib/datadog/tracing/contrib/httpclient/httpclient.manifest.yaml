@@ -1,0 +1,11 @@
+_v: 1
+name: httpclient
+display_name: HTTPClient
+description: Instruments outbound HTTP requests made through HTTPClient, creating client spans and propagating distributed
+  trace context.
+packages:
+- name: httpclient
+category:
+- http.client
+systems: []
+creation_date: '2021-01-15'
