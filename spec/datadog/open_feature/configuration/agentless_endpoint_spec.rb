@@ -14,6 +14,8 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
   let(:base_url) { nil }
   let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
 
+  before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(false) }
+
   context "when using the managed endpoint" do
     it "builds the default endpoint" do
       expect(endpoint.uri.to_s).to eq(
@@ -38,6 +40,22 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
 
       it "uses the default site" do
         expect(endpoint.uri.host).to eq("ufc-server.ff-cdn.datadoghq.com")
+      end
+    end
+
+    context "with a capable evaluator" do
+      before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true) }
+
+      it "includes the capability parameter without an environment" do
+        expect(endpoint.uri.query).to eq("cap_dependent-flags-variant-key=v1")
+      end
+
+      context "with an environment" do
+        let(:environment) { "staging/east" }
+
+        it "includes the capability after the encoded environment" do
+          expect(endpoint.uri.query).to eq("dd_env=staging%2Feast&cap_dependent-flags-variant-key=v1")
+        end
       end
     end
 
@@ -182,9 +200,9 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       let(:base_url) { "https://proxy.example.test/ufc" }
       let(:wide_tags) { Array.new(13) { |index| format("%02d", index) + "\u00E9" * 99 } }
 
-      def selection_with_url_bytes(url_bytes)
+      def selection_with_url_bytes(url_bytes, for_endpoint: endpoint)
         tags = wide_tags + ["x"]
-        padding = url_bytes - endpoint.with_flag_selection(
+        padding = url_bytes - for_endpoint.with_flag_selection(
           Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(tags: tags),
         ).uri.to_s.bytesize
         Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(tags: wide_tags + ["x" * (1 + padding)])
@@ -199,6 +217,37 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
 
       it "returns nil above 8192 bytes" do
         expect(endpoint.with_flag_selection(selection_with_url_bytes(8193))).to be_nil
+      end
+
+      context "with a capable evaluator and a managed endpoint" do
+        let(:base_url) { nil }
+        let(:environment) { "test" }
+
+        before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true) }
+
+        it "allows exactly 8192 bytes including capability parameters" do
+          selected = endpoint.with_flag_selection(selection_with_url_bytes(8192))
+
+          expect(selected.uri.to_s.bytesize).to eq(8192)
+          expect(URI.decode_www_form(selected.uri.query)).to include(["cap_dependent-flags-variant-key", "v1"])
+          expect(selected).to be_flag_selection_sent
+        end
+
+        it "rejects 8193 bytes including capability parameters" do
+          expect(endpoint.with_flag_selection(selection_with_url_bytes(8193))).to be_nil
+        end
+
+        it "rejects selections whose final-request URL only exceeds the limit after capability negotiation" do
+          without_capabilities = described_class.new(
+            URI("https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server?dd_env=test"),
+            managed: true,
+          )
+          selection = selection_with_url_bytes(8192, for_endpoint: without_capabilities)
+
+          expect(without_capabilities.with_flag_selection(selection).uri.to_s.bytesize).to eq(8192)
+          expect(endpoint.with_flag_selection(selection)).to be_nil
+          expect(endpoint).not_to be_flag_selection_sent
+        end
       end
     end
   end

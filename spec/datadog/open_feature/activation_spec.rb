@@ -220,7 +220,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(activation.start!).to be(component)
 
         expect(remote).to have_received(:register).with(
-          capabilities: [1 << 46],
+          capabilities: Datadog::OpenFeature::Remote.capabilities,
           products: ["FFE_FLAGS"],
           receivers: [instance_of(Datadog::Core::Remote::Dispatcher::Receiver)],
         ).once

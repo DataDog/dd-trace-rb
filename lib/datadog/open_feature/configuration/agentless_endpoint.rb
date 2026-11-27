@@ -3,6 +3,7 @@
 require "uri"
 
 require_relative "flag_selection"
+require_relative "../evaluator_capabilities"
 
 module Datadog
   module OpenFeature
@@ -64,10 +65,16 @@ module Datadog
               return
             end
 
+            query = environment.nil? ? nil : URI.encode_www_form(dd_env: environment)
+            if EvaluatorCapabilities.dependent_flags?
+              capability = "cap_dependent-flags-variant-key=v1"
+              query = query ? "#{query}&#{capability}" : capability
+            end
+
             uri = URI::HTTPS.build(
               host: "#{AGENTLESS_SUBDOMAIN}.#{normalized_site}",
               path: CONFIGURATION_PATH,
-              query: environment.nil? ? nil : URI.encode_www_form(dd_env: environment),
+              query: query,
             )
             new(uri, managed: true)
           rescue URI::InvalidComponentError

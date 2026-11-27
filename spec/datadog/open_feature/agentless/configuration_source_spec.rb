@@ -115,6 +115,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
 
       before do
         settings.api_key = "secret"
+        allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(false)
         allow(logger).to receive(:debug) { |message, &block| debug_messages << (block ? block.call : message) }
         stub_request(:get, "https://example.test/config").to_return(status: 200, body: body)
       end

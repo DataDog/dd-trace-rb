@@ -13,7 +13,15 @@ RSpec.describe Datadog::OpenFeature::Remote do
   let(:component) { instance_double(Datadog::OpenFeature::Component) }
 
   describe ".capabilities" do
-    it { expect(described_class.capabilities).to eq([70368744177664]) }
+    it "keeps dependent delivery disabled without evaluator support" do
+      allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(false)
+      expect(described_class.capabilities).to eq([70368744177664])
+    end
+
+    it "advertises rules and dependent flags with evaluator support" do
+      allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(true)
+      expect(described_class.capabilities).to eq([70368744177664, 1125899906842624])
+    end
   end
 
   describe ".products" do
