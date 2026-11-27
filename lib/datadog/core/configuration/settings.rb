@@ -744,33 +744,52 @@ module Datadog
           o.type :hash, nilable: true
           # Note: Alias (OTEL_RESOURCE_ATTRIBUTES) defined in supported-configurations.json
           o.env Core::Environment::Ext::ENV_TAGS
-          o.env_parser do |env_value|
-            # Parses a string containing key-value pairs and returns a hash.
-            # Key-value pairs are delimited by ':' OR `=`, and pairs are separated by whitespace, comma, OR BOTH.
-            result = {}
-            unless env_value.nil? || env_value.empty?
-              # falling back to comma as separator
-              sep = env_value.include?(",") ? "," : " "
-              # split by separator
-              env_value.split(sep).each do |tag|
-                tag.strip!
-                next if tag.empty?
-
-                # tag by : or = (for OpenTelemetry)
-                key, val = tag.split(/[:=]/, 2).map(&:strip)
-                val ||= ""
-                # maps OpenTelemetry semantic attributes to Datadog tags
-                key = case key.downcase
-                when "deployment.environment.name"
-                  result["env"] = val
-                  nil
-                when "deployment.environment" then "env" unless result.key?("env")
-                when "service.version" then "version"
-                when "service.name" then "service"
-                else key
+          o.env_parser do |env_value, env_name|
+            pairs = if env_name == Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES
+              # OpenTelemetry format: `key1=value1,key2=value2`. Any malformed member discards the whole value.
+              members = env_value.strip.empty? ? [] : env_value.split(",", -1).map(&:strip)
+              malformed_reason = lambda do |member|
+                if member.empty? then "is empty"
+                elsif !member.include?("=") then "has no '='"
+                elsif member.count("=") > 1 then "has more than one '='"
+                elsif member.start_with?("=") then "has an empty key"
                 end
-                result[key] = val unless key.nil? || key.empty?
               end
+
+              malformed_index = members.index { |member| malformed_reason.call(member) }
+              if malformed_index
+                # The global configuration is still being built here, so Datadog.logger would recurse into this option.
+                Datadog.config_init_logger.warn(
+                  "#{env_name} ignored: member #{malformed_index + 1} #{malformed_reason.call(members[malformed_index])}. " \
+                  "No resource attributes from this variable were applied.",
+                )
+                next
+              end
+
+              members.map { |member| member.split("=", 2).map(&:strip) }
+            else
+              # Datadog format: key-value pairs are delimited by ':' OR `=`, and pairs are separated by whitespace,
+              # comma, OR BOTH.
+              tags = env_value.split(env_value.include?(",") ? "," : " ")
+              tags.map(&:strip).reject(&:empty?).map do |tag|
+                key, val = tag.split(/[:=]/, 2).map(&:strip)
+                [key, val || ""]
+              end
+            end
+
+            result = {}
+            pairs.each do |key, val|
+              # maps OpenTelemetry semantic attributes to Datadog tags
+              key = case key.downcase
+              when "deployment.environment.name"
+                result["env"] = val
+                nil
+              when "deployment.environment" then "env" unless result.key?("env")
+              when "service.version" then "version"
+              when "service.name" then "service"
+              else key
+              end
+              result[key] = val unless key.nil? || key.empty?
             end
             result
           end

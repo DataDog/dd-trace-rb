@@ -26,6 +26,8 @@ module Datadog
 
         ENV_HOSTNAME: String
 
+        ENV_OTEL_RESOURCE_ATTRIBUTES: String
+
         ENV_SERVICE: String
 
         ENV_SITE: String
