@@ -34,4 +34,11 @@ pprof_dir="$repo_root/ext/datadog_profiling_native_extension/miteruby/pprof"
   --nanopb_out="--c-style,--library-include-format=quote:$pprof_dir" \
   "$pprof_dir/pprof_fragments.proto"
 
+# @ivoanjo: protobuf stuff is internal to miteruby -- nothing else should use it. We want to mark every declaration in it as
+# MITERUBY_INTERNAL, so that we can make them static and optimize it better for the miteruby unity build. So we have
+# a bit of code here to help us inject MITERUBY_INTERNAL in front of pprof fragments declarations.
+# (Yes this is a bit of black magic, yet I'll point out we're operating on C sources so we can trivially inspect the
+# before/after and make sure this is correct.)
+ruby -i -pe 'sub(/^extern (?=const pb_msgdesc_t )/, "MITERUBY_INTERNAL ")' "$pprof_dir/pprof_fragments.pb.h"
+
 printf 'Updated pprof_fragments.pb.c and pprof_fragments.pb.h in %s\n' "$pprof_dir"

@@ -520,7 +520,7 @@ struct pb_extension_s {
         msgname ## _FIELDLIST(PB_GEN_SUBMSG_INFO, structname) \
         NULL \
     }; \
-    const pb_msgdesc_t structname ## _msg = \
+    MITERUBY_INTERNAL const pb_msgdesc_t structname ## _msg = \
     { \
        structname ## _field_info, \
        structname ## _submsg_info, \

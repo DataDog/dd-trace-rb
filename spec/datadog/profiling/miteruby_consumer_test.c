@@ -1,5 +1,6 @@
 #define _GNU_SOURCE 1
 #include "miteruby_test_support.h"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pprof_fragments.pb.c"
 #include <ruby.h>
 #include <string.h>
 #include <unistd.h>
