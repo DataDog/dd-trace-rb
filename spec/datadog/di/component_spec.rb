@@ -575,8 +575,11 @@ RSpec.describe Datadog::DI::Component do
           before { component.start! }
 
           def captured_trace_messages
+            example_thread = Thread.current
             messages = []
-            allow(logger).to receive(:debug) { |*args, &blk| messages << (blk ? blk.call : args.first) }
+            allow(logger).to receive(:debug) do |*args, &blk|
+              messages << (blk ? blk.call : args.first) if Thread.current == example_thread
+            end
             messages
           end
 
