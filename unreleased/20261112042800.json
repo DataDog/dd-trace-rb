@@ -1,0 +1,7 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6678",
+  "message": "Fix Grape endpoints returning an empty response without running when the `grape` integration is enabled on Grape 4.1.0.",
+  "author": "@nazarli-shabnam"
+}
