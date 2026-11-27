@@ -271,6 +271,51 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
             end
           end
+
+          context "when the integration's default configuration is disabled" do
+            include_context "registry with integration"
+
+            context "before it was instrumented" do
+              before { integration.default_configuration.enabled = false }
+
+              it "enables it when given enabled: true" do
+                expect { settings.send(:instrument, integration_name, enabled: true) }
+                  .to change { integration.default_configuration.enabled }.from(false).to(true)
+
+                expect(settings.instrumented_integrations).to include(integration_name => integration)
+                expect(settings.integrations_pending_activation).to include(integration)
+              end
+
+              it "does not configure or instrument it without an explicit enabled option" do
+                expect(integration).to_not receive(:configure)
+
+                settings.send(:instrument, integration_name, service_name: "other")
+
+                expect(settings.instrumented_integrations).to_not include(integration_name)
+                expect(integration.default_configuration.enabled).to be false
+              end
+            end
+
+            context "after it was instrumented" do
+              before do
+                settings.send(:instrument, integration_name)
+                settings.send(:instrument, integration_name, enabled: false)
+              end
+
+              it "enables it when given enabled: true" do
+                expect { settings.send(:instrument, integration_name, enabled: true) }
+                  .to change { integration.default_configuration.enabled }.from(false).to(true)
+              end
+
+              it "stays disabled when given other options" do
+                expect(integration).to_not receive(:configure)
+
+                settings.send(:instrument, integration_name, service_name: "other")
+
+                expect(integration.default_configuration.enabled).to be false
+              end
+            end
+          end
         end
 
         describe "#instrumented_integrations" do
