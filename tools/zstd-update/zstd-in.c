@@ -52,9 +52,13 @@
 
 // @ivoanjo: Avoid zstd's forced inlining to reduce compilation time when installing the gem.
 #define ZSTD_NO_INLINE
-// @ivoanjo: Keep bundled zstd symbols private.
-#define ZSTDLIB_VISIBLE ZSTDLIB_HIDDEN
-#define ZSTDERRORLIB_VISIBLE ZSTDERRORLIB_HIDDEN
+
+// @ivoanjo: We used to set these to ZSTDLIB_HIDDEN / ZSTDERRORLIB_HIDDEN but using MITERUBY_INTERNAL is even better
+// as the miteruby unity build makes these functions static and then the compiler can optimize && remove even more code.
+// #define ZSTDLIB_VISIBLE ZSTDLIB_HIDDEN
+// #define ZSTDERRORLIB_VISIBLE ZSTDERRORLIB_HIDDEN
+#define ZSTDLIB_VISIBLE MITERUBY_INTERNAL
+#define ZSTDERRORLIB_VISIBLE MITERUBY_INTERNAL
 
 #define MEM_MODULE
 #undef  XXH_NAMESPACE
