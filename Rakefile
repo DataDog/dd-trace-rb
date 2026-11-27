@@ -53,8 +53,10 @@ DI_WITH_EXT = %w[
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
 # Add new instrumentation libraries here as they gain DSM support
 DSM_ENABLED_LIBRARIES = [
+  :aws,
   :kafka,
   :karafka,
+  :shoryuken,
 ].freeze
 
 # The Rakefile is only for development, enable testing the profiler on macOS
