@@ -1187,6 +1187,38 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe "#rds_tags_enabled" do
+      subject(:rds_tags_enabled) { settings.tracing.rds_tags_enabled }
+
+      let(:envs) do
+        {
+          Datadog::Tracing::Configuration::Ext::ENV_RDS_TAGS_ENABLED => environment,
+        }
+      end
+      let(:environment) { nil }
+
+      it { is_expected.to be true }
+
+      {
+        "true" => true,
+        "1" => true,
+        "false" => false,
+        "0" => false,
+      }.each do |value, expected|
+        context "when environment value is #{value.inspect}" do
+          let(:environment) { value }
+
+          it { is_expected.to be(expected) }
+        end
+      end
+
+      it "accepts programmatic boolean values" do
+        expect do
+          settings.tracing.rds_tags_enabled = false
+        end.to change { settings.tracing.rds_tags_enabled }.from(true).to(false)
+      end
+    end
+
     describe "#http_error_statuses" do
       # We cannot use described_class (as it is Tracing::Configuration::Settings, not Core::Configuration::Settings)
       # So we need to create a new `Settings` class to access the anonymous parent setting class of server and client options.

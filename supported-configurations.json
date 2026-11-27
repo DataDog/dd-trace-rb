@@ -2189,6 +2189,14 @@
         "default": "100"
       }
     ],
+    "DD_TRACE_RDS_TAGS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["tracing.rds_tags_enabled"],
+        "default": "true"
+      }
+    ],
     "DD_TRACE_REDIS_ANALYTICS_ENABLED": [
       {
         "version": "A",

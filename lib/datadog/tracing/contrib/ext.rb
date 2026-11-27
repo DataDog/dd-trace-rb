@@ -34,6 +34,14 @@ module Datadog
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST].freeze
         end
 
+        module RDS
+          TAG_IDENTIFIER = "aws.rds.identifier"
+          TAG_ENDPOINT_TYPE = "aws.rds.endpoint_type"
+          TAG_REGION = "aws.region"
+          TAG_DB_INSTANCE_IDENTIFIER = "dbinstanceidentifier"
+          TAG_DB_CLUSTER_IDENTIFIER = "dbclusteridentifier"
+        end
+
         module RPC
           TAG_SYSTEM = "rpc.system"
           TAG_SERVICE = "rpc.service"
