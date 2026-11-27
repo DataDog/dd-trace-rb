@@ -140,6 +140,50 @@ static void test_location_wire_encoding(void) {
   }
 }
 
+static void test_packed_varints(void) {
+  uint64_t values[30] = {0, 1, UINT64_MAX};
+  size_t count = 3;
+  for (unsigned shift = 7; shift <= 63; shift += 7) {
+    uint64_t boundary = UINT64_C(1) << shift;
+    values[count++] = boundary - 1;
+    values[count++] = boundary;
+    values[count++] = boundary + 1;
+  }
+
+  for (size_t length = 0; length <= count; length++) {
+    uint8_t packed_bytes[300], expected[320], actual[320];
+    pb_ostream_t packed = pb_ostream_from_buffer(packed_bytes, sizeof(packed_bytes));
+    for (size_t i = 0; i < length; i++) assert(pb_encode_varint(&packed, values[i]));
+    pb_ostream_t reference = pb_ostream_from_buffer(expected, sizeof(expected));
+    assert(pb_encode_tag(&reference, PB_WT_STRING, 2));
+    assert(pb_encode_string(&reference, packed_bytes, packed.bytes_written));
+    pb_ostream_t output = pb_ostream_from_buffer(actual, reference.bytes_written);
+    assert(encode_values(&output, 2, values, length));
+    assert(output.bytes_written == reference.bytes_written && memcmp(expected, actual, output.bytes_written) == 0);
+    output = pb_ostream_from_buffer(actual, reference.bytes_written - 1);
+    assert(!encode_values(&output, 2, values, length));
+  }
+}
+
+static void test_sample_label_wire_encoding(void) {
+  const miteruby_pprof_fragment_sample_sample_label_t labels[] = {
+    {0}, {.key = 1, .str = 128}, {.key = -1, .str = INT64_MIN, .num = -1},
+  };
+  for (size_t i = 0; i < sizeof(labels) / sizeof(labels[0]); i++) {
+    uint8_t expected[64], actual[sizeof(expected)];
+    pb_ostream_t reference = pb_ostream_from_buffer(expected, sizeof(expected));
+    assert(encode_values(&reference, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LOCATION_ID_TAG, NULL, 0));
+    assert(encode_values(&reference, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_VALUE_TAG, NULL, 0));
+    assert(pb_encode_tag(&reference, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG));
+    assert(pb_encode_submessage(&reference, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS, &labels[i]));
+    pb_ostream_t output = pb_ostream_from_buffer(actual, reference.bytes_written);
+    assert(encode_sample(&output, NULL, 0, NULL, 0, &labels[i], 1));
+    assert(output.bytes_written == reference.bytes_written && memcmp(expected, actual, output.bytes_written) == 0);
+    output = pb_ostream_from_buffer(actual, reference.bytes_written - 1);
+    assert(!encode_sample(&output, NULL, 0, NULL, 0, &labels[i], 1));
+  }
+}
+
 static void test_safe_line_lookup(void) {
   VALUE fixture = rb_eval_string(
     "sample = proc {\n 42\n}; "
@@ -741,6 +785,8 @@ int main(int argc, char **argv) {
   private_vm_api_access_init();
   setup_signal_handler_init(profiling);
   test_location_wire_encoding();
+  test_packed_varints();
+  test_sample_label_wire_encoding();
   test_safe_line_lookup();
   test_sample_values();
   test_reuse_after_error();

@@ -493,34 +493,49 @@ static miteruby_serializer_exit_reason_t emit_thread_id(pb_ostream_t *stream, VA
   return emit_string_table_entry(stream, thread_id, strlen(thread_id));
 }
 
-static bool encode_varint_field(pb_ostream_t *stream, uint32_t tag, uint64_t value) {
-  return value == 0 || (pb_encode_tag(stream, PB_WT_VARINT, tag) && pb_encode_varint(stream, value));
+// In-place equivalent of pb_encode_varint. Returns the next free byte.
+// Writing directly into the caller's pre-sized buffer avoids per-varint stream checks
+// and reduced export CPU in benchmarks with both GCC and Clang.
+static uint8_t *encode_varint_inplace(uint8_t dest[static 10], uint64_t value) {
+  while (RB_UNLIKELY(value >= 0x80)) {
+    *dest++ = (uint8_t) (value | 0x80);
+    value >>= 7;
+  }
+  *dest++ = (uint8_t) value;
+  return dest;
+}
+
+static uint8_t *encode_varint_field(uint8_t *dest, uint32_t tag, uint64_t value) {
+  if (value == 0) return dest;
+  dest = encode_varint_inplace(dest, ((uint64_t) tag << 3) | PB_WT_VARINT);
+  return encode_varint_inplace(dest, value);
 }
 
 static miteruby_serializer_exit_reason_t emit_location_fragment(
   pb_ostream_t *stream, uint64_t location_id, uint64_t function_id, int64_t line
 ) {
   uint8_t line_bytes[MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_SIZE];
-  pb_ostream_t line_body = pb_ostream_from_buffer(line_bytes, sizeof(line_bytes));
+  uint8_t *line_end = encode_varint_field(line_bytes, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_FUNCTION_ID_TAG, function_id);
+  line_end = encode_varint_field(line_end, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_LINE_TAG, (uint64_t) line);
+
   uint8_t location_bytes[MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_SIZE];
-  pb_ostream_t location = pb_ostream_from_buffer(location_bytes, sizeof(location_bytes));
-  if (!encode_varint_field(&line_body, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_FUNCTION_ID_TAG, function_id) ||
-      !encode_varint_field(&line_body, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_LINE_TAG, (uint64_t) line) ||
-      !encode_varint_field(&location, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_ID_TAG, location_id) ||
-      !pb_encode_tag(&location, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_TAG) ||
-      !pb_encode_string(&location, line_bytes, line_body.bytes_written) ||
+  uint8_t *after_id = encode_varint_field(location_bytes, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_ID_TAG, location_id);
+  size_t id_size = (size_t) (after_id - location_bytes);
+  pb_ostream_t location = pb_ostream_from_buffer(after_id, sizeof(location_bytes) - id_size);
+  if (!pb_encode_tag(&location, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE_TAG) ||
+      !pb_encode_string(&location, line_bytes, (size_t) (line_end - line_bytes)) ||
       !pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_TAG) ||
-      !pb_encode_string(stream, location_bytes, location.bytes_written)) return MITERUBY_SERIALIZER_LOCATION_ENCODING_ERROR;
+      !pb_encode_string(stream, location_bytes, id_size + location.bytes_written)) return MITERUBY_SERIALIZER_LOCATION_ENCODING_ERROR;
   return MITERUBY_SERIALIZER_OK;
 }
 
 static bool __attribute__((flatten)) encode_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
   uint8_t bytes[10 * count + 1];
-  pb_ostream_t packed = pb_ostream_from_buffer(bytes, sizeof(bytes));
+  uint8_t *next = bytes;
   for (size_t i = 0; i < count; i++) {
-    if (!pb_encode_varint(&packed, values[i])) return false;
+    next = encode_varint_inplace(next, values[i]);
   }
-  return pb_encode_tag(stream, PB_WT_STRING, tag) && pb_encode_string(stream, bytes, packed.bytes_written);
+  return pb_encode_tag(stream, PB_WT_STRING, tag) && pb_encode_string(stream, bytes, (size_t) (next - bytes));
 }
 
 static bool encode_sample(
@@ -531,12 +546,11 @@ static bool encode_sample(
       !encode_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_VALUE_TAG, values, value_count)) return false;
   for (size_t i = 0; i < label_count; i++) {
     uint8_t bytes[MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_SIZE];
-    pb_ostream_t label = pb_ostream_from_buffer(bytes, sizeof(bytes));
-    if (!encode_varint_field(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_KEY_TAG, labels[i].key) ||
-        !encode_varint_field(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_STR_TAG, labels[i].str) ||
-        !encode_varint_field(&label, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_NUM_TAG, labels[i].num) ||
-        !pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
-        !pb_encode_string(stream, bytes, label.bytes_written)) return false;
+    uint8_t *end = encode_varint_field(bytes, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_KEY_TAG, labels[i].key);
+    end = encode_varint_field(end, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_STR_TAG, labels[i].str);
+    end = encode_varint_field(end, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_NUM_TAG, labels[i].num);
+    if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
+        !pb_encode_string(stream, bytes, (size_t) (end - bytes))) return false;
   }
   return true;
 }
