@@ -1,5 +1,6 @@
 require "spec_helper"
 
+require "open3"
 require "securerandom"
 require "logger"
 
@@ -1466,6 +1467,17 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             end
           end
 
+          it "does not recurse into the configuration while loading the gem" do
+            code = 'require "datadog"; p Datadog.configuration.tags'
+            env = {"OTEL_RESOURCE_ATTRIBUTES" => otel_tags}
+            out, err, status = Open3.capture3(env, "ruby", stdin_data: code)
+
+            expect(status).to be_success, err
+            expect(out.strip).to eq("{}")
+            expect(err.scan("OTEL_RESOURCE_ATTRIBUTES ignored").size).to eq(1)
+            expect(err).not_to include("discarded")
+          end
+
           context "and DD_SERVICE, DD_ENV and DD_VERSION are set" do
             let(:dd_service) { "dd-service" }
             let(:dd_env) { "dd-env" }
@@ -1484,29 +1496,71 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             "deployment.environment.name=prod,service.name=svc,service.version=1,invalid"
           end
 
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
           it "discards the reserved attribute mapping too" do
             is_expected.to eq({})
 
+            expect(settings.service).not_to eq("svc")
             expect(settings.env).to be_nil
             expect(settings.version).to be_nil
           end
         end
 
-        {
-          "a member without '='" => "resource.test=discarded,invalid",
-          "a ':' separator" => "a:b",
-          "a member with more than one '='" => "k=a=b",
-          "a member with an empty key" => "=v",
-          "a trailing comma" => "a=b,",
-          "a leading comma" => ",a=b",
-          "an empty member" => "a=b,,c=d",
-          "space separated members" => "a=b c=d",
-        }.each do |description, value|
-          context "with #{description}" do
-            let(:otel_tags) { value }
+        context "with a ':' separator" do
+          let(:otel_tags) { "a:b" }
 
-            it { is_expected.to eq({}) }
-          end
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a member with more than one '='" do
+          let(:otel_tags) { "k=a=b" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a member with an empty key" do
+          let(:otel_tags) { "=v" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a trailing comma" do
+          let(:otel_tags) { "a=b," }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a leading comma" do
+          let(:otel_tags) { ",a=b" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with an empty member" do
+          let(:otel_tags) { "a=b,,c=d" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with space separated members" do
+          let(:otel_tags) { "a=b c=d" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
         end
 
         context "with an empty value" do
@@ -1573,6 +1627,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         context "with a malformed value" do
           let(:stable_value) { "resource.test=discarded,invalid" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
 
           it { is_expected.to eq({}) }
         end
