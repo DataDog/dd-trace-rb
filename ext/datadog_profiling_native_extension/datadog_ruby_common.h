@@ -57,7 +57,7 @@ NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const c
 
 NORETURN(
   void private_raise_error(VALUE exception_class, const char *fmt, ...)
-  __attribute__ ((format (printf, 2, 3)));
+  __attribute__ ((format (printf, 2, 3)))
 );
 
 // Raises an exception with separate telemetry-safe and detailed messages.

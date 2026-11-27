@@ -54,12 +54,12 @@ static inline int check_if_pending_exception(void) {
 
 NORETURN(
   void private_raise_syserr(int syserr_errno, const char *fmt, ...)
-  __attribute__ ((format (printf, 2, 3)));
+  __attribute__ ((format (printf, 2, 3)))
 );
 
 NORETURN(
   void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const char *format_string, ...)
-  __attribute__ ((format (printf, 3, 4)));
+  __attribute__ ((format (printf, 3, 4)))
 );
 
 
