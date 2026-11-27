@@ -205,9 +205,9 @@ module Datadog
 
         private
 
-        def coerce_env_variable(value)
+        def coerce_env_variable(value, env_name)
           env_parser = @definition.env_parser
-          return context_exec(value, &env_parser) if env_parser
+          return context_exec(value, env_name, &env_parser) if env_parser
 
           case @definition.type
           when :hash
@@ -357,13 +357,14 @@ module Datadog
           return unless env
 
           value = DATADOG_ENV[env]
-          coerce_env_variable(value) unless value.nil?
+          env_name = DATADOG_ENV.resolve_env(env)
+          coerce_env_variable(value, env_name) unless value.nil?
         rescue ArgumentError
           # This will be raised when the type is set to :int or :float but an invalid env var value is provided.
           raise ArgumentError,
             # ArgumentError will be thrown from coerce_env_variable, so we've already checked that env is not nil.
             # @type var env: String
-            "Expected environment variable #{DATADOG_ENV.resolve_env(env)} " \
+            "Expected environment variable #{env_name} " \
             "to be a #{definition.type}, but '#{value}' was provided."
         end
 
@@ -374,13 +375,14 @@ module Datadog
           # An instance of ConfigHelper could be used with any Hash but this is the only place where
           # it's used with something else than ENV, let's keep it simple for now by overriding the source_env parameter.
           value = DATADOG_ENV.get_environment_variable(env, source_env: source_env)
-          coerce_env_variable(value) unless value.nil?
+          env_name = DATADOG_ENV.resolve_env(env, source_env: source_env)
+          coerce_env_variable(value, env_name) unless value.nil?
         rescue ArgumentError
           # This will be raised when the type is set to :int or :float but an invalid env var value is provided.
           raise ArgumentError,
             # ArgumentError will be thrown from coerce_env_variable, so we've already checked that env is not nil.
             # @type var env: String
-            "Expected #{source_name} configuration file variable #{DATADOG_ENV.resolve_env(env, source_env: source_env)} " \
+            "Expected #{source_name} configuration file variable #{env_name} " \
             "to be a #{definition.type}, but '#{value}' was provided."
         end
 

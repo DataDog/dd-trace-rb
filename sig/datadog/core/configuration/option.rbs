@@ -64,7 +64,7 @@ module Datadog
 
         private
 
-        def coerce_env_variable: (String value) -> env_value
+        def coerce_env_variable: (String value, String env_name) -> env_value
 
         class InvalidDefinitionError < StandardError
         end

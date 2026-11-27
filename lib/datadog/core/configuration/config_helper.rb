@@ -85,7 +85,7 @@ module Datadog
           env_value || default_value
         end
 
-        # Only used in error message creation. Match get_environment_variable logic to return the resolved environment variable name.
+        # Match get_environment_variable logic to return the resolved environment variable name.
         def resolve_env(name, source_env: @source_env)
           if source_env[name].nil? && @aliases[name]
             @aliases[name].each do |alias_name|

@@ -853,10 +853,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      it "passes the env variable value to the env_parser" do
-        expect(context).to receive(:instance_exec).with(env_value, &env_parser)
+      it "passes the env variable value and name to the env_parser" do
+        expect(context).to receive(:instance_exec).with(env_value, env, &env_parser)
 
-        get
+        option.get
       end
     end
 
@@ -901,6 +901,74 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         it_behaves_like "env coercion"
         it_behaves_like "with env_parser"
+      end
+    end
+
+    context "when env is an alias and has an env_parser" do
+      let(:env) { "DD_TAGS" }
+      let(:env_parser) { proc { |env_value, env_name| [env_value, env_name] } }
+
+      before do
+        allow(context).to receive(:instance_exec) { |*args| args }
+      end
+
+      context "when only the alias is set" do
+        around do |example|
+          ClimateControl.modify("OTEL_RESOURCE_ATTRIBUTES" => "a=b") { example.run }
+        end
+
+        it "passes the alias name to the env_parser" do
+          expect(context).to receive(:instance_exec).with("a=b", "OTEL_RESOURCE_ATTRIBUTES", &env_parser)
+
+          option.get
+        end
+      end
+
+      context "when the canonical name is set" do
+        around do |example|
+          ClimateControl.modify("DD_TAGS" => "a:b", "OTEL_RESOURCE_ATTRIBUTES" => "a=b") { example.run }
+        end
+
+        it "passes the canonical name to the env_parser" do
+          expect(context).to receive(:instance_exec).with("a:b", "DD_TAGS", &env_parser)
+
+          option.get
+        end
+      end
+
+      context "when only the alias is set in the local stable config" do
+        before do
+          allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+            {local: {id: "12345", config: {"OTEL_RESOURCE_ATTRIBUTES" => "a=b"}}},
+          )
+        end
+
+        it "passes the alias name to the env_parser" do
+          expect(context).to receive(:instance_exec).with("a=b", "OTEL_RESOURCE_ATTRIBUTES", &env_parser)
+
+          option.get
+        end
+      end
+    end
+
+    context "when env_parser takes only the value" do
+      let(:env) { "TEST" }
+      let(:setter) { proc { |value| value } }
+
+      around do |example|
+        ClimateControl.modify(env => "test") { example.run }
+      end
+
+      context "as a proc" do
+        let(:env_parser) { proc { |env_value| "parsed #{env_value}" } }
+
+        it { expect(option.get).to eq "parsed test" }
+      end
+
+      context "as a lambda with an optional env name" do
+        let(:env_parser) { lambda { |env_value, _env_name = nil| "parsed #{env_value}" } }
+
+        it { expect(option.get).to eq "parsed test" }
       end
     end
 

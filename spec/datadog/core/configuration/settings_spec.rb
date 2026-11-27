@@ -1,5 +1,6 @@
 require "spec_helper"
 
+require "open3"
 require "securerandom"
 require "logger"
 
@@ -1384,12 +1385,16 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           "OTEL_RESOURCE_ATTRIBUTES" => otel_tags,
           Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags,
           Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => dd_env,
+          Datadog::Core::Environment::Ext::ENV_SERVICE => dd_service,
+          Datadog::Core::Environment::Ext::ENV_VERSION => dd_version,
         ) do
           example.run
         end
       end
 
       let(:dd_env) { nil }
+      let(:dd_service) { nil }
+      let(:dd_version) { nil }
 
       context "is defined and DD_TAGS is set" do
         let(:otel_tags) { "deployment.environment=prod,service.name=bleh,service.version=1.0,mkey=val1" }
@@ -1445,6 +1450,205 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           let(:dd_env) { "datadog" }
 
           it { is_expected.to eq("env" => "datadog") }
+        end
+
+        context "with a malformed member" do
+          let(:otel_tags) { "resource.test=discarded,invalid" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it "discards the whole value and logs one warning without the value" do
+            is_expected.to eq({})
+
+            expect(Datadog.config_init_logger).to have_received(:warn).once do |message|
+              expect(message).to include("OTEL_RESOURCE_ATTRIBUTES")
+              expect(message).to include("member 2 has no '='")
+              expect(message).not_to include("discarded")
+            end
+          end
+
+          it "does not recurse into the configuration while loading the gem" do
+            code = 'require "datadog"; p Datadog.configuration.tags'
+            env = {"OTEL_RESOURCE_ATTRIBUTES" => otel_tags}
+            out, err, status = Open3.capture3(env, "ruby", stdin_data: code)
+
+            expect(status).to be_success, err
+            expect(out.strip).to eq("{}")
+            expect(err.scan("OTEL_RESOURCE_ATTRIBUTES ignored").size).to eq(1)
+            expect(err).not_to include("discarded")
+          end
+
+          context "and DD_SERVICE, DD_ENV and DD_VERSION are set" do
+            let(:dd_service) { "dd-service" }
+            let(:dd_env) { "dd-env" }
+            let(:dd_version) { "dd-version" }
+
+            it "keeps the Datadog values" do
+              expect(settings.service).to eq("dd-service")
+              expect(settings.env).to eq("dd-env")
+              expect(settings.version).to eq("dd-version")
+            end
+          end
+        end
+
+        context "with a malformed member after reserved attributes" do
+          let(:otel_tags) do
+            "deployment.environment.name=prod,service.name=svc,service.version=1,invalid"
+          end
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it "discards the reserved attribute mapping too" do
+            is_expected.to eq({})
+
+            expect(settings.service).not_to eq("svc")
+            expect(settings.env).to be_nil
+            expect(settings.version).to be_nil
+          end
+        end
+
+        context "with a ':' separator" do
+          let(:otel_tags) { "a:b" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a member with more than one '='" do
+          let(:otel_tags) { "k=a=b" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a member with an empty key" do
+          let(:otel_tags) { "=v" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a trailing comma" do
+          let(:otel_tags) { "a=b," }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a leading comma" do
+          let(:otel_tags) { ",a=b" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with an empty member" do
+          let(:otel_tags) { "a=b,,c=d" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with space separated members" do
+          let(:otel_tags) { "a=b c=d" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with an empty value" do
+          let(:otel_tags) { "k=" }
+
+          it { is_expected.to eq("k" => "") }
+        end
+
+        context "with whitespace around keys and values" do
+          let(:otel_tags) { " a = b , c=d " }
+
+          it { is_expected.to eq("a" => "b", "c" => "d") }
+        end
+
+        context "with a ':' inside the key" do
+          let(:otel_tags) { "a:b=c" }
+
+          it { is_expected.to eq("a:b" => "c") }
+        end
+
+        context "with a whitespace only value" do
+          let(:otel_tags) { "  " }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it "returns no tags without warning" do
+            is_expected.to eq({})
+
+            expect(Datadog.config_init_logger).not_to have_received(:warn)
+          end
+        end
+
+        context "with a valid value" do
+          let(:otel_tags) { "a=b,c=d" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it "does not warn" do
+            is_expected.to eq("a" => "b", "c" => "d")
+
+            expect(Datadog.config_init_logger).not_to have_received(:warn)
+          end
+        end
+      end
+
+      context "is malformed and DD_TAGS is set" do
+        let(:otel_tags) { "resource.test=discarded,invalid" }
+        let(:dd_tags) { "resource.test=discarded,invalid" }
+
+        it "parses the value leniently, as DD_TAGS" do
+          is_expected.to eq("resource.test" => "discarded", "invalid" => "")
+        end
+      end
+
+      context "is set in the local stable config" do
+        let(:otel_tags) { nil }
+        let(:dd_tags) { nil }
+
+        before do
+          allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+            {local: {id: "12345", config: {"OTEL_RESOURCE_ATTRIBUTES" => stable_value}}},
+          )
+        end
+
+        context "with a malformed value" do
+          let(:stable_value) { "resource.test=discarded,invalid" }
+
+          before { allow(Datadog.config_init_logger).to receive(:warn) }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context "with a valid value" do
+          let(:stable_value) { "a=b" }
+
+          it { is_expected.to eq("a" => "b") }
+        end
+
+        context "with a malformed DD_TAGS value" do
+          before do
+            allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+              {local: {id: "12345", config: {"DD_TAGS" => "resource.test=discarded,invalid"}}},
+            )
+          end
+
+          let(:stable_value) { nil }
+
+          it { is_expected.to eq("resource.test" => "discarded", "invalid" => "") }
         end
       end
 
