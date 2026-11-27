@@ -46,6 +46,14 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         expect(probe.line?).to be true
         expect(probe.method?).to be false
       end
+
+      context "fractional snapshotsPerSecond" do
+        let(:rc_probe_spec) { super().merge("sampling" => {"snapshotsPerSecond" => 0.5}) }
+
+        it "stores the fractional rate limit" do
+          expect(probe.rate_limit).to eq 0.5
+        end
+      end
     end
 
     context "template with expression segment referencing a redacted identifier" do

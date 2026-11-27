@@ -260,6 +260,26 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "rate_limit" do
+    context "fractional rate_limit" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          rate_limit: 0.5,
+        )
+      end
+
+      it "stores the fractional rate" do
+        expect(probe.rate_limit).to eq(0.5)
+      end
+
+      it "admits the first hit and denies an immediate second" do
+        expect(probe.rate_limiter.allow?).to be true
+        expect(probe.rate_limiter.allow?).to be false
+      end
+    end
+  end
+
   describe "capture-expression predicates" do
     let(:capture_expression) do
       Datadog::DI::CaptureExpression.new(name: "x", expr: instance_double(Datadog::DI::EL::Expression))
