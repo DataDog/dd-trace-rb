@@ -44,9 +44,8 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     end
 
     allow(Datadog.logger).to receive(:warn)
-    allow_any_instance_of(Datadog::AppSec::Context).to receive(:detach).and_wrap_original do |method|
-      method.call
-      live_signals[:detached].push(Thread.current)
+    allow(Datadog::AppSec::Context).to receive(:new).and_wrap_original do |method, *args, &block|
+      method.call(*args, &block).tap { |context| stub_context(context) }
     end
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
@@ -94,6 +93,26 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   end
   let(:live_signals) do
     {resumed: Queue.new, result: Queue.new, detached: Queue.new, decided: Queue.new, steps: [], streams: []}
+  end
+
+  def stub_context(context)
+    detached = live_signals[:detached]
+
+    allow(context).to receive(:detach).and_wrap_original do |method|
+      method.call
+      detached.push(Thread.current)
+    end
+  end
+
+  def stub_runner_finalize(threads)
+    allow(Datadog::AppSec::SecurityEngine::Runner).to receive(:new).and_wrap_original do |method, *args, **kwargs|
+      method.call(*args, **kwargs).tap do |runner|
+        allow(runner).to receive(:finalize!).and_wrap_original do |finalize|
+          threads << Thread.current
+          finalize.call
+        end
+      end
+    end
   end
 
   def get_live(params = {})
@@ -163,12 +182,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
 
     context "when request thread returns before live thread ends" do
       before do
-        threads = finalized_threads
-
-        allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:finalize!).and_wrap_original do |method|
-          threads << Thread.current
-          method.call
-        end
+        stub_runner_finalize(finalized_threads)
 
         after_action_result
       end
@@ -304,13 +318,6 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
 
         method.call(name, *args, &block)
       end
-      allow_any_instance_of(Datadog::AppSec::Context).to receive(:run_rasp).and_wrap_original do |method, *args, **kwargs|
-        rasp_threads << Thread.current
-        method.call(*args, **kwargs)
-      end
-      allow_any_instance_of(Datadog::AppSec::Context).to receive(:shared?).and_wrap_original do |method|
-        method.call.tap { live_signals[:decided].push(true) }
-      end
 
       Timeout.timeout(5) do
         get_live
@@ -331,6 +338,21 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
       end
     end
     let(:rasp_threads) { [] }
+
+    def stub_context(context)
+      super
+
+      threads = rasp_threads
+      decided = live_signals[:decided]
+
+      allow(context).to receive(:run_rasp).and_wrap_original do |method, *args, **kwargs|
+        threads << Thread.current
+        method.call(*args, **kwargs)
+      end
+      allow(context).to receive(:shared?).and_wrap_original do |method|
+        method.call.tap { decided.push(true) }
+      end
+    end
 
     it { expect(last_response.status).to eq(200) }
     it { expect(last_response.body).to eq("ok") }
@@ -362,10 +384,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
 
         method.call(name, *args, &block)
       end
-      allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:finalize!).and_wrap_original do |method|
-        finalized_threads << Thread.current
-        method.call
-      end
+      stub_runner_finalize(finalized_threads)
 
       Timeout.timeout(5) { get_live }
     end
