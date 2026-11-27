@@ -4,7 +4,24 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "../helpers.h"
+#include "allocator.h"
 #include "consumer.h"
+
+#define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
+
+static inline void *mark_threads_calloc(size_t size) {
+  if (size > MARK_THREADS_MAX_SIZE) return NULL;
+  return miteruby_allocator_alloc(size, "mark_threads");
+}
+
+#define NAME verstable_mark_threads_set
+#define KEY_TY VALUE
+#define HASH_FN vt_hash_integer
+#define CMPR_FN vt_cmpr_integer
+#define MALLOC_FN mark_threads_calloc
+#define FREE_FN miteruby_allocator_free_sized
+#include "hashtable/verstable.h"
 
 typedef enum {
   MITERUBY_SERIALIZER_OK = 0,

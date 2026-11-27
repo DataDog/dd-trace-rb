@@ -19,7 +19,6 @@
 #include <string.h>
 #include <ruby/thread.h>
 
-#define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
 // All 65,535 array entries fit in 131,072 set buckets; 2-byte IDs plus metadata need just over 512 KiB.
 #define MARK_FUNCTION_MAX_SIZE MiB_AS_BYTES(1)
 #define MARK_FUNCTION_ARRAY_CAPACITY UINT16_MAX // ~1 MiB total
@@ -27,22 +26,12 @@
 #define LOCATION_SET_MAX_SIZE MiB_AS_BYTES(13)
 #define LOCATION_ARRAY_CAPACITY UINT20_MAX // ~4 MiB total
 
-static void *mark_threads_calloc(size_t size);
 static void *mark_function_calloc(size_t size);
 static uint64_t function_hash(miteruby_function_id_t id, const miteruby_mark_function_array_t *array);
 static bool function_equal(miteruby_function_id_t left, miteruby_function_id_t right, const miteruby_mark_function_array_t *array);
 static void *location_calloc(size_t size);
 static uint64_t location_hash(miteruby_location_id_t id, const miteruby_location_array_t *array);
 static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t right, const miteruby_location_array_t *array);
-
-#define NAME verstable_mark_threads_set
-#define KEY_TY VALUE
-#define HASH_FN vt_hash_integer
-#define CMPR_FN vt_cmpr_integer
-#define MALLOC_FN mark_threads_calloc
-#define FREE_FN miteruby_allocator_free_sized
-#define IMPLEMENTATION_MODE
-#include "hashtable/verstable.h"
 
 #define NAME verstable_mark_function_set
 #define KEY_TY miteruby_function_id_t
@@ -126,11 +115,6 @@ static VALUE handoff_batch_locked(VALUE args);
 static VALUE handoff_batch_ensure(VALUE args);
 static void reset_serialization_metadata(void);
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
-
-static void *mark_threads_calloc(size_t size) {
-  if (size > MARK_THREADS_MAX_SIZE) return NULL;
-  return miteruby_allocator_alloc(size, "mark_threads");
-}
 
 static void *mark_function_calloc(size_t size) {
   if (size > MARK_FUNCTION_MAX_SIZE) return NULL;

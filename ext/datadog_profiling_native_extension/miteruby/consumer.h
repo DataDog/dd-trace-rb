@@ -6,11 +6,6 @@
 #include "event.h"
 #include "compressed_deltas.h"
 
-#define NAME verstable_mark_threads_set
-#define KEY_TY VALUE
-#define HEADER_MODE
-#include "hashtable/verstable.h"
-
 // Index of an interned (cme, iseq) pair in the consumer's function array.
 typedef struct {
   uint16_t value;
