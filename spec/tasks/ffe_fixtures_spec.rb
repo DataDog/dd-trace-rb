@@ -123,6 +123,27 @@ RSpec.describe FfeFixtures do
       expect(Dir.children(File.join(root, "flag-selection"))).to eq(["selection-vectors.json"])
     end
 
+    it "copies the scale suites' configurations and cases, skipping other suites" do
+      stub_upstream(
+        commit => files_by_path.merge(
+          "evaluation-suites/scale/ufc-config.json" => config,
+          "evaluation-suites/scale/cases/one-of.json" => cases,
+          "evaluation-suites/scale/AGENTS.md" => "documentation",
+          "evaluation-suites/scale-json/ufc-config.json" => config,
+          "evaluation-suites/scale-json/cases/json-sizes.json" => cases,
+          "evaluation-suites/regex/ufc-config.json" => config,
+        ),
+      )
+
+      root = described_class.download(repository)
+
+      suites_root = File.join(root, "evaluation-suites")
+      expect(Dir.children(suites_root).sort).to eq(["scale", "scale-json"])
+      expect(Dir.children(File.join(suites_root, "scale")).sort).to eq(["cases", "ufc-config.json"])
+      expect(File.read(File.join(suites_root, "scale", "cases", "one-of.json"))).to eq(cases)
+      expect(File.read(File.join(suites_root, "scale-json", "cases", "json-sizes.json"))).to eq(cases)
+    end
+
     it "rejects a corpus without the configuration or cases, without leaving a cache entry" do
       stub_upstream(commit => {"README.md" => "documentation"})
 
