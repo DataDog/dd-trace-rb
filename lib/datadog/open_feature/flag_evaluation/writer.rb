@@ -87,6 +87,8 @@ module Datadog
           runtime_default: nil, targeting_key: nil, attrs: nil, observe_full_evaluation_data: false,
           features: Aggregator::NO_FEATURES, **_event
         )
+          return if @stopped
+
           start_background_thread if forked?
 
           # Avoid snapshot work when the queue is already full.
@@ -109,8 +111,12 @@ module Datadog
             observe_full_evaluation_data: observe_full_evaluation_data,
             features: features,
           }
-          @queue.push(bounded_event, true)
-          @stop_mutex.synchronize { @stop_cond.signal }
+          @stop_mutex.synchronize do
+            return if @stopped
+
+            @queue.push(bounded_event, true)
+            @stop_cond.signal
+          end
           start_background_thread unless running?
         rescue ThreadError
           # Report queue backpressure on the next flush.
@@ -120,15 +126,18 @@ module Datadog
         # Stop the background thread and flush remaining events. Wakes the worker out of its
         # interruptible wait so the drain + final flush happen immediately (no up-to-10s delay).
         def stop
-          @stop_mutex.synchronize do
-            @stopped = true
-            @stop_cond.broadcast
-          end
-
+          request_stop
           return true if join(SHUTDOWN_TIMEOUT_SECONDS)
 
           @logger.debug { "OpenFeature EVP: writer did not stop gracefully; terminating worker thread" }
           terminate
+        end
+
+        def request_stop
+          @stop_mutex.synchronize do
+            @stopped = true
+            @stop_cond.broadcast
+          end
         end
 
         protected
@@ -138,7 +147,6 @@ module Datadog
           @queue = SizedQueue.new(QUEUE_SIZE)
           @stop_mutex = Mutex.new
           @stop_cond = ConditionVariable.new
-          @stopped = false
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
           @context_truncated_counts = Hash.new(0)
