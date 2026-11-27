@@ -34,9 +34,6 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       },
       # The timeout bounds each example's duration when the server is not
       # responding, keeping the suite within the CI job budget.
-      # It must exceed the multi-second stalls a busy CI runner inflicts on the
-      # Elasticsearch container; a 5 second timeout produced flakes from
-      # transient stalls (e.g. GC pauses under CPU contention).
       request_timeout: 15,
     )
   end

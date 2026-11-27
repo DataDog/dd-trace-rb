@@ -220,6 +220,8 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xmx750m
+    tmpfs:
+      - /usr/share/elasticsearch/data
   memcached:
     # Dalli 5.x uses the memcached meta protocol, which requires memcached 1.6+.
     image: memcached:1.6-alpine
@@ -233,6 +235,8 @@ services:
       - "27017"
     ports:
       - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+    tmpfs:
+      - /data/db
     networks:
       default:
         aliases:
@@ -251,6 +255,8 @@ services:
       - "3306"
     ports:
       - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
+    tmpfs:
+      - /var/lib/mysql
   opensearch:
     image: opensearchproject/opensearch:2.8.0
     environment:
@@ -265,6 +271,8 @@ services:
       - cluster.routing.allocation.disk.threshold_enabled=false
     ports:
       - 9201:9200
+    tmpfs:
+      - /usr/share/opensearch/data:uid=1000,gid=1000
   postgres:
     image: postgres:9.6
     environment:
@@ -275,6 +283,8 @@ services:
       - "5432"
     ports:
       - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9

@@ -131,6 +131,8 @@ jobs:
   #  - Improve reliability for starting dependent services
   #
   # In the future, we could consider to extract jobs to run database dependent tasks to optimize the workflow.
+  #
+  # Services mounted with `--tmpfs` hold their data in memory, because fsync on the shared runner disk stalls for seconds.
   build-test-standard:
     needs:
       - batch
@@ -183,6 +185,7 @@ jobs:
           MYSQL_PASSWORD: mysql
           MYSQL_USER: mysql
         options: >-
+          --tmpfs /var/lib/mysql
           --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
           --health-interval 10s
           --health-timeout 5s
@@ -194,6 +197,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
         options: >-
+          --tmpfs /var/lib/postgresql/data
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
@@ -273,6 +277,7 @@ jobs:
           xpack.security.enabled: "false"
           ES_JAVA_OPTS: "-Xms750m -Xmx750m"
         options: >-
+          --tmpfs /usr/share/elasticsearch/data
           --health-cmd "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"' || exit 1"
           --health-interval 10s
           --health-timeout 5s
@@ -281,6 +286,7 @@ jobs:
         image: ghcr.io/datadog/images-rb/services/memcached:1.6-alpine
       mongodb:
         image: ghcr.io/datadog/images-rb/services/mongo:4.4
+        options: --tmpfs /data/db
       opensearch:
         image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
         env:
@@ -291,6 +297,8 @@ jobs:
           cluster.routing.allocation.disk.watermark.high: 2gb
           cluster.routing.allocation.disk.watermark.flood_stage: 1gb
           cluster.routing.allocation.disk.threshold_enabled: "false"
+        # The tmpfs root is owned by root; OpenSearch runs as uid 1000.
+        options: --tmpfs /usr/share/opensearch/data:uid=1000,gid=1000
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
