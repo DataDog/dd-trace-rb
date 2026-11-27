@@ -70,6 +70,36 @@ ruby -0777 -i -pe 'gsub(%r{^[ \t]*/\*.*?\*/|(?<=[,;])[ \t]+/\*(?:(?!\*/).)*\*/[ 
 # @ivoanjo: Preserve indentation on continued lines, where it can be part of a string literal.
 ruby -0777 -i -pe 'gsub(/(?<![\\ \t])[ \t]+$/, ""); gsub(/(?<!\\\n)^(?: {8})+/) { |spaces| "\t" * (spaces.size / 8) }' "$temp_dir/zstd.c"
 
+# @ivoanjo: zstd.c is internal to miteruby -- nothing else should use it. We want to mark every function in it as
+# MITERUBY_INTERNAL, so that we can make them static and optimize it better for the miteruby unity build. So we have
+# a bit of code here to help us inject MITERUBY_INTERNAL in front of zstd function declarations.
+# (Yes this is a bit of black magic, yet I'll point out we're operating on C sources so we can trivially inspect the
+# before/after and make sure this is correct.)
+ruby -0777 -i -p - "$temp_dir/zstd.c" <<'RUBY'
+  # zstd starts these declarations in column zero. ZSTDLIB_STATIC_API on the preceding line already supplies linkage.
+  signature = /
+    ^(?<!ZSTDLIB_STATIC_API\n)
+    (?:FSE_PUBLIC_API[ \t]+)? \K
+    (?:const[ \t]+)? \w+\** \s+
+    (?<name>\w+) \s* \([^(){};\#]*\) \s*
+  /x
+
+  defined_names = $_.scan(/#{signature}\{/).flatten
+  gsub(/#{signature};/) do |prototype|
+    next prototype unless defined_names.delete(Regexp.last_match[:name])
+
+    "MITERUBY_INTERNAL #{prototype}"
+  end
+RUBY
+# Sanity check after the above: Did everything really get marked as static? No global functions should remain if we did
+# our job right.
+"${CC:-cc}" -std=gnu11 -O0 -DMITERUBY_INTERNAL=static -c "$temp_dir/zstd.c" -o "$temp_dir/zstd.o"
+global_functions=$("${NM:-nm}" -g -P "$temp_dir/zstd.o" | awk '$2 == "T" || $2 == "W" {print $1}')
+if [[ -n "$global_functions" ]]; then
+  printf 'Generated zstd.c still defines global functions:\n%s\n' "$global_functions" >&2
+  exit 1
+fi
+
 install -m 644 "$temp_dir/zstd.c" "$output_path"
 install -m 644 "$source_dir/LICENSE" "$license_path"
 printf 'Updated %s\n' "$output_path" "$license_path"

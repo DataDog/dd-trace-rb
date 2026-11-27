@@ -1286,7 +1286,7 @@ ERR_STATIC ERR_enum ERR_getErrorCode(size_t code) { if (!ERR_isError(code)) retu
     } while (0)
 #define CHECK_F(f)   do { CHECK_V_F(_var_err__, f); } while (0)
 
-const char* ERR_getErrorString(ERR_enum code);
+MITERUBY_INTERNAL const char* ERR_getErrorString(ERR_enum code);
 
 ERR_STATIC const char* ERR_getErrorName(size_t code)
 {
@@ -1382,21 +1382,21 @@ void _force_has_format_string(const char *format, ...) {
 #define FSE_VERSION_STRING FSE_EXPAND_AND_QUOTE(FSE_LIB_VERSION)
 
 #define FSE_VERSION_NUMBER  (FSE_VERSION_MAJOR *100*100 + FSE_VERSION_MINOR *100 + FSE_VERSION_RELEASE)
-FSE_PUBLIC_API unsigned FSE_versionNumber(void);
+FSE_PUBLIC_API MITERUBY_INTERNAL unsigned FSE_versionNumber(void);
 
-FSE_PUBLIC_API size_t FSE_compressBound(size_t size);
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_compressBound(size_t size);
 
-FSE_PUBLIC_API unsigned    FSE_isError(size_t code);
-FSE_PUBLIC_API const char* FSE_getErrorName(size_t code);
+FSE_PUBLIC_API MITERUBY_INTERNAL unsigned    FSE_isError(size_t code);
+FSE_PUBLIC_API MITERUBY_INTERNAL const char* FSE_getErrorName(size_t code);
 
-FSE_PUBLIC_API unsigned FSE_optimalTableLog(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue);
+FSE_PUBLIC_API MITERUBY_INTERNAL unsigned FSE_optimalTableLog(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue);
 
-FSE_PUBLIC_API size_t FSE_normalizeCount(short* normalizedCounter, unsigned tableLog,
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_normalizeCount(short* normalizedCounter, unsigned tableLog,
 		    const unsigned* count, size_t srcSize, unsigned maxSymbolValue, unsigned useLowProbCount);
 
-FSE_PUBLIC_API size_t FSE_NCountWriteBound(unsigned maxSymbolValue, unsigned tableLog);
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_NCountWriteBound(unsigned maxSymbolValue, unsigned tableLog);
 
-FSE_PUBLIC_API size_t FSE_writeNCount (void* buffer, size_t bufferSize,
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_writeNCount (void* buffer, size_t bufferSize,
 				 const short* normalizedCounter,
 				 unsigned maxSymbolValue, unsigned tableLog);
 
@@ -1404,13 +1404,13 @@ typedef unsigned FSE_CTable;
 
 FSE_PUBLIC_API size_t FSE_buildCTable(FSE_CTable* ct, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog);
 
-FSE_PUBLIC_API size_t FSE_compress_usingCTable (void* dst, size_t dstCapacity, const void* src, size_t srcSize, const FSE_CTable* ct);
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_compress_usingCTable (void* dst, size_t dstCapacity, const void* src, size_t srcSize, const FSE_CTable* ct);
 
-FSE_PUBLIC_API size_t FSE_readNCount (short* normalizedCounter,
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_readNCount (short* normalizedCounter,
 			   unsigned* maxSymbolValuePtr, unsigned* tableLogPtr,
 			   const void* rBuffer, size_t rBuffSize);
 
-FSE_PUBLIC_API size_t FSE_readNCount_bmi2(short* normalizedCounter,
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_readNCount_bmi2(short* normalizedCounter,
 			   unsigned* maxSymbolValuePtr, unsigned* tableLogPtr,
 			   const void* rBuffer, size_t rBuffSize, int bmi2);
 
@@ -1952,21 +1952,21 @@ MEM_STATIC unsigned BIT_endOfDStream(const BIT_DStream_t* DStream)
 #define FSE_CTABLE_SIZE(maxTableLog, maxSymbolValue)   (FSE_CTABLE_SIZE_U32(maxTableLog, maxSymbolValue) * sizeof(FSE_CTable))
 #define FSE_DTABLE_SIZE(maxTableLog)                   (FSE_DTABLE_SIZE_U32(maxTableLog) * sizeof(FSE_DTable))
 
-unsigned FSE_optimalTableLog_internal(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue, unsigned minus);
+MITERUBY_INTERNAL unsigned FSE_optimalTableLog_internal(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue, unsigned minus);
 
-size_t FSE_buildCTable_rle (FSE_CTable* ct, unsigned char symbolValue);
+MITERUBY_INTERNAL size_t FSE_buildCTable_rle (FSE_CTable* ct, unsigned char symbolValue);
 
 #define FSE_BUILD_CTABLE_WORKSPACE_SIZE_U32(maxSymbolValue, tableLog) (((maxSymbolValue + 2) + (1ull << (tableLog)))/2 + sizeof(U64)/sizeof(U32) /* additional 8 bytes for potential table overwrite */)
 #define FSE_BUILD_CTABLE_WORKSPACE_SIZE(maxSymbolValue, tableLog) (sizeof(unsigned) * FSE_BUILD_CTABLE_WORKSPACE_SIZE_U32(maxSymbolValue, tableLog))
-size_t FSE_buildCTable_wksp(FSE_CTable* ct, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void* workSpace, size_t wkspSize);
+MITERUBY_INTERNAL size_t FSE_buildCTable_wksp(FSE_CTable* ct, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void* workSpace, size_t wkspSize);
 
 #define FSE_BUILD_DTABLE_WKSP_SIZE(maxTableLog, maxSymbolValue) (sizeof(short) * (maxSymbolValue + 1) + (1ULL << maxTableLog) + 8)
 #define FSE_BUILD_DTABLE_WKSP_SIZE_U32(maxTableLog, maxSymbolValue) ((FSE_BUILD_DTABLE_WKSP_SIZE(maxTableLog, maxSymbolValue) + sizeof(unsigned) - 1) / sizeof(unsigned))
-FSE_PUBLIC_API size_t FSE_buildDTable_wksp(FSE_DTable* dt, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void* workSpace, size_t wkspSize);
+FSE_PUBLIC_API MITERUBY_INTERNAL size_t FSE_buildDTable_wksp(FSE_DTable* dt, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void* workSpace, size_t wkspSize);
 
 #define FSE_DECOMPRESS_WKSP_SIZE_U32(maxTableLog, maxSymbolValue) (FSE_DTABLE_SIZE_U32(maxTableLog) + 1 + FSE_BUILD_DTABLE_WKSP_SIZE_U32(maxTableLog, maxSymbolValue) + (FSE_MAX_SYMBOL_VALUE + 1) / 2 + 1)
 #define FSE_DECOMPRESS_WKSP_SIZE(maxTableLog, maxSymbolValue) (FSE_DECOMPRESS_WKSP_SIZE_U32(maxTableLog, maxSymbolValue) * sizeof(unsigned))
-size_t FSE_decompress_wksp_bmi2(void* dst, size_t dstCapacity, const void* cSrc, size_t cSrcSize, unsigned maxLog, void* workSpace, size_t wkspSize, int bmi2);
+MITERUBY_INTERNAL size_t FSE_decompress_wksp_bmi2(void* dst, size_t dstCapacity, const void* cSrc, size_t cSrcSize, unsigned maxLog, void* workSpace, size_t wkspSize, int bmi2);
 
 typedef enum {
    FSE_repeat_none,
@@ -2185,10 +2185,10 @@ MEM_STATIC unsigned FSE_endOfDState(const FSE_DState_t* DStatePtr)
 #define FSE_STATIC_LINKING_ONLY
 
 #define HUF_BLOCKSIZE_MAX (128 * 1024)   /**< maximum input size for a single block compressed with HUF_compress */
-size_t HUF_compressBound(size_t size);
+MITERUBY_INTERNAL size_t HUF_compressBound(size_t size);
 
-unsigned    HUF_isError(size_t code);
-const char* HUF_getErrorName(size_t code);
+MITERUBY_INTERNAL unsigned    HUF_isError(size_t code);
+MITERUBY_INTERNAL const char* HUF_getErrorName(size_t code);
 
 #define HUF_WORKSPACE_SIZE ((8 << 10) + 512 /* sorting scratch space */)
 #define HUF_WORKSPACE_SIZE_U64 (HUF_WORKSPACE_SIZE / sizeof(U64))
@@ -2236,14 +2236,14 @@ typedef enum {
 
 #define HUF_OPTIMAL_DEPTH_THRESHOLD ZSTD_btultra
 
-unsigned HUF_minTableLog(unsigned symbolCardinality);
-unsigned HUF_cardinality(const unsigned* count, unsigned maxSymbolValue);
-unsigned HUF_optimalTableLog(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue, void* workSpace,
+MITERUBY_INTERNAL unsigned HUF_minTableLog(unsigned symbolCardinality);
+MITERUBY_INTERNAL unsigned HUF_cardinality(const unsigned* count, unsigned maxSymbolValue);
+MITERUBY_INTERNAL unsigned HUF_optimalTableLog(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue, void* workSpace,
  size_t wkspSize, HUF_CElt* table, const unsigned* count, int flags);
-size_t HUF_writeCTable_wksp(void* dst, size_t maxDstSize, const HUF_CElt* CTable, unsigned maxSymbolValue, unsigned huffLog, void* workspace, size_t workspaceSize);
-size_t HUF_compress4X_usingCTable(void* dst, size_t dstSize, const void* src, size_t srcSize, const HUF_CElt* CTable, int flags);
-size_t HUF_estimateCompressedSize(const HUF_CElt* CTable, const unsigned* count, unsigned maxSymbolValue);
-int HUF_validateCTable(const HUF_CElt* CTable, const unsigned* count, unsigned maxSymbolValue);
+MITERUBY_INTERNAL size_t HUF_writeCTable_wksp(void* dst, size_t maxDstSize, const HUF_CElt* CTable, unsigned maxSymbolValue, unsigned huffLog, void* workspace, size_t workspaceSize);
+MITERUBY_INTERNAL size_t HUF_compress4X_usingCTable(void* dst, size_t dstSize, const void* src, size_t srcSize, const HUF_CElt* CTable, int flags);
+MITERUBY_INTERNAL size_t HUF_estimateCompressedSize(const HUF_CElt* CTable, const unsigned* count, unsigned maxSymbolValue);
+MITERUBY_INTERNAL int HUF_validateCTable(const HUF_CElt* CTable, const unsigned* count, unsigned maxSymbolValue);
 
 typedef enum {
    HUF_repeat_none,
@@ -2251,7 +2251,7 @@ typedef enum {
    HUF_repeat_valid  /**< Can use the previous table and it is assumed to be valid */
  } HUF_repeat;
 
-size_t HUF_compress4X_repeat(void* dst, size_t dstSize,
+MITERUBY_INTERNAL size_t HUF_compress4X_repeat(void* dst, size_t dstSize,
 		       const void* src, size_t srcSize,
 		       unsigned maxSymbolValue, unsigned tableLog,
 		       void* workSpace, size_t wkspSize,
@@ -2259,25 +2259,25 @@ size_t HUF_compress4X_repeat(void* dst, size_t dstSize,
 
 #define HUF_CTABLE_WORKSPACE_SIZE_U32 ((4 * (HUF_SYMBOLVALUE_MAX + 1)) + 192)
 #define HUF_CTABLE_WORKSPACE_SIZE (HUF_CTABLE_WORKSPACE_SIZE_U32 * sizeof(unsigned))
-size_t HUF_buildCTable_wksp (HUF_CElt* tree,
+MITERUBY_INTERNAL size_t HUF_buildCTable_wksp (HUF_CElt* tree,
 		       const unsigned* count, U32 maxSymbolValue, U32 maxNbBits,
 			     void* workSpace, size_t wkspSize);
 
-size_t HUF_readStats(BYTE* huffWeight, size_t hwSize,
+MITERUBY_INTERNAL size_t HUF_readStats(BYTE* huffWeight, size_t hwSize,
 		     U32* rankStats, U32* nbSymbolsPtr, U32* tableLogPtr,
 		     const void* src, size_t srcSize);
 
 #define HUF_READ_STATS_WORKSPACE_SIZE_U32 FSE_DECOMPRESS_WKSP_SIZE_U32(6, HUF_TABLELOG_MAX-1)
 #define HUF_READ_STATS_WORKSPACE_SIZE (HUF_READ_STATS_WORKSPACE_SIZE_U32 * sizeof(unsigned))
-size_t HUF_readStats_wksp(BYTE* huffWeight, size_t hwSize,
+MITERUBY_INTERNAL size_t HUF_readStats_wksp(BYTE* huffWeight, size_t hwSize,
 			  U32* rankStats, U32* nbSymbolsPtr, U32* tableLogPtr,
 			  const void* src, size_t srcSize,
 			  void* workspace, size_t wkspSize,
 			  int flags);
 
-size_t HUF_readCTable (HUF_CElt* CTable, unsigned* maxSymbolValuePtr, const void* src, size_t srcSize, unsigned *hasZeroWeights);
+MITERUBY_INTERNAL size_t HUF_readCTable (HUF_CElt* CTable, unsigned* maxSymbolValuePtr, const void* src, size_t srcSize, unsigned *hasZeroWeights);
 
-U32 HUF_getNbBitsFromCTable(const HUF_CElt* symbolTable, U32 symbolValue);
+MITERUBY_INTERNAL U32 HUF_getNbBitsFromCTable(const HUF_CElt* symbolTable, U32 symbolValue);
 
 typedef struct {
     BYTE tableLog;
@@ -2285,16 +2285,16 @@ typedef struct {
     BYTE unused[sizeof(size_t) - 2];
 } HUF_CTableHeader;
 
-HUF_CTableHeader HUF_readCTableHeader(HUF_CElt const* ctable);
+MITERUBY_INTERNAL HUF_CTableHeader HUF_readCTableHeader(HUF_CElt const* ctable);
 
 U32 HUF_selectDecoder (size_t dstSize, size_t cSrcSize);
 
 #define HUF_DECOMPRESS_WORKSPACE_SIZE ((2 << 10) + (1 << 9))
 #define HUF_DECOMPRESS_WORKSPACE_SIZE_U32 (HUF_DECOMPRESS_WORKSPACE_SIZE / sizeof(U32))
 
-size_t HUF_compress1X_usingCTable(void* dst, size_t dstSize, const void* src, size_t srcSize, const HUF_CElt* CTable, int flags);
+MITERUBY_INTERNAL size_t HUF_compress1X_usingCTable(void* dst, size_t dstSize, const void* src, size_t srcSize, const HUF_CElt* CTable, int flags);
 
-size_t HUF_compress1X_repeat(void* dst, size_t dstSize,
+MITERUBY_INTERNAL size_t HUF_compress1X_repeat(void* dst, size_t dstSize,
 		       const void* src, size_t srcSize,
 		       unsigned maxSymbolValue, unsigned tableLog,
 		       void* workSpace, size_t wkspSize,
@@ -5787,7 +5787,7 @@ typedef struct {
     unsigned long long decompressedBound;
 } ZSTD_frameSizeInfo;
 
-void ZSTD_invalidateRepCodes(ZSTD_CCtx* cctx);
+MITERUBY_INTERNAL void ZSTD_invalidateRepCodes(ZSTD_CCtx* cctx);
 
 typedef struct {
     blockType_e blockType;
@@ -5865,10 +5865,10 @@ int ZSTD_isDeterministicBuild(void)
  * You may select, at your option, one of the above-listed licenses.
 ****************************************************************** */
 
-size_t HIST_count(unsigned* count, unsigned* maxSymbolValuePtr,
+MITERUBY_INTERNAL size_t HIST_count(unsigned* count, unsigned* maxSymbolValuePtr,
 		  const void* src, size_t srcSize);
 
-unsigned HIST_isError(size_t code);
+MITERUBY_INTERNAL unsigned HIST_isError(size_t code);
 
 #if defined(__ARM_FEATURE_SVE2)
 #define HIST_WKSP_SIZE_U32 0
@@ -5877,21 +5877,21 @@ unsigned HIST_isError(size_t code);
 #endif
 #define HIST_WKSP_SIZE    (HIST_WKSP_SIZE_U32 * sizeof(unsigned))
 
-size_t HIST_count_wksp(unsigned* count, unsigned* maxSymbolValuePtr,
+MITERUBY_INTERNAL size_t HIST_count_wksp(unsigned* count, unsigned* maxSymbolValuePtr,
 		       const void* src, size_t srcSize,
 		       void* workSpace, size_t workSpaceSize);
 
-size_t HIST_countFast(unsigned* count, unsigned* maxSymbolValuePtr,
+MITERUBY_INTERNAL size_t HIST_countFast(unsigned* count, unsigned* maxSymbolValuePtr,
 		      const void* src, size_t srcSize);
 
-size_t HIST_countFast_wksp(unsigned* count, unsigned* maxSymbolValuePtr,
+MITERUBY_INTERNAL size_t HIST_countFast_wksp(unsigned* count, unsigned* maxSymbolValuePtr,
 			   const void* src, size_t srcSize,
 			   void* workSpace, size_t workSpaceSize);
 
-unsigned HIST_count_simple(unsigned* count, unsigned* maxSymbolValuePtr,
+MITERUBY_INTERNAL unsigned HIST_count_simple(unsigned* count, unsigned* maxSymbolValuePtr,
 			   const void* src, size_t srcSize);
 
-void HIST_add(unsigned* count, const void* src, size_t srcSize);
+MITERUBY_INTERNAL void HIST_add(unsigned* count, const void* src, size_t srcSize);
 /**** ended inlining hist.h ****/
 
 #define FSE_STATIC_LINKING_ONLY
@@ -8704,7 +8704,7 @@ MEM_STATIC void ZSTD_cwksp_bump_oversized_duration(
 
 #define ZSTD_SLIPBLOCK_WORKSPACESIZE 8208
 
-size_t ZSTD_splitBlock(const void* blockStart, size_t blockSize,
+MITERUBY_INTERNAL size_t ZSTD_splitBlock(const void* blockStart, size_t blockSize,
 		    int level,
 		    void* workspace, size_t wkspSize);
 
@@ -8805,10 +8805,10 @@ MEM_STATIC ZSTD_SequenceLength ZSTD_getSequenceLength(SeqStore_t const* seqStore
     return seqLen;
 }
 
-const SeqStore_t* ZSTD_getSeqStore(const ZSTD_CCtx* ctx);
-int ZSTD_seqToCodes(const SeqStore_t* seqStorePtr);
+MITERUBY_INTERNAL const SeqStore_t* ZSTD_getSeqStore(const ZSTD_CCtx* ctx);
+MITERUBY_INTERNAL int ZSTD_seqToCodes(const SeqStore_t* seqStorePtr);
 
-void ZSTD_deriveSeqStoreChunk(SeqStore_t* resultSeqStore,
+MITERUBY_INTERNAL void ZSTD_deriveSeqStoreChunk(SeqStore_t* resultSeqStore,
 			     const SeqStore_t* originalSeqStore,
 			     size_t startIdx, size_t endIdx);
 
@@ -8832,7 +8832,7 @@ typedef struct {
     ZSTD_fseCTablesMetadata_t fseMetadata;
 } ZSTD_entropyCTablesMetadata_t;
 
-size_t ZSTD_buildBlockEntropyStats(
+MITERUBY_INTERNAL size_t ZSTD_buildBlockEntropyStats(
 		    const SeqStore_t* seqStorePtr,
 		    const ZSTD_entropyCTables_t* prevEntropy,
 			  ZSTD_entropyCTables_t* nextEntropy,
@@ -9157,7 +9157,7 @@ typedef enum {
 typedef size_t (*ZSTD_BlockCompressor_f) (
 	ZSTD_MatchState_t* bs, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
 	void const* src, size_t srcSize);
-ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_ParamSwitch_e rowMatchfinderMode, ZSTD_dictMode_e dictMode);
+MITERUBY_INTERNAL ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_ParamSwitch_e rowMatchfinderMode, ZSTD_dictMode_e dictMode);
 
 MEM_STATIC U32 ZSTD_LLcode(U32 litLength)
 {
@@ -9830,10 +9830,10 @@ MEM_STATIC int ZSTD_comparePackedTags(size_t packedTag1, size_t packedTag2) {
     return tag1 == tag2;
 }
 
-size_t ZSTD_loadCEntropy(ZSTD_compressedBlockState_t* bs, void* workspace,
+MITERUBY_INTERNAL size_t ZSTD_loadCEntropy(ZSTD_compressedBlockState_t* bs, void* workspace,
 			 const void* const dict, size_t dictSize);
 
-void ZSTD_reset_compressedBlockState(ZSTD_compressedBlockState_t* bs);
+MITERUBY_INTERNAL void ZSTD_reset_compressedBlockState(ZSTD_compressedBlockState_t* bs);
 
 typedef struct {
     U32 idx;
@@ -9841,7 +9841,7 @@ typedef struct {
     size_t posInSrc;
 } ZSTD_SequencePosition;
 
-size_t ZSTD_convertBlockSequences(ZSTD_CCtx* cctx,
+MITERUBY_INTERNAL size_t ZSTD_convertBlockSequences(ZSTD_CCtx* cctx,
 			const ZSTD_Sequence* const inSeqs, size_t nbSequences,
 			int repcodeResolution);
 
@@ -9851,21 +9851,21 @@ typedef struct {
     size_t litSize;
 } BlockSummary;
 
-BlockSummary ZSTD_get1BlockSummary(const ZSTD_Sequence* seqs, size_t nbSeqs);
+MITERUBY_INTERNAL BlockSummary ZSTD_get1BlockSummary(const ZSTD_Sequence* seqs, size_t nbSeqs);
 
-ZSTD_compressionParameters ZSTD_getCParamsFromCCtxParams(
+MITERUBY_INTERNAL ZSTD_compressionParameters ZSTD_getCParamsFromCCtxParams(
 	const ZSTD_CCtx_params* CCtxParams, U64 srcSizeHint, size_t dictSize, ZSTD_CParamMode_e mode);
 
-size_t ZSTD_initCStream_internal(ZSTD_CStream* zcs,
+MITERUBY_INTERNAL size_t ZSTD_initCStream_internal(ZSTD_CStream* zcs,
 		     const void* dict, size_t dictSize,
 		     const ZSTD_CDict* cdict,
 		     const ZSTD_CCtx_params* params, unsigned long long pledgedSrcSize);
 
-void ZSTD_resetSeqStore(SeqStore_t* ssPtr);
+MITERUBY_INTERNAL void ZSTD_resetSeqStore(SeqStore_t* ssPtr);
 
-ZSTD_compressionParameters ZSTD_getCParamsFromCDict(const ZSTD_CDict* cdict);
+MITERUBY_INTERNAL ZSTD_compressionParameters ZSTD_getCParamsFromCDict(const ZSTD_CDict* cdict);
 
-size_t ZSTD_compressBegin_advanced_internal(ZSTD_CCtx* cctx,
+MITERUBY_INTERNAL size_t ZSTD_compressBegin_advanced_internal(ZSTD_CCtx* cctx,
 				    const void* dict, size_t dictSize,
 				    ZSTD_dictContentType_e dictContentType,
 				    ZSTD_dictTableLoadMethod_e dtlm,
@@ -9873,44 +9873,44 @@ size_t ZSTD_compressBegin_advanced_internal(ZSTD_CCtx* cctx,
 				    const ZSTD_CCtx_params* params,
 				    unsigned long long pledgedSrcSize);
 
-size_t ZSTD_compress_advanced_internal(ZSTD_CCtx* cctx,
+MITERUBY_INTERNAL size_t ZSTD_compress_advanced_internal(ZSTD_CCtx* cctx,
 				       void* dst, size_t dstCapacity,
 				 const void* src, size_t srcSize,
 				 const void* dict,size_t dictSize,
 				 const ZSTD_CCtx_params* params);
 
-size_t ZSTD_writeLastEmptyBlock(void* dst, size_t dstCapacity);
+MITERUBY_INTERNAL size_t ZSTD_writeLastEmptyBlock(void* dst, size_t dstCapacity);
 
-void ZSTD_referenceExternalSequences(ZSTD_CCtx* cctx, rawSeq* seq, size_t nbSeq);
+MITERUBY_INTERNAL void ZSTD_referenceExternalSequences(ZSTD_CCtx* cctx, rawSeq* seq, size_t nbSeq);
 
-U32 ZSTD_cycleLog(U32 hashLog, ZSTD_strategy strat);
+MITERUBY_INTERNAL U32 ZSTD_cycleLog(U32 hashLog, ZSTD_strategy strat);
 
-void ZSTD_CCtx_trace(ZSTD_CCtx* cctx, size_t extraCSize);
+MITERUBY_INTERNAL void ZSTD_CCtx_trace(ZSTD_CCtx* cctx, size_t extraCSize);
 
 MEM_STATIC int ZSTD_hasExtSeqProd(const ZSTD_CCtx_params* params) {
     return params->extSeqProdFunc != NULL;
 }
 
-size_t ZSTD_compressBegin_usingCDict_deprecated(ZSTD_CCtx* cctx, const ZSTD_CDict* cdict);
+MITERUBY_INTERNAL size_t ZSTD_compressBegin_usingCDict_deprecated(ZSTD_CCtx* cctx, const ZSTD_CDict* cdict);
 
-size_t ZSTD_compressContinue_public(ZSTD_CCtx* cctx,
+MITERUBY_INTERNAL size_t ZSTD_compressContinue_public(ZSTD_CCtx* cctx,
 				    void* dst, size_t dstCapacity,
 			      const void* src, size_t srcSize);
 
-size_t ZSTD_compressEnd_public(ZSTD_CCtx* cctx,
+MITERUBY_INTERNAL size_t ZSTD_compressEnd_public(ZSTD_CCtx* cctx,
 			       void* dst, size_t dstCapacity,
 			 const void* src, size_t srcSize);
 
-size_t ZSTD_compressBlock_deprecated(ZSTD_CCtx* cctx, void* dst, size_t dstCapacity, const void* src, size_t srcSize);
+MITERUBY_INTERNAL size_t ZSTD_compressBlock_deprecated(ZSTD_CCtx* cctx, void* dst, size_t dstCapacity, const void* src, size_t srcSize);
 
 #endif /* ZSTD_COMPRESS_H */
 /**** ended inlining zstd_compress_internal.h ****/
 
-size_t ZSTD_noCompressLiterals (void* dst, size_t dstCapacity, const void* src, size_t srcSize);
+MITERUBY_INTERNAL size_t ZSTD_noCompressLiterals (void* dst, size_t dstCapacity, const void* src, size_t srcSize);
 
-size_t ZSTD_compressRleLiteralsBlock (void* dst, size_t dstCapacity, const void* src, size_t srcSize);
+MITERUBY_INTERNAL size_t ZSTD_compressRleLiteralsBlock (void* dst, size_t dstCapacity, const void* src, size_t srcSize);
 
-size_t ZSTD_compressLiterals (void* dst, size_t dstCapacity,
+MITERUBY_INTERNAL size_t ZSTD_compressLiterals (void* dst, size_t dstCapacity,
 			const void* src, size_t srcSize,
 			      void* entropyWorkspace, size_t entropyWorkspaceSize,
 			const ZSTD_hufCTables_t* prevHuf,
@@ -10151,7 +10151,7 @@ typedef enum {
     ZSTD_defaultAllowed = 1
 } ZSTD_DefaultPolicy_e;
 
-SymbolEncodingType_e
+MITERUBY_INTERNAL SymbolEncodingType_e
 ZSTD_selectEncodingType(
 	FSE_repeat* repeatMode, unsigned const* count, unsigned const max,
 	size_t const mostFrequent, size_t nbSeq, unsigned const FSELog,
@@ -10160,7 +10160,7 @@ ZSTD_selectEncodingType(
 	ZSTD_DefaultPolicy_e const isDefaultAllowed,
 	ZSTD_strategy const strategy);
 
-size_t
+MITERUBY_INTERNAL size_t
 ZSTD_buildCTable(void* dst, size_t dstCapacity,
 		FSE_CTable* nextCTable, U32 FSELog, SymbolEncodingType_e type,
 		unsigned* count, U32 max,
@@ -10169,19 +10169,19 @@ ZSTD_buildCTable(void* dst, size_t dstCapacity,
 		const FSE_CTable* prevCTable, size_t prevCTableSize,
 		void* entropyWorkspace, size_t entropyWorkspaceSize);
 
-size_t ZSTD_encodeSequences(
+MITERUBY_INTERNAL size_t ZSTD_encodeSequences(
 	    void* dst, size_t dstCapacity,
 	    FSE_CTable const* CTable_MatchLength, BYTE const* mlCodeTable,
 	    FSE_CTable const* CTable_OffsetBits, BYTE const* ofCodeTable,
 	    FSE_CTable const* CTable_LitLength, BYTE const* llCodeTable,
 	    SeqDef const* sequences, size_t nbSeq, int longOffsets, int bmi2);
 
-size_t ZSTD_fseBitCost(
+MITERUBY_INTERNAL size_t ZSTD_fseBitCost(
     FSE_CTable const* ctable,
     unsigned const* count,
     unsigned const max);
 
-size_t ZSTD_crossEntropyCost(short const* norm, unsigned accuracyLog,
+MITERUBY_INTERNAL size_t ZSTD_crossEntropyCost(short const* norm, unsigned accuracyLog,
 			     unsigned const* count, unsigned const max);
 #endif /* ZSTD_COMPRESS_SEQUENCES_H */
 /**** ended inlining zstd_compress_sequences.h ****/
@@ -10603,7 +10603,7 @@ size_t ZSTD_encodeSequences(
 #ifndef ZSTD_COMPRESS_ADVANCED_H
 #define ZSTD_COMPRESS_ADVANCED_H
 
-size_t ZSTD_compressSuperBlock(ZSTD_CCtx* zc,
+MITERUBY_INTERNAL size_t ZSTD_compressSuperBlock(ZSTD_CCtx* zc,
 			       void* dst, size_t dstCapacity,
 			       void const* src, size_t srcSize,
 			       unsigned lastBlock);
@@ -11463,16 +11463,16 @@ size_t ZSTD_splitBlock(const void* blockStart, size_t blockSize,
 #ifndef ZSTD_FAST_H
 #define ZSTD_FAST_H
 
-void ZSTD_fillHashTable(ZSTD_MatchState_t* ms,
+MITERUBY_INTERNAL void ZSTD_fillHashTable(ZSTD_MatchState_t* ms,
 			void const* end, ZSTD_dictTableLoadMethod_e dtlm,
 			ZSTD_tableFillPurpose_e tfp);
-size_t ZSTD_compressBlock_fast(
+MITERUBY_INTERNAL size_t ZSTD_compressBlock_fast(
 	ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
 	void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_fast_dictMatchState(
+MITERUBY_INTERNAL size_t ZSTD_compressBlock_fast_dictMatchState(
 	ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
 	void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_fast_extDict(
+MITERUBY_INTERNAL size_t ZSTD_compressBlock_fast_extDict(
 	ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
 	void const* src, size_t srcSize);
 
@@ -11595,35 +11595,35 @@ typedef struct {
     U64 stopMask;
 } ldmRollingHashState_t;
 
-void ZSTD_ldm_gear_reset(ldmRollingHashState_t* state,
+MITERUBY_INTERNAL void ZSTD_ldm_gear_reset(ldmRollingHashState_t* state,
 			BYTE const* data, size_t minMatchLength);
-size_t ZSTD_ldm_gear_feed(ldmRollingHashState_t* state,
+MITERUBY_INTERNAL size_t ZSTD_ldm_gear_feed(ldmRollingHashState_t* state,
 			 BYTE const* data, size_t size,
 			 size_t* splits, unsigned* numSplits);
 
-void ZSTD_ldm_fillHashTable(
+MITERUBY_INTERNAL void ZSTD_ldm_fillHashTable(
 	    ldmState_t* state, const BYTE* ip,
 	    const BYTE* iend, ldmParams_t const* params);
 
-size_t ZSTD_ldm_generateSequences(
+MITERUBY_INTERNAL size_t ZSTD_ldm_generateSequences(
 	    ldmState_t* ldms, RawSeqStore_t* sequences,
 	    ldmParams_t const* params, void const* src, size_t srcSize);
 
-size_t ZSTD_ldm_blockCompress(RawSeqStore_t* rawSeqStore,
+MITERUBY_INTERNAL size_t ZSTD_ldm_blockCompress(RawSeqStore_t* rawSeqStore,
 	    ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
 	    ZSTD_ParamSwitch_e useRowMatchFinder,
 	    void const* src, size_t srcSize);
 
-void ZSTD_ldm_skipSequences(RawSeqStore_t* rawSeqStore, size_t srcSize,
+MITERUBY_INTERNAL void ZSTD_ldm_skipSequences(RawSeqStore_t* rawSeqStore, size_t srcSize,
     U32 const minMatch);
 
-void ZSTD_ldm_skipRawSeqStoreBytes(RawSeqStore_t* rawSeqStore, size_t nbBytes);
+MITERUBY_INTERNAL void ZSTD_ldm_skipRawSeqStoreBytes(RawSeqStore_t* rawSeqStore, size_t nbBytes);
 
-size_t ZSTD_ldm_getTableSize(ldmParams_t params);
+MITERUBY_INTERNAL size_t ZSTD_ldm_getTableSize(ldmParams_t params);
 
-size_t ZSTD_ldm_getMaxNbSeq(ldmParams_t params, size_t maxChunkSize);
+MITERUBY_INTERNAL size_t ZSTD_ldm_getMaxNbSeq(ldmParams_t params, size_t maxChunkSize);
 
-void ZSTD_ldm_adjustParameters(ldmParams_t* params,
+MITERUBY_INTERNAL void ZSTD_ldm_adjustParameters(ldmParams_t* params,
 			       ZSTD_compressionParameters const* cParams);
 
 #endif /* ZSTD_FAST_H */
@@ -11637,7 +11637,7 @@ void ZSTD_ldm_adjustParameters(ldmParams_t* params,
 #  define ZSTD_HASHLOG3_MAX 17
 #endif
 
-size_t convertSequences_noRepcodes(SeqDef* dstSeqs, const ZSTD_Sequence* inSeqs,
+MITERUBY_INTERNAL size_t convertSequences_noRepcodes(SeqDef* dstSeqs, const ZSTD_Sequence* inSeqs,
     size_t nbSequences);
 
 size_t ZSTD_compressBound(size_t srcSize) {
