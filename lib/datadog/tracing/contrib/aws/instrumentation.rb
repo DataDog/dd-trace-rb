@@ -51,9 +51,8 @@ module Datadog
             aws_service = span.resource.split(".")[0]
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
-            if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
-              handler.add_tags(span, params)
-            end
+            handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service]
+            handler&.add_tags(span, params)
 
             if configuration[:peer_service]
               span.set_tag(
@@ -85,6 +84,9 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+
+            # Last, so a failure here keeps every tag above.
+            handler&.add_owner_tags(span, params, context)
           rescue => e
             Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
