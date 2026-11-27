@@ -1,0 +1,14 @@
+_v: 1
+name: active_record
+display_name: Active Record
+description: Instruments Active Record SQL queries and record instantiation, and optionally detects and blocks SQL injection
+  with App and API Protection.
+packages:
+- name: activerecord
+category:
+- db.client
+systems:
+- mysql
+- postgresql
+- sqlite
+creation_date: '2017-03-08'

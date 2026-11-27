@@ -1,0 +1,10 @@
+_v: 1
+name: active_model_serializers
+display_name: Active Model Serializers
+description: Instruments Active Model Serializers serialization and rendering events with tracing spans.
+packages:
+- name: active_model_serializers
+category:
+- serialization
+systems: []
+creation_date: '2018-05-01'

@@ -1,0 +1,13 @@
+_v: 1
+name: active_job
+display_name: Active Job
+description: Instruments Active Job enqueueing, execution, retries, and discards, with optional Data Streams checkpoints and
+  trace-correlated log enrichment.
+packages:
+- name: activejob
+category:
+- log.emission
+- messaging.consumer
+- messaging.producer
+systems: []
+creation_date: '2021-08-06'

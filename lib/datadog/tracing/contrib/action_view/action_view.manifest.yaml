@@ -1,0 +1,11 @@
+_v: 1
+name: action_view
+display_name: Action View
+description: Instruments Action View template and partial rendering with tracing spans.
+packages:
+- name: actionpack
+- name: actionview
+category:
+- template.render
+systems: []
+creation_date: '2016-10-06'

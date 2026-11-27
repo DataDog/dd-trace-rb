@@ -1,0 +1,10 @@
+_v: 1
+name: active_support
+display_name: Active Support
+description: Instruments Active Support cache reads, writes, deletes, and multi-key operations.
+packages:
+- name: activesupport
+category:
+- db.client
+systems: []
+creation_date: '2019-05-01'

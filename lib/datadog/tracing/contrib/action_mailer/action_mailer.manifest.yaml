@@ -1,0 +1,10 @@
+_v: 1
+name: action_mailer
+display_name: Action Mailer
+description: Instruments Action Mailer processing and delivery, optionally capturing email payload metadata on delivery spans.
+packages:
+- name: actionmailer
+category:
+- template.render
+systems: []
+creation_date: '2019-04-22'

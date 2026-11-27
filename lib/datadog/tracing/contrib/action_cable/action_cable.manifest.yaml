@@ -1,0 +1,10 @@
+_v: 1
+name: action_cable
+display_name: Action Cable
+description: Instruments Action Cable WebSocket connections, channel subscriptions, client actions, broadcasts, and transmissions.
+packages:
+- name: actioncable
+category:
+- websocket.server
+systems: []
+creation_date: '2020-01-06'
