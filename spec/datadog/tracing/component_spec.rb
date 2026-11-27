@@ -555,12 +555,12 @@ RSpec.describe Datadog::Tracing::Component do
 
       context "with context_scope" do
         context "set to 'fiber_isolated' (default)" do
-          it "builds tracer with FiberIsolatedScope-based context provider" do
+          it "builds tracer with FiberLocalContext-based context provider" do
             tracer = build_tracer
             provider = tracer.instance_variable_get(:@provider)
 
             expect(provider).to be_a(Datadog::Tracing::DefaultContextProvider)
-            expect(provider.instance_variable_get(:@context)).to be_instance_of(Datadog::Tracing::FiberIsolatedScope)
+            expect(provider.instance_variable_get(:@context)).to be_instance_of(Datadog::Tracing::FiberLocalContext)
           ensure
             tracer.shutdown!
           end
@@ -574,11 +574,11 @@ RSpec.describe Datadog::Tracing::Component do
           context "when Fiber storage is supported" do
             before { skip "Requires Fiber storage (Ruby 3.2+)" unless Fiber.respond_to?(:[]) }
 
-            it "builds tracer with FiberInheritedScope-based context provider" do
+            it "builds tracer with FiberInheritedContext-based context provider" do
               tracer = build_tracer
               provider = tracer.instance_variable_get(:@provider)
 
-              expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberInheritedScope)
+              expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberInheritedContext)
             ensure
               tracer.shutdown!
             end
@@ -587,13 +587,13 @@ RSpec.describe Datadog::Tracing::Component do
           context "when Fiber storage is not supported" do
             before { allow(Fiber).to receive(:respond_to?).with(:[]).and_return(false) }
 
-            it "falls back to FiberIsolatedScope with a warning" do
+            it "falls back to FiberLocalContext with a warning" do
               expect(logger).to receive(:warn).with(/'fiber_inherited' requires Ruby 3.2\+/)
 
               tracer = build_tracer
               provider = tracer.instance_variable_get(:@provider)
 
-              expect(provider.instance_variable_get(:@context)).to be_instance_of(Datadog::Tracing::FiberIsolatedScope)
+              expect(provider.instance_variable_get(:@context)).to be_instance_of(Datadog::Tracing::FiberLocalContext)
             ensure
               tracer.shutdown!
             end

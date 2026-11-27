@@ -5,44 +5,28 @@ require "datadog/tracing/context"
 require "datadog/tracing/otel_thread_context"
 
 RSpec.describe Datadog::Tracing::DefaultContextProvider do
-  let(:provider) { described_class.new(**options) }
-  let(:options) { {} }
+  let(:provider) { described_class.new }
+  let(:local_context) { instance_double(Datadog::Tracing::FiberLocalContext) }
   let(:trace_context) { Datadog::Tracing::Context.new }
-
-  describe "#initialize" do
-    context "with default options" do
-      it "uses FiberIsolatedScope by default" do
-        expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberIsolatedScope)
-      end
-    end
-
-    context "with scope: FiberIsolatedScope.new" do
-      let(:options) { {scope: Datadog::Tracing::FiberIsolatedScope.new} }
-
-      it "uses FiberIsolatedScope" do
-        expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberIsolatedScope)
-      end
-    end
-  end
 
   describe "#context=" do
     subject(:set_context) { provider.context = ctx }
 
-    let(:scope) { instance_double(Datadog::Tracing::FiberIsolatedScope) }
-    let(:options) { {scope: scope} }
     let(:ctx) { double }
 
+    before { expect(Datadog::Tracing::FiberLocalContext).to receive(:new).and_return(local_context) }
+
     it do
-      expect(scope).to receive(:current=).with(ctx)
+      expect(local_context).to receive(:local=).with(ctx)
       set_context
     end
 
     context "with an OTel thread context" do
-      let(:options) { {otel_thread_context: otel_thread_context, scope: scope} }
+      let(:provider) { described_class.new(otel_thread_context: otel_thread_context) }
       let(:otel_thread_context) { instance_double(Datadog::Tracing::OTelThreadContext) }
 
       before do
-        allow(scope).to receive(:current=)
+        allow(local_context).to receive(:local=)
         allow(otel_thread_context).to receive(:clear)
         allow(otel_thread_context).to receive(:update_from_trace_op)
       end
@@ -96,7 +80,7 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
       let(:stale_otel_thread_context) { instance_spy(Datadog::Tracing::OTelThreadContext) }
 
       it "clears the replacement context's OTel thread context" do
-        allow(scope).to receive(:current=)
+        allow(local_context).to receive(:local=)
 
         set_context
         ctx.activate!(double("trace", finished?: false))
@@ -107,16 +91,14 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
   end
 
   describe "#context" do
-    let(:scope) { instance_double(Datadog::Tracing::FiberIsolatedScope) }
-    let(:options) { {scope: scope} }
+    subject(:context) { provider.context }
+
+    before { expect(Datadog::Tracing::FiberLocalContext).to receive(:new).and_return(local_context) }
 
     context "when given no arguments" do
-      subject(:context) { provider.context }
-
       it do
-        expect(scope)
-          .to receive(:current)
-          .with(no_args)
+        expect(local_context)
+          .to receive(:local)
           .and_return(trace_context)
 
         context
@@ -129,8 +111,8 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
       let(:key) { double("key") }
 
       it do
-        expect(scope)
-          .to receive(:current)
+        expect(local_context)
+          .to receive(:local)
           .with(key)
           .and_return(trace_context)
 
@@ -175,68 +157,14 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
       expect(provider2.context).to be(ctx2)
     end
   end
-
-  context "with FiberIsolatedScope" do
-    let(:options) { {scope: Datadog::Tracing::FiberIsolatedScope.new} }
-
-    it "isolates context per fiber" do
-      ctx = provider.context = Datadog::Tracing::Context.new
-      expect(provider.context).to be(ctx)
-
-      fiber_context = nil
-      Fiber.new do
-        fiber_context = provider.context
-      end.resume
-
-      expect(fiber_context).to_not be(ctx)
-    end
-  end
 end
 
-RSpec.describe Datadog::Tracing::ContextScope do
-  describe ".next_instance_id" do
-    it "returns unique IDs" do
-      id1 = described_class.next_instance_id
-      id2 = described_class.next_instance_id
-
-      expect(id1).to_not eq(id2)
-    end
-  end
-
-  describe "abstract methods" do
-    let(:scope) { described_class.new }
-
-    it "raises NotImplementedError for set_current" do
-      expect { scope.current = double }.to raise_error(NotImplementedError)
-    end
-
-    it "raises NotImplementedError for get_current via current" do
-      # Need to bypass the initial current= in initialize
-      scope = described_class.allocate
-      scope.instance_variable_set(:@key, :test_key)
-
-      expect { scope.current }.to raise_error(NotImplementedError)
-    end
-
-    it "raises NotImplementedError for get_current_for via current(storage)" do
-      scope = described_class.allocate
-      scope.instance_variable_set(:@key, :test_key)
-
-      expect { scope.current(Thread.current) }.to raise_error(NotImplementedError)
-    end
-  end
-end
-
-RSpec.describe Datadog::Tracing::FiberIsolatedScope do
-  subject(:fiber_isolated_scope) { described_class.new }
-
-  it "is a subclass of ContextScope" do
-    expect(described_class).to be < Datadog::Tracing::ContextScope
-  end
+RSpec.describe Datadog::Tracing::FiberLocalContext do
+  subject(:fiber_local_context) { described_class.new }
 
   describe "#initialize" do
-    it "creates one fiber-local variable" do
-      expect { fiber_isolated_scope }.to change { Thread.current.keys.size }.by(1)
+    it "create one fiber-local variable" do
+      expect { fiber_local_context }.to change { Thread.current.keys.size }.by(1)
     end
   end
 
@@ -244,29 +172,29 @@ RSpec.describe Datadog::Tracing::FiberIsolatedScope do
     Thread.current.keys.select { |k| k.to_s.start_with?("datadog_context_") }
   end
 
-  describe "#current" do
-    subject(:current) { fiber_isolated_scope.current }
+  describe "#local" do
+    subject(:local) { fiber_local_context.local }
 
-    context "with a second FiberIsolatedScope" do
-      let(:fiber_isolated_scope2) { described_class.new }
+    context "with a second FiberLocalContext" do
+      let(:fiber_local_context2) { described_class.new }
 
-      it "does not interfere with other FiberIsolatedScope" do
-        local_context = fiber_isolated_scope.current
-        local_context2 = fiber_isolated_scope2.current
+      it "does not interfere with other FiberLocalContext" do
+        local_context = fiber_local_context.local
+        local_context2 = fiber_local_context2.local
 
         expect(local_context).to_not eq(local_context2)
-        expect(fiber_isolated_scope.current).to eq(local_context)
-        expect(fiber_isolated_scope2.current).to eq(local_context2)
+        expect(fiber_local_context.local).to eq(local_context)
+        expect(fiber_local_context2.local).to eq(local_context2)
       end
     end
 
     context "in another fiber" do
-      it "creates one fiber-local variable per fiber" do
-        main_fiber_context = fiber_isolated_scope.current
+      it "create one fiber-local variable per fiber" do
+        main_fiber_context = fiber_local_context.local
         other_fiber_context = nil
 
         Fiber.new do
-          expect { other_fiber_context = fiber_isolated_scope.current }
+          expect { other_fiber_context = fiber_local_context.local }
             .to change { fiber_contexts.size }.from(0).to(1)
         end.resume
 
@@ -276,12 +204,12 @@ RSpec.describe Datadog::Tracing::FiberIsolatedScope do
     end
 
     context "in another thread" do
-      it "creates one fiber-local variable per thread" do
-        main_thread_context = fiber_isolated_scope.current
+      it "create one fiber-local variable per thread" do
+        main_thread_context = fiber_local_context.local
         other_thread_context = nil
 
         Thread.new do
-          expect { other_thread_context = fiber_isolated_scope.current }
+          expect { other_thread_context = fiber_local_context.local }
             .to change { fiber_contexts.size }.from(0).to(1)
         end.join
 
@@ -290,55 +218,51 @@ RSpec.describe Datadog::Tracing::FiberIsolatedScope do
       end
     end
 
-    context "given a storage object" do
-      subject(:current) { fiber_isolated_scope.current(thread) }
+    context "given a thread" do
+      subject(:local) { fiber_local_context.local(thread) }
 
-      let(:queue) { Queue.new }
-      let(:thread) { Thread.new { queue.pop } }
+      let(:thread) { Thread.new {} }
 
-      after do
-        queue << :done
-        thread.join
-      end
+      after { thread.join }
 
-      it "retrieves the context for the provided storage" do
+      it "retrieves the context for the provided thread" do
         is_expected.to be_a_kind_of(Datadog::Tracing::Context)
-        expect(current).to_not be(fiber_isolated_scope.current)
+        expect(local).to_not be(fiber_local_context.local)
       end
     end
   end
 
-  describe "#current=" do
-    subject(:set_current) { fiber_isolated_scope.current = context }
+  describe "#local=" do
+    subject(:set_local) { fiber_local_context.local = context }
 
     let(:context) { double }
 
-    before { fiber_isolated_scope } # Force initialization
+    before { fiber_local_context } # Force initialization
 
     it "overrides fiber-local variable" do
-      expect { set_current }.to_not(change { fiber_contexts.size })
+      expect { set_local }.to_not(change { fiber_contexts.size })
 
-      expect(fiber_isolated_scope.current).to eq(context)
+      expect(fiber_local_context.local).to eq(context)
     end
   end
 end
 
-RSpec.describe Datadog::Tracing::FiberInheritedScope do
-  subject(:fiber_inherited_scope) { described_class.new }
+RSpec.describe Datadog::Tracing::FiberInheritedContext do
+  subject(:fiber_inherited_context) { described_class.new }
 
   before { skip "Requires Fiber storage (Ruby 3.2+)" unless Fiber.respond_to?(:[]) }
 
   let(:digest) { instance_double(Datadog::Tracing::TraceDigest) }
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false, to_digest: digest) }
 
-  before { fiber_inherited_scope.current.activate!(trace) }
+  before { fiber_inherited_context.local.activate!(trace) }
 
-  describe "#current" do
+  describe "#local" do
     context "in another fiber" do
       it "creates a context that inherits from the creating fiber's context" do
-        main_fiber_context = fiber_inherited_scope.current
+        main_fiber_context = fiber_inherited_context.local
 
-        other_fiber_context = Fiber.new { fiber_inherited_scope.current }.resume
+        other_fiber_context = Fiber.new { fiber_inherited_context.local }.resume
 
         expect(other_fiber_context).to_not be(main_fiber_context)
         expect(other_fiber_context.active_trace).to be nil
@@ -346,21 +270,21 @@ RSpec.describe Datadog::Tracing::FiberInheritedScope do
       end
 
       it "inherits through fibers that never accessed the context" do
-        nested_fiber_context = Fiber.new { Fiber.new { fiber_inherited_scope.current }.resume }.resume
+        nested_fiber_context = Fiber.new { Fiber.new { fiber_inherited_context.local }.resume }.resume
 
         expect(nested_fiber_context.inherited_digest).to be digest
       end
     end
 
     context "with an OTel thread context" do
-      subject(:fiber_inherited_scope) { described_class.new(otel_thread_context: otel_thread_context) }
+      subject(:fiber_inherited_context) { described_class.new(otel_thread_context: otel_thread_context) }
 
       let(:otel_thread_context) { instance_spy(Datadog::Tracing::OTelThreadContext) }
 
       it "passes it to the context created in another fiber" do
         child_trace = instance_double(Datadog::Tracing::TraceOperation, finished?: false)
 
-        Fiber.new { fiber_inherited_scope.current.activate!(child_trace) }.resume
+        Fiber.new { fiber_inherited_context.local.activate!(child_trace) }.resume
 
         expect(otel_thread_context).to have_received(:update_from_trace_op).with(child_trace)
       end
@@ -368,7 +292,7 @@ RSpec.describe Datadog::Tracing::FiberInheritedScope do
 
     context "in a fiber created with storage: nil" do
       it "creates a context without inheritance" do
-        other_fiber_context = Fiber.new(storage: nil) { fiber_inherited_scope.current }.resume
+        other_fiber_context = Fiber.new(storage: nil) { fiber_inherited_context.local }.resume
 
         expect(other_fiber_context.inherited_digest).to be nil
       end
@@ -376,21 +300,21 @@ RSpec.describe Datadog::Tracing::FiberInheritedScope do
 
     context "in another thread" do
       it "creates a context without inheritance" do
-        other_thread_context = Thread.new { fiber_inherited_scope.current }.value
+        other_thread_context = Thread.new { fiber_inherited_context.local }.value
 
         expect(other_thread_context.inherited_digest).to be nil
       end
     end
   end
 
-  describe "#current=" do
+  describe "#local=" do
     it "is inherited by fibers created afterwards" do
       new_context = Datadog::Tracing::Context.new
-      fiber_inherited_scope.current = new_context
+      fiber_inherited_context.local = new_context
 
-      other_fiber_context = Fiber.new { fiber_inherited_scope.current }.resume
+      other_fiber_context = Fiber.new { fiber_inherited_context.local }.resume
 
-      expect(fiber_inherited_scope.current).to be(new_context)
+      expect(fiber_inherited_context.local).to be(new_context)
       expect(other_fiber_context.inherited_digest).to be nil
     end
   end

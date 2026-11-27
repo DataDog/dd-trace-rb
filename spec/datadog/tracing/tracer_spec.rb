@@ -1507,9 +1507,9 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
     end
 
-    context "with a FiberInheritedScope context provider" do
+    context "with a FiberInheritedContext context provider" do
       let(:tracer_options) do
-        {context_provider: Datadog::Tracing::DefaultContextProvider.new(scope: Datadog::Tracing::FiberInheritedScope.new)}
+        {context_provider: Datadog::Tracing::DefaultContextProvider.new(local_context: Datadog::Tracing::FiberInheritedContext.new)}
       end
 
       before { skip "Requires Fiber storage (Ruby 3.2+)" unless Fiber.respond_to?(:[]) }
