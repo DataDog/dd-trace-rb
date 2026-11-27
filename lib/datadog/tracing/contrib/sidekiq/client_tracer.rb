@@ -21,6 +21,8 @@ module Datadog
           # Client middleware arguments are documented here:
           #   https://github.com/mperham/sidekiq/wiki/Middleware#client-middleware
           def call(worker_class, job, queue, redis_pool)
+            return yield unless Datadog::Tracing.enabled?
+
             resource = job_resource(job)
 
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|

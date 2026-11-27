@@ -15,6 +15,29 @@ RSpec.shared_examples_for "a redis span with common tags" do
 end
 
 RSpec.shared_examples_for "redis instrumentation" do |options = {}|
+  context "when tracing is disabled" do
+    before do
+      Datadog.configure { |c| c.tracing.enabled = false }
+      expect(Datadog::Tracing).to_not receive(:trace)
+    end
+
+    it "runs commands without tracing" do
+      expect(redis.set("FOO", "bar")).to eq("OK")
+      expect(redis.get("FOO")).to eq("bar")
+      expect(spans).to be_empty
+    end
+
+    it "runs pipelines without tracing" do
+      result = redis.pipelined do |p|
+        p.set("v1", "0")
+        p.incr("v1")
+      end
+
+      expect(result).to eq(["OK", 1])
+      expect(spans).to be_empty
+    end
+  end
+
   context "roundtrip" do
     # Run a roundtrip
     before do
