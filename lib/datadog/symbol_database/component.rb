@@ -63,7 +63,7 @@ module Datadog
       # (supported platform, remote config availability).
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
-      # @param logger [Logger] Logger instance
+      # @param logger [SymbolDatabase::Logger] Logger instance
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @param di_active [Proc, nil] Predicate returning whether Dynamic
       #   Instrumentation is currently active (started). Gates remote-config
@@ -96,7 +96,7 @@ module Datadog
       # Initialize component.
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
-      # @param logger [Logger] Logger instance
+      # @param logger [SymbolDatabase::Logger] Logger instance
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @param di_active [Proc, nil] Predicate returning whether Dynamic Instrumentation is currently active
       def initialize(settings, agent_settings, logger, telemetry: nil, di_active: nil)
@@ -493,7 +493,7 @@ module Datadog
 
       # Check whether the runtime environment supports symbol database upload,
       # logging the reason when it does not.
-      # @param logger [Logger]
+      # @param logger [SymbolDatabase::Logger]
       # @return [Boolean]
       def self.environment_supported?(logger)
         return true if SymbolDatabase.supported_runtime?

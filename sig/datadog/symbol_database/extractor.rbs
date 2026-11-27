@@ -19,9 +19,9 @@ module Datadog
       SLEEP_EVERY_N_MODULES: Integer
       SLEEP_SECONDS: Float
 
-      @logger: untyped
+      @logger: SymbolDatabase::Logger
       @settings: untyped
-      def initialize: (logger: untyped, settings: untyped) -> void
+      def initialize: (logger: SymbolDatabase::Logger, settings: untyped) -> void
 
       def extract: (Module mod) -> Scope?
 
