@@ -16,6 +16,10 @@ module Datadog
       end
 
       def self.interrupt_execution(action_params)
+        if (active_span = AppSec.active_context&.span)
+          active_span.set_tag("appsec.blocked", "true")
+        end
+
         AppSec.active_context&.interrupt!(action_params)
       end
 

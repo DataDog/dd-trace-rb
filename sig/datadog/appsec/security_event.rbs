@@ -21,6 +21,8 @@ module Datadog
 
       FINGERPRINT_KEY_PREFIX: String
 
+      def self.record?: (SecurityEngine::result result) -> bool
+
       def initialize: (SecurityEngine::result waf_result, trace: Tracing::TraceOperation?, span: Tracing::SpanOperation?) -> void
 
       def keep?: () -> bool

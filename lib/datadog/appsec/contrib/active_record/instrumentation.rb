@@ -21,24 +21,21 @@ module Datadog
             db_system = adapter_name.downcase
             db_system = "sqlite" if db_system == "sqlite3"
 
-            ephemeral_data = {
+            evaluation_data = {
               "server.db.statement" => sql,
               "server.db.system" => db_system,
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout
-            result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
+            result = context.run_rasp(Ext::RASP_SQLI, evaluation_data, waf_timeout)
 
-            if result.match?
-              AppSec::Event.tag(context, result)
-              TraceKeeper.keep!(context.trace) if result.keep?
-
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-              )
-
-              AppSec::ActionsHandler.handle(result.actions)
+            if SecurityEvent.record?(result)
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
             end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
           end
 
           module PreprocessQueryAdapterPatch

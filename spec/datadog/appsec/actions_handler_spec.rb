@@ -108,12 +108,33 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
     context "when context is active" do
       before { allow(Datadog::AppSec).to receive(:active_context).and_return(context) }
 
-      let(:context) { instance_double(Datadog::AppSec::Context, interrupt!: nil) }
+      let(:context) { instance_double(Datadog::AppSec::Context, span: span, interrupt!: nil) }
+      let(:span) { Datadog::Tracing::SpanOperation.new("root") }
 
       it "interrupts the active context" do
         described_class.interrupt_execution({"status_code" => "403"})
 
         expect(context).to have_received(:interrupt!).with({"status_code" => "403"})
+      end
+
+      it "adds appsec.blocked tag to span before interrupting" do
+        allow(context).to receive(:interrupt!) do
+          expect(span.get_tag("appsec.blocked")).to eq("true")
+        end
+
+        described_class.interrupt_execution({"status_code" => "403"})
+
+        expect(context).to have_received(:interrupt!)
+      end
+
+      context "when context has no span" do
+        let(:span) { nil }
+
+        it "interrupts the active context" do
+          described_class.interrupt_execution({"status_code" => "403"})
+
+          expect(context).to have_received(:interrupt!).with({"status_code" => "403"})
+        end
       end
     end
 

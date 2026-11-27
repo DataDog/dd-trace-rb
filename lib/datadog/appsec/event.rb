@@ -33,12 +33,8 @@ module Datadog
       ].freeze
 
       class << self
-        def tag(context, waf_result)
+        def tag(context)
           return if context.span.nil?
-
-          if waf_result.actions.key?("block_request") || waf_result.actions.key?("redirect_request")
-            context.span.set_tag("appsec.blocked", "true")
-          end
 
           context.span.set_tag("appsec.event", "true")
         end
@@ -84,23 +80,28 @@ module Datadog
 
         def waf_tags(security_events)
           triggers = []
+          attributes = {}
 
-          tags = security_events.each_with_object({}) do |security_event, memo|
+          security_events.each do |security_event|
             triggers.concat(security_event.waf_result.events)
+            attributes.merge!(security_event.waf_result.attributes)
+          end
 
-            security_event.waf_result.attributes.each do |key, value|
-              next memo[key] = value unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
-
-              value = CompressedJson.dump(value)
-              next if value.nil?
-
-              if value.size >= ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE
-                Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
-                next
-              end
-
+          tags = attributes.each_with_object({}) do |(key, value), memo|
+            unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
               memo[key] = value
+              next
             end
+
+            value = CompressedJson.dump(value)
+            next if value.nil?
+
+            if value.size >= ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE
+              Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
+              next
+            end
+
+            memo[key] = value
           end
 
           tags["_dd.appsec.json"] = json_parse({triggers: triggers}) unless triggers.empty?

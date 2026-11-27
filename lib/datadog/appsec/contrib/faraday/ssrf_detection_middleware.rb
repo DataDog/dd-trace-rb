@@ -22,8 +22,8 @@ module Datadog
 
             url = env.url.to_s
             headers = normalize_headers(env.request_headers)
-            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
-            ephemeral_data = {
+            # @type var evaluation_data: ::Datadog::AppSec::Context::input_data
+            evaluation_data = {
               "server.io.net.url" => url,
               "server.io.net.request.method" => env.method.to_s.upcase,
               "server.io.net.request.headers" => headers,
@@ -39,12 +39,19 @@ module Datadog
 
             if !is_redirect && env[SAMPLE_BODY_KEY]
               body = parse_request_body(env.body, content_type: headers["content-type"])
-              ephemeral_data["server.io.net.request.body"] = body if body
+              evaluation_data["server.io.net.request.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(result, context: context) if result.match?
+            result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
+
+            if SecurityEvent.record?(result)
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
+            end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
 
             @app.call(env).on_complete { |response_env| on_complete(response_env, context: context) }
           end
@@ -53,8 +60,8 @@ module Datadog
 
           def on_complete(env, context:)
             headers = normalize_headers(env.response_headers)
-            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
-            ephemeral_data = {
+            # @type var evaluation_data: ::Datadog::AppSec::Context::input_data
+            evaluation_data = {
               "server.io.net.response.status" => env.status.to_s,
               "server.io.net.response.headers" => headers,
             }
@@ -66,12 +73,18 @@ module Datadog
 
             if !is_redirect && env[SAMPLE_BODY_KEY]
               body = parse_response_body(env.body, headers: headers, context: context)
-              ephemeral_data["server.io.net.response.body"] = body if body
+              evaluation_data["server.io.net.response.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(result, context: context) if result.match?
+            result = context.run_rasp(Ext::RASP_SSRF, evaluation_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
+            if SecurityEvent.record?(result)
+              context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
+            end
+
+            TraceKeeper.keep!(context.trace) if result.keep?
+            AppSec::Event.tag(context) if result.rule_triggered?
+            AppSec::ActionsHandler.handle(result.actions) if result.match?
           end
 
           def mark_body_sampling!(env, context:)
@@ -147,17 +160,6 @@ module Datadog
             return {} if headers.nil? || headers.empty?
 
             headers.transform_keys(&:downcase)
-          end
-
-          def handle(result, context:)
-            AppSec::Event.tag(context, result)
-            TraceKeeper.keep!(context.trace) if result.keep?
-
-            context.events.push(
-              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-            )
-
-            AppSec::ActionsHandler.handle(result.actions)
           end
         end
       end

@@ -104,6 +104,51 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
+    it "keeps the latest WAF attributes and collects distinct keys from all results" do
+      trace = Datadog::Tracing::TraceOperation.new
+      trace.measure("request") do |span|
+        span.set_tag("_dd.appsec.trace.req_headers", "previous request headers")
+        context = Datadog::AppSec::Context.new(trace, span, waf_runner)
+
+        [
+          {
+            "appsec.api.redirection.move_target" => "/redirect?totalRedirects=2",
+            "_dd.appsec.trace.req_headers" => "request headers",
+            "_dd.appsec.fp.http.endpoint" => "first fingerprint",
+            "_dd.appsec.s.req.body" => [{"first" => [8]}],
+          },
+          {
+            "appsec.api.redirection.move_target" => "/mirror/200",
+            "_dd.appsec.trace.res_headers" => "response headers",
+            "_dd.appsec.fp.http.endpoint" => "second fingerprint",
+            "_dd.appsec.s.req.body" => [{"second" => [8]}],
+          },
+        ].each do |attributes|
+          result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+            events: [],
+            actions: {},
+            attributes: attributes,
+            keep: true,
+            timeout: false,
+            duration_ns: 0,
+            duration_ext_ns: 0,
+            input_truncated: false,
+          )
+          context.events.push(Datadog::AppSec::SecurityEvent.new(result, trace: trace, span: span))
+        end
+
+        described_class.record(context)
+      end
+
+      expect(trace.flush!.spans.first.meta).to include(
+        "appsec.api.redirection.move_target" => "/mirror/200",
+        "_dd.appsec.trace.req_headers" => "request headers",
+        "_dd.appsec.trace.res_headers" => "response headers",
+        "_dd.appsec.fp.http.endpoint" => "second fingerprint",
+        "_dd.appsec.s.req.body" => '[{"second":[8]}]',
+      )
+    end
+
     context "when no security events are recorded" do
       let(:rack_request) do
         instance_double(
@@ -402,15 +447,6 @@ RSpec.describe Datadog::AppSec::Event do
     let(:with_trace) { true }
     let(:with_span) { true }
 
-    let(:waf_actions) { {} }
-    let(:waf_result) do
-      dbl = double
-
-      allow(dbl).to receive(:actions).and_return(waf_actions)
-
-      dbl
-    end
-
     let(:context) do
       context_trace = nil
       context_span = nil
@@ -433,60 +469,27 @@ RSpec.describe Datadog::AppSec::Event do
       # prevent rate limiter to bias tests
       Datadog::AppSec::RateLimiter.reset!
 
-      described_class.tag(context, waf_result)
+      described_class.tag(context)
     end
 
-    context "with no actions" do
-      it "does not add appsec.blocked tag to span" do
-        expect(context.span.send(:meta)).to_not include("appsec.blocked")
-        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-      end
-    end
-
-    context "with block_request action" do
-      let(:waf_actions) do
-        {"block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}}
-      end
-
-      it "adds appsec.blocked tag to span" do
-        expect(context.span.send(:meta)["appsec.blocked"]).to eq("true")
-        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-      end
-    end
-
-    context "with redirect_request action" do
-      let(:waf_actions) do
-        {"redirect_request" => {"status_code" => "302", "location" => "https://datadoghq.com"}}
-      end
-
-      it "adds appsec.blocked tag to span" do
-        expect(context.span.send(:meta)["appsec.blocked"]).to eq("true")
-        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-      end
+    it "adds only appsec.event tag to span" do
+      expect(context.span.send(:meta)["appsec.event"]).to eq("true")
+      expect(context.span.send(:meta)).to_not include("appsec.blocked")
     end
 
     context "without trace" do
       let(:with_trace) { false }
 
-      context "with no actions" do
-        it "does not add distributed tags but still add appsec span tags" do
-          expect(context.trace).to be nil
-          expect(context.span.send(:meta)["appsec.blocked"]).to be nil
-          expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-        end
+      it "still adds appsec.event tag to span" do
+        expect(context.trace).to be nil
+        expect(context.span.send(:meta)["appsec.event"]).to eq("true")
       end
+    end
 
-      context "with block action" do
-        let(:waf_actions) do
-          {"block_request" => {"grpc_status_code" => "10", "status_core" => "403", "type" => "auto"}}
-        end
+    context "without span" do
+      let(:with_span) { false }
 
-        it "does not add distributed tags but still add appsec span tags" do
-          expect(context.trace).to be nil
-          expect(context.span.send(:meta)["appsec.blocked"]).to eq("true")
-          expect(context.span.send(:meta)["appsec.event"]).to eq("true")
-        end
-      end
+      it { expect(context.span).to be nil }
     end
   end
 end

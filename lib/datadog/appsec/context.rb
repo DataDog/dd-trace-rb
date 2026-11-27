@@ -73,15 +73,15 @@ module Datadog
         }
       end
 
-      def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
-        result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
+      def run_waf(evaluation_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+        result = @waf_runner.run(evaluation_data, timeout)
 
         @metrics.record_waf(result)
         result
       end
 
-      def run_rasp(type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT, phase: nil)
-        result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
+      def run_rasp(type, evaluation_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT, phase: nil)
+        result = @waf_runner.run(evaluation_data, timeout, persist: false)
 
         Metrics::Telemetry.report_rasp(type, result, phase: phase)
         @metrics.record_rasp(result, type: type, phase: phase)
@@ -131,8 +131,8 @@ module Datadog
       end
 
       def extract_schema!
-        persistent_data = {"waf.context.processor" => {"extract-schema" => true}}
-        waf_result = run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+        evaluation_data = {"waf.context.processor" => {"extract-schema" => true}}
+        waf_result = run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
         security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
 
         @state[:schema_extracted] = security_event.schema?

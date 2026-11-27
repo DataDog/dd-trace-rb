@@ -26,22 +26,19 @@ module Datadog
                   context = AppSec::Context.active
 
                   if context
-                    persistent_data = {
+                    evaluation_data = {
                       "graphql.server.all_resolvers" => gateway_multiplex.arguments,
                     }
 
-                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                    result = context.run_waf(evaluation_data, Datadog.configuration.appsec.waf_timeout)
 
-                    if result.match?
-                      AppSec::Event.tag(context, result)
-                      TraceKeeper.keep!(context.trace) if result.keep?
-
-                      context.events.push(
-                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
-                      )
-
-                      AppSec::ActionsHandler.handle(result.actions)
+                    if SecurityEvent.record?(result)
+                      context.events.push(AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span))
                     end
+
+                    TraceKeeper.keep!(context.trace) if result.keep?
+                    AppSec::Event.tag(context) if result.rule_triggered?
+                    AppSec::ActionsHandler.handle(result.actions) if result.match?
                   end
 
                   stack.call(gateway_multiplex.arguments)

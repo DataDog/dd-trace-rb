@@ -11,7 +11,7 @@ module Datadog
             tags: {
               waf_version: WAF::VERSION::BASE_STRING,
               event_rules_version: context.waf_runner_ruleset_version,
-              rule_triggered: metrics.matches.positive?.to_s,
+              rule_triggered: metrics.rule_triggers.positive?.to_s,
               waf_error: metrics.errors.positive?.to_s,
               waf_timeout: metrics.timeouts.positive?.to_s,
               request_blocked: context.interrupted?.to_s,

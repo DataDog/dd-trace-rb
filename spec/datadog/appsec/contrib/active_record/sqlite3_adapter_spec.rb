@@ -96,7 +96,6 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => 'SELECT "users".* FROM "users" WHERE "users"."name" = ?',
             "server.db.system" => "sqlite",
@@ -112,7 +111,6 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
-          {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "sqlite",
