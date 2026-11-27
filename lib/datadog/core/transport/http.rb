@@ -4,6 +4,8 @@ require_relative "http/builder"
 require_relative "http/adapters/net"
 require_relative "http/adapters/unix_socket"
 require_relative "http/adapters/test"
+require_relative "http/adapters/native"
+require_relative "../utils/only_once"
 require_relative "../environment/container"
 require_relative "../environment/ext"
 
@@ -26,6 +28,9 @@ module Datadog
           Core::Transport::Ext::UnixSocket::ADAPTER,
         )
 
+        NATIVE_UNSUPPORTED_WARNING = Core::Utils::OnlyOnce.new
+        private_constant :NATIVE_UNSUPPORTED_WARNING
+
         # Helper function that delegates to Builder.new
         # but is under HTTP namespace so that client code requires this file
         # to get the adapters configured, and not the builder directly.
@@ -33,10 +38,11 @@ module Datadog
           agent_settings:,
           logger: Datadog.logger,
           headers: nil,
+          native: true,
           &block
         )
           Builder.new(logger: logger) do |transport|
-            transport.adapter(agent_settings)
+            transport.adapter((native && native_adapter(agent_settings, logger)) || agent_settings)
             transport.headers(default_headers)
 
             # The caller must define APIs before we set the default API.
@@ -46,6 +52,34 @@ module Datadog
             transport.headers(headers) if headers
           end
         end
+
+        # The native HTTP adapter for the agent connection, if `agent.native_http` is enabled; `nil`, to use the
+        # adapter of the agent settings (`Net::HTTP`), otherwise. Like for the native trace exporter, the native
+        # adapter is only used if it is available: if not, a warning is logged once and the default is used.
+        def self.native_adapter(agent_settings, logger)
+          return unless Datadog.configuration.agent.native_http
+
+          # The native adapter replaces the TCP and Unix socket ones: not, for example, the test adapter.
+          return unless [
+            Core::Configuration::Ext::Agent::HTTP::ADAPTER,
+            Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
+          ].include?(agent_settings.adapter)
+
+          if (reason = Adapters::Native.unsupported_reason)
+            NATIVE_UNSUPPORTED_WARNING.run do
+              logger.warn(
+                "Native HTTP client requested but not available: #{reason}. Falling back to the default HTTP client.",
+              )
+            end
+            return
+          end
+
+          Adapters::Native.build(agent_settings)
+        rescue => e
+          logger.warn("Native HTTP client could not be created, falling back to the default HTTP client: #{e.class}: #{e.message}")
+          nil
+        end
+        private_class_method :native_adapter
 
         def self.default_headers
           {

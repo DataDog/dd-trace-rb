@@ -1617,6 +1617,24 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe "#native_http" do
+      subject(:native_http) { settings.agent.native_http }
+
+      it_behaves_like "a binary setting with",
+        env_variable: "DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED",
+        default: false
+
+      context "when explicitly configured" do
+        let(:envs) { {"DD_EXPERIMENTAL_NATIVE_HTTP_ENABLED" => "false"} }
+
+        it "overrides the environment setting" do
+          settings.agent.native_http = true
+
+          is_expected.to be true
+        end
+      end
+    end
+
     describe "#tracer" do
       describe "#port" do
         subject(:port) { settings.agent.port }

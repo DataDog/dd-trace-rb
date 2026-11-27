@@ -1,0 +1,133 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        module Adapters
+          class Native
+            UDS_PLACEHOLDER_BASE_URL: String
+
+            FORK_GUARD: InFlight
+
+            REGISTER_FORK_HOOKS_MUTEX: Thread::Mutex
+
+            self.@fork_hooks_registered: bool?
+
+            @client: untyped
+
+            @in_flight: InFlight
+
+            def self.unsupported_reason: () -> String?
+
+            def self.supported?: () -> bool
+
+            def self.register_fork_hooks: () -> bool
+
+            attr_reader base_url: String
+
+            attr_reader uds_path: String?
+
+            attr_reader timeout: Integer | Float
+
+            def initialize: (base_url: String?, timeout: Integer | Float, ?uds_path: String?, ?client: untyped?) -> void
+
+            def self.build: (untyped agent_settings) -> Native
+
+            def call: (untyped env) -> Response
+
+            def close: () -> nil
+
+            def url: () -> String
+
+            private
+
+            def create_client: () -> untyped
+
+            def send_request: (Hash[Symbol, untyped] request) -> Array[untyped]
+
+            def multipart?: (untyped env) -> bool
+
+            def path_from_env: (untyped env) -> String
+
+            def multipart_from_form: (Hash[untyped, untyped] form) -> Array[Hash[Symbol, untyped]]
+
+            class Error < StandardError
+              @code: Symbol
+
+              attr_reader code: Symbol
+
+              def initialize: (Symbol code, String message) -> void
+            end
+
+            class Response
+              include Datadog::Core::Transport::Response
+
+              attr_reader code: Integer
+
+              attr_reader headers: Hash[String, String]
+
+              attr_reader payload: String
+
+              def initialize: (Integer code, Array[[String, String]] headers, String payload) -> void
+
+              def ok?: () -> bool
+
+              def unsupported?: () -> bool
+
+              def not_found?: () -> bool
+
+              def client_error?: () -> bool
+
+              def server_error?: () -> bool
+
+              def internal_error?: () -> bool
+
+              private
+
+              def headers_by_name: (Array[[String, String]] headers) -> Hash[String, String]
+            end
+
+            class InFlight
+              class Closed < StandardError
+              end
+
+              @mutex: Thread::Mutex
+
+              @condition: Thread::ConditionVariable
+
+              @active: Integer
+
+              @pauses: Integer
+
+              @closed: bool
+
+              def initialize: () -> void
+
+              def track: [T] () { () -> T } -> T
+
+              def pause: () -> nil
+
+              def resume: () -> nil
+
+              def close: () -> bool
+            end
+
+            # Defined by the `libdatadog_api` C extension (ext/libdatadog_api/http_client.c).
+            class Client
+              def self._native_new: (Hash[Symbol, untyped] config) -> Client
+
+              def self._native_before_fork: () -> nil
+
+              def self._native_after_fork_in_parent: () -> nil
+
+              def self._native_after_fork_in_child: () -> nil
+
+              def _native_send: (Hash[Symbol, untyped] request) -> Array[untyped]
+
+              def _native_close: () -> nil
+            end
+          end
+        end
+      end
+    end
+  end
+end

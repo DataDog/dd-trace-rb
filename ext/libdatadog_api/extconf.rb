@@ -101,6 +101,9 @@ EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".fr
 have_func("rb_iseq_type")
 have_func("ddog_ffe_get_assignment_with_options", ["datadog/common.h", "datadog/ffe.h"])
 have_func("ddog_ffe_get_assignment_with_opt_out_mode", ["datadog/common.h", "datadog/ffe.h"])
+# Native HTTP client (libdd-http-client-ffi). Older libdatadog gems don't ship `http-client.h`, in which
+# case `http_client.c` compiles to a stub and the adapter is not available.
+have_func("ddog_http_client_new", ["datadog/common.h", "datadog/http-client.h"])
 
 $defs << "-DHAVE_RB_IMEMO_NAME" if RUBY_VERSION >= "3.0"
 $defs << "-DHAVE_SHIFTED_IMEMO_MASK" if RUBY_VERSION >= "4.1"

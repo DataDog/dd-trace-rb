@@ -34,6 +34,8 @@ module Datadog
             agent_settings: agent_settings,
             logger: logger,
             headers: headers,
+            # Traces have their own native transport (`tracing.native_transport`).
+            native: false,
           ) do |transport|
             transport.api "v0.4", V4, fallback: "v0.3", default: true
             transport.api "v0.3", V3

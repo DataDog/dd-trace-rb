@@ -4,6 +4,7 @@
 
 #include "crashtracker.h"
 #include "feature_flags.h"
+#include "http_client.h"
 #include "library_config.h"
 #include "otel_thread_context.h"
 #include "process_discovery.h"
@@ -25,6 +26,7 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   library_config_init(core_module);
   ddsketch_init(core_module);
   feature_flags_init(core_module);
+  http_client_init(core_module);
   #ifndef TRUFFLERUBY
     di_init(datadog_module);
   #endif

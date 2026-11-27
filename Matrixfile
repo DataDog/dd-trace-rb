@@ -27,6 +27,11 @@
   "native_transport" => {
     "" => "✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0",
   },
+  # Native HTTP adapter integration specs (libdatadog_api extension with the HTTP client). Kept separate because
+  # they fork with live native clients (see Rakefile NATIVE_HTTP_SPECS).
+  "native_http" => {
+    "" => "✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0",
+  },
   # DI tests that require the libdatadog_api C extension (all_iseqs, exception_message, iseq_type).
   # script_compiled trace point requires Ruby 2.6+.
   "di:di_with_ext" => {
