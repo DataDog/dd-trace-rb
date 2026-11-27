@@ -115,6 +115,10 @@ if have_macro("__clang__")
 
   # We use _native_* for C callbacks so they're easy to match to their Ruby methods.
   append_cflags "-Wno-reserved-identifier"
+
+  # The serializer uses variable-length arrays so shallow samples use less stack.
+  # The sampling frame limit bounds their size even for the deepest samples.
+  append_cflags "-Wno-vla"
 end
 
 # If we forget to include a Ruby header, the function call may still appear to work, but then
