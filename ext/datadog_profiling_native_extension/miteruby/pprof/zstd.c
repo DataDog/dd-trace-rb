@@ -164,22 +164,9 @@
 #endif /* ZSTD_DEPS_NEED_STDINT */
 /**** ended inlining common/zstd_deps.h ****/
 
-/**** start inlining common/debug.c ****/
-/* ******************************************************************
- * debug
- * Part of FSE library
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * You can contact the author at :
- * - Source repository : https://github.com/Cyan4973/FiniteStateEntropy
- *
- * This source code is licensed under both the BSD-style license (found in the
- * LICENSE file in the root directory of this source tree) and the GPLv2 (found
- * in the COPYING file in the root directory of this source tree).
- * You may select, at your option, one of the above-listed licenses.
-****************************************************************** */
-
-/**** start inlining debug.h ****/
+// @ivoanjo: With DEBUGLEVEL set to 0 we only need the macros from debug.h. Including debug.c would export an unused g_debuglevel.
+// #include "common/debug.c"
+/**** start inlining common/debug.h ****/
 /* ******************************************************************
  * debug
  * Part of FSE library
@@ -241,13 +228,7 @@ extern int g_debuglevel;
 #endif
 
 #endif /* DEBUG_H_12987983217 */
-/**** ended inlining debug.h ****/
-
-#if !defined(ZSTD_LINUX_KERNEL) || (DEBUGLEVEL>=2)
-
-int g_debuglevel = DEBUGLEVEL;
-#endif
-/**** ended inlining common/debug.c ****/
+/**** ended inlining common/debug.h ****/
 /**** start inlining common/entropy_common.c ****/
 /* ******************************************************************
  * Common functions of New Generation Entropy library

@@ -103,7 +103,9 @@
 #define ZSTD_DEPS_NEED_MATH64
 #include "common/zstd_deps.h"
 
-#include "common/debug.c"
+// @ivoanjo: With DEBUGLEVEL set to 0 we only need the macros from debug.h. Including debug.c would export an unused g_debuglevel.
+// #include "common/debug.c"
+#include "common/debug.h"
 #include "common/entropy_common.c"
 #include "common/error_private.c"
 #include "common/fse_decompress.c"
