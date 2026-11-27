@@ -167,14 +167,15 @@ jobs:
     container:
       image: datadog/ci:v5.7.0 # MANUAL-PIN: datadog/ci
     steps:
-      - name: Get Datadog credentials via dd-sts
-        id: dd-sts
-        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+      - name: Get Datadog credentials via datadog-wif
+        id: dd-wif
+        uses: DataDog/datadog-workload-identity-federation-github-action/intake@c9456387851248e0a5452f99085b16ad14fc3acb # v1.0.0
         with:
-          policy: public-datadog-dd-trace-rb
+          org_uuid: 8dee7c38-00cb-11ea-a77b-8b5a08d3b091 # Datadog HQ (org 2)
+          site: datadoghq.com
       - name: Exclude from Green CI process
         env:
-          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
+          DD_API_KEY: ${{ steps.dd-wif.outputs.api_key }}
         run: datadog-ci tag --level pipeline --tags green_ci.excluded:true
 
   changelog:
