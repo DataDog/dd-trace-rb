@@ -24,9 +24,11 @@ findings to `tmp/dependency_audit_findings.json`.
 
 ## If the audit fails
 
-1. Run `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to move the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
+1. If the error names lockfiles with no corresponding Gemfile, those are orphaned lockfiles. A Gemfile was deleted without its `.lock` companion. Delete each lockfile. `rake dependency:orphans` reports the same orphans in the Lock Dependencies workflow.
 
-2. If no patched version exists for the Ruby/framework constraint in
+2. Run `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to move the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
+
+3. If no patched version exists for the Ruby/framework constraint in
    that appraisal, document the exception in `.bundler-audit.yml`:
    - Use `ignore_gem_versions` first. It covers only the exact pinned
      gem and version. When you later bump the gem, the finding
