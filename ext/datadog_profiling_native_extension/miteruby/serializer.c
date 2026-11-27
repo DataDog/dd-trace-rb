@@ -263,13 +263,13 @@ static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer
   return state;
 }
 
-void miteruby_serializer_check_available(VALUE serializer) {
+MITERUBY_INTERNAL void miteruby_serializer_check_available(VALUE serializer) {
   serializer_status status = get_state(serializer)->status;
   if (status == SERIALIZER_PREPARE || status == SERIALIZER_NO_GVL)
     miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
 }
 
-void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
+MITERUBY_INTERNAL void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
   switch (reason) {
     case MITERUBY_SERIALIZER_OK: return;
     case MITERUBY_SERIALIZER_NOT_COMPLETED: rb_raise(rb_eRuntimeError, "Streaming profile serialization did not complete");
@@ -564,7 +564,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t serializer_step1_serialize_with_gvl_with_consumer_lock(
+MITERUBY_INTERNAL miteruby_serializer_exit_reason_t serializer_step1_serialize_with_gvl_with_consumer_lock(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   miteruby_mark_function_array_t *mark_function_array, miteruby_location_array_t *location_array,
   verstable_mark_threads_set *threads_set
@@ -585,7 +585,7 @@ miteruby_serializer_exit_reason_t serializer_step1_serialize_with_gvl_with_consu
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t serializer_step2_serialize_with_gvl_no_consumer_lock(VALUE serializer) {
+MITERUBY_INTERNAL miteruby_serializer_exit_reason_t serializer_step2_serialize_with_gvl_no_consumer_lock(VALUE serializer) {
   serialization_args args = {.state = get_state(serializer), .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
   rb_ensure(prepare_serialize_body, (VALUE) &args, prepare_serialize_ensure, (VALUE) &args);
   return args.exit_reason;
@@ -729,7 +729,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t serializer_step3_serialize_no_gvl_no_consumer_lock(VALUE serializer) {
+MITERUBY_INTERNAL miteruby_serializer_exit_reason_t serializer_step3_serialize_no_gvl_no_consumer_lock(VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   serialization_args args = {.state = state, .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
 

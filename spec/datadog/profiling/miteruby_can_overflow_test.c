@@ -1,4 +1,6 @@
-#include "can_overflow.h"
+#define _GNU_SOURCE 1
+#define MITERUBY_INTERNAL static
+#include "../../../ext/datadog_profiling_native_extension/miteruby/can_overflow.c"
 
 #undef NDEBUG
 #include <assert.h>

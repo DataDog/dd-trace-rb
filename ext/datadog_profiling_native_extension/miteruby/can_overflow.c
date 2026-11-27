@@ -34,7 +34,7 @@ bool miteruby_init_can_overflow(void) {
   return true;
 }
 
-__attribute__((noinline)) bool miteruby_can_overflow(size_t stack_bytes) {
+MITERUBY_INTERNAL __attribute__((noinline)) bool miteruby_can_overflow(size_t stack_bytes) {
   if (can_overflow_page_size == 0) return false;
 
   // This needs noinline because inlining would give us the caller's frame pointer.

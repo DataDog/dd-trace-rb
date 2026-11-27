@@ -43,12 +43,12 @@ static bool read_sint32(int32_t *value, const uint8_t **cursor, const uint8_t *e
   return true;
 }
 
-bool miteruby_compressed_deltas_write(uint20_t previous_value, uint20_t current_value, uint8_t **cursor, const uint8_t *end) {
+MITERUBY_INTERNAL bool miteruby_compressed_deltas_write(uint20_t previous_value, uint20_t current_value, uint8_t **cursor, const uint8_t *end) {
   int32_t delta = (int32_t) current_value.value - (int32_t) previous_value.value;
   return write_sint32(delta, cursor, end);
 }
 
-extern inline __attribute__((always_inline)) bool miteruby_compressed_deltas_read(uint20_t previous_value, uint20_t *current_value, const uint8_t **cursor, const uint8_t *end) {
+MITERUBY_INTERNAL inline __attribute__((always_inline)) bool miteruby_compressed_deltas_read(uint20_t previous_value, uint20_t *current_value, const uint8_t **cursor, const uint8_t *end) {
   int32_t delta;
   if (!read_sint32(&delta, cursor, end)) return false;
   if (delta < -(int32_t) UINT20_MAX || delta > (int32_t) UINT20_MAX) return false;
@@ -58,7 +58,7 @@ extern inline __attribute__((always_inline)) bool miteruby_compressed_deltas_rea
   return true;
 }
 
-size_t miteruby_compressed_deltas_max_size_of(uint16_t count_of_values) {
+MITERUBY_INTERNAL size_t miteruby_compressed_deltas_max_size_of(uint16_t count_of_values) {
   // As per note on the header: uint20_t always fits within 3 bytes
   return (size_t) count_of_values * 3;
 }

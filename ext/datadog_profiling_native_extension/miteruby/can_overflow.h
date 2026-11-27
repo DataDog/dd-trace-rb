@@ -8,4 +8,4 @@ bool miteruby_init_can_overflow(void);
 
 // Assumes a downward-growing stack with a guard page, as used by pthreads and Ruby fibers.
 // The caller must keep the budgeted allocations in a separate, non-inlined function.
-bool miteruby_can_overflow(size_t stack_bytes);
+MITERUBY_INTERNAL bool miteruby_can_overflow(size_t stack_bytes);

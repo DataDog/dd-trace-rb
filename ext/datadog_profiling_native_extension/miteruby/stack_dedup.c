@@ -61,7 +61,7 @@ typedef struct {
 
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
-miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event) {
+MITERUBY_INTERNAL miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event) {
   size_t size = event->header.frame_count * (sizeof(miteruby_function_t) + sizeof(miteruby_bytecode_pos_t));
   return (miteruby_stack_hash_t) {.hash = rapidhash(event->frames, size)};
 }
@@ -80,25 +80,25 @@ static void *unique_stacks_calloc(size_t size) {
   return miteruby_allocator_alloc(size, "unique_stacks_map");
 }
 
-void miteruby_stack_dedup_init(void) {
+MITERUBY_INTERNAL void miteruby_stack_dedup_init(void) {
   verstable_unique_stacks_map_init(&stack_dedup_state.unique_stacks);
 }
 
-void miteruby_stack_dedup_reset(void) {
+MITERUBY_INTERNAL void miteruby_stack_dedup_reset(void) {
   verstable_unique_stacks_map_clear(&stack_dedup_state.unique_stacks);
 }
 
-size_t miteruby_stack_dedup_size(void) {
+MITERUBY_INTERNAL size_t miteruby_stack_dedup_size(void) {
   return sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets);
 }
 
-miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void) {
+MITERUBY_INTERNAL miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void) {
   return (miteruby_stack_dedup_stats_t) {
     .map_entries = verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks),
   };
 }
 
-miteruby_stack_t miteruby_stack_dedup_get(uint8_t *events, miteruby_stack_dedup_id_t stack_id) {
+MITERUBY_INTERNAL miteruby_stack_t miteruby_stack_dedup_get(uint8_t *events, miteruby_stack_dedup_id_t stack_id) {
   miteruby_event_deduped_sample_t *event = (miteruby_event_deduped_sample_t *)(events + stack_id.offset);
   miteruby_stored_stack_t *stack = &event->stack;
   return (miteruby_stack_t) {
@@ -108,7 +108,7 @@ miteruby_stack_t miteruby_stack_dedup_get(uint8_t *events, miteruby_stack_dedup_
   };
 }
 
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
+MITERUBY_INTERNAL miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
   uint16_t frame_count, miteruby_stack_hash_t stack_hash, uint8_t *events, size_t events_pos, size_t events_capacity
 ) {
   if (events_capacity - events_pos < sizeof(miteruby_event_deduped_sample_t)) {
@@ -139,7 +139,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
   }};
 }
 
-bool miteruby_stack_dedup_commit(
+MITERUBY_INTERNAL bool miteruby_stack_dedup_commit(
   uint8_t *events, miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash, const uint8_t *ids_end
 ) {
   verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(&stack_dedup_state.unique_stacks, stack_hash, stack_id);

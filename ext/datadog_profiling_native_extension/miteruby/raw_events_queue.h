@@ -78,7 +78,7 @@ void miteruby_raw_events_queue_destroy(miteruby_raw_events_queue_t *raw_events_q
 // Successful and rejected writes both unblock every signal in the set,
 // including signals already blocked on entry. Signals outside it are untouched.
 // Mask-operation and semaphore-post failures are fatal.
-bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
+MITERUBY_INTERNAL bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
                               const sigset_t *signal_mask);
 /* @ivoanjo: Not sure if we need this, so let's keep it around for a bit longer.
 // Call once, after ALL producers (including handlers) have finished writing.
@@ -117,4 +117,4 @@ typedef void (*miteruby_raw_events_queue_visitor_t)(const uint64_t *data);
 // Those signals are blocked before locking and unconditionally unblocked after unlocking.
 // Callbacks must not mutate records, reenter the producer/visitor, raise, or trigger GC.
 // Lock holders must not allocate Ruby objects or wait for the GVL: GC may be waiting for this lock.
-void miteruby_raw_events_queue_visit(miteruby_raw_events_queue_t *raw_events_queue, miteruby_raw_events_queue_visitor_t visit, const sigset_t *signal_mask);
+MITERUBY_INTERNAL void miteruby_raw_events_queue_visit(miteruby_raw_events_queue_t *raw_events_queue, miteruby_raw_events_queue_visitor_t visit, const sigset_t *signal_mask);

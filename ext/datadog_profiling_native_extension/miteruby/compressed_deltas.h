@@ -18,10 +18,10 @@ typedef struct {
 // The caller tracks the previous value; both operations advance cursor.
 // end is one past the buffer. A failed write may advance cursor and leave a partial encoding.
 __attribute__((warn_unused_result))
-bool miteruby_compressed_deltas_write(uint20_t previous_value, uint20_t current_value, uint8_t **cursor, const uint8_t *end);
+MITERUBY_INTERNAL bool miteruby_compressed_deltas_write(uint20_t previous_value, uint20_t current_value, uint8_t **cursor, const uint8_t *end);
 // A failed read may advance cursor but leaves current_value unchanged.
 __attribute__((warn_unused_result))
-bool miteruby_compressed_deltas_read(uint20_t previous_value, uint20_t *current_value, const uint8_t **cursor, const uint8_t *end);
+MITERUBY_INTERNAL bool miteruby_compressed_deltas_read(uint20_t previous_value, uint20_t *current_value, const uint8_t **cursor, const uint8_t *end);
 
 // Maximum amount of bytes that miteruby_compressed_deltas_write will ever need when writing an array of values.
-size_t miteruby_compressed_deltas_max_size_of(uint16_t count_of_values);
+MITERUBY_INTERNAL size_t miteruby_compressed_deltas_max_size_of(uint16_t count_of_values);

@@ -1,3 +1,4 @@
+#define MITERUBY_INTERNAL static
 #include "raw_events_queue.h"
 
 #include <ruby.h>

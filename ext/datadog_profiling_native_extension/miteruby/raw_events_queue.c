@@ -116,7 +116,7 @@ void miteruby_raw_events_queue_destroy(miteruby_raw_events_queue_t *raw_events_q
 #endif
 }
 
-bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
+MITERUBY_INTERNAL bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
   const sigset_t *signal_mask) {
   // Hold through publication AND wakeup, including the full-queue path.
   if (signal_mask != NULL)
@@ -263,7 +263,7 @@ extern inline __attribute__((always_inline)) miteruby_raw_events_queue_record_t 
   }
 }
 
-void miteruby_raw_events_queue_visit(miteruby_raw_events_queue_t *raw_events_queue, miteruby_raw_events_queue_visitor_t visit, const sigset_t *signal_mask) {
+MITERUBY_INTERNAL void miteruby_raw_events_queue_visit(miteruby_raw_events_queue_t *raw_events_queue, miteruby_raw_events_queue_visitor_t visit, const sigset_t *signal_mask) {
   miteruby_raw_events_queue_producer_lock_mask(raw_events_queue, signal_mask);
 
   uint32_t position = (uint32_t)atomic_load(&raw_events_queue->read_position);

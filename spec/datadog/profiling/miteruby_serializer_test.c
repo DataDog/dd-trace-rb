@@ -1,6 +1,8 @@
+#define _GNU_SOURCE 1
 #include <ruby.h>
 #include "../../../ext/datadog_profiling_native_extension/encoded_profile.h"
-#include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
+#include "miteruby_test_support.h"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/raw_events_queue_marking.c"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.h"
 #include "../../../ext/datadog_profiling_native_extension/ruby_helpers.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/sample_event.h"
@@ -11,6 +13,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "../../../ext/datadog_profiling_native_extension/miteruby/stack_dedup.c"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/zstd.c"
 
 #undef NDEBUG

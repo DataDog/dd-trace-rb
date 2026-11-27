@@ -1,3 +1,4 @@
+#define MITERUBY_INTERNAL static
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.h"
 
 #undef NDEBUG

@@ -1,4 +1,5 @@
-#include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
+#define _GNU_SOURCE 1
+#include "miteruby_test_support.h"
 #include <ruby.h>
 #include <string.h>
 #include <unistd.h>
@@ -22,6 +23,9 @@ static void test_mark_locations(const VALUE *start, const VALUE *end);
 #undef rb_gc_mark_locations
 #undef miteruby_allocator_alloc
 
+#include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/zstd.c"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/serializer.c"
+
 #undef NDEBUG
 #include <assert.h>
 #include <stdio.h>
@@ -36,7 +40,7 @@ static void test_mark_locations(const VALUE *start, const VALUE *end) {
   marked_end = end;
 }
 
-void miteruby_raw_events_queue_mark(miteruby_raw_events_queue_t *raw_events_queue) {
+static void miteruby_raw_events_queue_mark(miteruby_raw_events_queue_t *raw_events_queue) {
   assert(testing_consumer_mark && raw_events_queue == consumer_state.raw_events_queue);
 }
 
@@ -491,7 +495,7 @@ static void test_dedup_errors(void) {
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 7);
   size_t retained_count = consumer_state.mark_function_array.count;
   miteruby_function_id_t retained_id;
-  assert(retain_function(event->frames[0], &retained_id) == MITERUBY_CONSUMER_OK);
+  assert(retain_function(event->frames[0], &retained_id, &(bool) {0}) == MITERUBY_CONSUMER_OK);
   assert(consumer_state.mark_function_array.count == retained_count);
   failed_allocation_name = NULL;
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
@@ -699,7 +703,7 @@ static void assert_function_id(miteruby_function_t function, uint32_t expected_i
 static void assert_location_id(miteruby_function_t function, miteruby_bytecode_pos_t bytecode_pos, uint32_t expected_id) {
   size_t retained_count = consumer_state.mark_function_array.count;
   miteruby_function_id_t function_id;
-  assert(retain_function(function, &function_id) == MITERUBY_CONSUMER_OK);
+  assert(retain_function(function, &function_id, &(bool) {0}) == MITERUBY_CONSUMER_OK);
   assert(consumer_state.mark_function_array.count == retained_count);
   miteruby_location_id_t id = {.value = {.value = expected_id}};
   verstable_location_set_itr entry = verstable_location_set_get(&consumer_state.location_set, id);
@@ -813,8 +817,8 @@ static void test_function_bulk_marking(void) {
 
   miteruby_function_id_t id;
   miteruby_function_t function = {.cme = (const rb_callable_method_entry_t *)1, .iseq = (const rb_iseq_t *)2};
-  assert(retain_function(function, &id) == MITERUBY_CONSUMER_OK && id.value == 0);
-  assert(retain_function(function, &id) == MITERUBY_CONSUMER_OK && id.value == 0);
+  assert(retain_function(function, &id, &(bool) {0}) == MITERUBY_CONSUMER_OK && id.value == 0);
+  assert(retain_function(function, &id, &(bool) {0}) == MITERUBY_CONSUMER_OK && id.value == 0);
   assert(array->count == 1);
   assert(array->entries[1].cme == function.cme && array->entries[1].iseq == function.iseq);
   consumer_mark(&consumer_state);
@@ -841,7 +845,7 @@ static void test_retention_failure(bool fail_threads, size_t retained_objects, u
     for (size_t i = 0; i < retained_objects - 1; i++) assert(retain_thread(LONG2FIX(i)));
   } else {
     for (size_t i = 0; i < retained_objects; i++) {
-      assert(retain_function((miteruby_function_t) {.cme = (const rb_callable_method_entry_t *)LONG2FIX(i)}, &(miteruby_function_id_t) {0}) == MITERUBY_CONSUMER_OK);
+      assert(retain_function((miteruby_function_t) {.cme = (const rb_callable_method_entry_t *)LONG2FIX(i)}, &(miteruby_function_id_t) {0}, &(bool) {0}) == MITERUBY_CONSUMER_OK);
     }
   }
   size_t stacks_pos = consumer_state.interned_events_pos;
@@ -902,7 +906,7 @@ static void test_function_capacity(void) {
   size_t initial_size = miteruby_allocator_alloc_size(consumer_state.mark_function_set.buckets);
   size_t count = 0;
   size_t upper_bound = (size_t) UINT16_MAX + 2;
-  while (count < upper_bound && retain_function((miteruby_function_t) {.cme = (const rb_callable_method_entry_t *)(count + 1)}, &(miteruby_function_id_t) {0}) == MITERUBY_CONSUMER_OK) count++;
+  while (count < upper_bound && retain_function((miteruby_function_t) {.cme = (const rb_callable_method_entry_t *)(count + 1)}, &(miteruby_function_id_t) {0}, &(bool) {0}) == MITERUBY_CONSUMER_OK) count++;
   assert(count == MARK_FUNCTION_ARRAY_CAPACITY);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_function_set.buckets) > initial_size);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_function_set.buckets) <= MARK_FUNCTION_MAX_SIZE);
@@ -912,7 +916,7 @@ static void test_function_capacity(void) {
   for (size_t i = 0; i < count; i++) {
     miteruby_function_t function = {.cme = (const rb_callable_method_entry_t *)(i + 1)};
     miteruby_function_id_t id = {.value = 123};
-    assert(retain_function(function, &id) == MITERUBY_CONSUMER_MARK_FUNCTION_FULL);
+    assert(retain_function(function, &id, &(bool) {0}) == MITERUBY_CONSUMER_MARK_FUNCTION_FULL);
     assert(id.value == 123);
     assert_function_id(function, i);
   }
@@ -1025,29 +1029,29 @@ static void test_location_set(void) {
   assert(set->ctx == array);
   miteruby_location_t location = {.function_id = {.value = UINT16_MAX}, .bytecode_pos = {.value = UINT16_MAX}};
   miteruby_location_id_t id;
-  assert(intern_location(location, &id) == MITERUBY_CONSUMER_OK && id.value.value == 0);
+  assert(intern_location(location, true, &id) == MITERUBY_CONSUMER_OK && id.value.value == 0);
   miteruby_location_t resolved = consumer_state.location_array.entries[id.value.value];
   assert(resolved.function_id.value == UINT16_MAX && resolved.bytecode_pos.value == UINT16_MAX);
 
-  assert(intern_location(location, &id) == MITERUBY_CONSUMER_OK && id.value.value == 0);
+  assert(intern_location(location, true, &id) == MITERUBY_CONSUMER_OK && id.value.value == 0);
   assert(array->count == 1 && verstable_location_set_size(set) == 1);
   location.bytecode_pos.value--;
-  assert(intern_location(location, &id) == MITERUBY_CONSUMER_OK && id.value.value == 1);
+  assert(intern_location(location, true, &id) == MITERUBY_CONSUMER_OK && id.value.value == 1);
   location.bytecode_pos.value++;
   location.function_id.value--;
-  assert(intern_location(location, &id) == MITERUBY_CONSUMER_OK && id.value.value == 2);
+  assert(intern_location(location, true, &id) == MITERUBY_CONSUMER_OK && id.value.value == 2);
   assert(array->count == 3);
   assert(verstable_location_set_reserve(set, 1024));
   assert(set->ctx == array);
   for (unsigned int i = 0; i < array->count; i++) {
-    assert(intern_location(array->entries[i], &id) == MITERUBY_CONSUMER_OK && id.value.value == i);
+    assert(intern_location(array->entries[i], true, &id) == MITERUBY_CONSUMER_OK && id.value.value == i);
   }
   assert_allocation_accounting();
 
   miteruby_consumer_reset();
   assert(verstable_location_set_size(set) == 0 && array->count == 0);
   assert(set->ctx == array);
-  assert(intern_location(location, &id) == MITERUBY_CONSUMER_OK && id.value.value == 0);
+  assert(intern_location(location, true, &id) == MITERUBY_CONSUMER_OK && id.value.value == 0);
   assert_allocation_accounting();
 }
 
@@ -1106,7 +1110,7 @@ static void test_location_array_capacity(void) {
       .bytecode_pos = {.value = (uint16_t) (i >> 16)},
     };
     miteruby_location_id_t id = {.value = {.value = UINT20_MAX}};
-    assert(intern_location(location, &id) == MITERUBY_CONSUMER_OK && id.value.value == i);
+    assert(intern_location(location, true, &id) == MITERUBY_CONSUMER_OK && id.value.value == i);
   }
   assert(array->count == LOCATION_ARRAY_CAPACITY);
   assert(verstable_location_set_size(&consumer_state.location_set) == array->count);
@@ -1119,9 +1123,9 @@ static void test_location_array_capacity(void) {
     assert(!verstable_location_set_is_end(entry) && entry.data->key.value.value == i);
   }
   miteruby_location_id_t id = {.value = {.value = UINT20_MAX}};
-  assert(intern_location((miteruby_location_t) {0}, &id) == MITERUBY_CONSUMER_LOCATION_STORAGE_FULL);
+  assert(intern_location((miteruby_location_t) {0}, true, &id) == MITERUBY_CONSUMER_LOCATION_STORAGE_FULL);
   assert(id.value.value == UINT20_MAX);
-  assert(intern_location((miteruby_location_t) {.bytecode_pos = {.value = UINT16_MAX}}, &id) == MITERUBY_CONSUMER_LOCATION_STORAGE_FULL);
+  assert(intern_location((miteruby_location_t) {.bytecode_pos = {.value = UINT16_MAX}}, true, &id) == MITERUBY_CONSUMER_LOCATION_STORAGE_FULL);
   assert(id.value.value == UINT20_MAX && array->count == LOCATION_ARRAY_CAPACITY);
 
   sample_storage storage = {0};

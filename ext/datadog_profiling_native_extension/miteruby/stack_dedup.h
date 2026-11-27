@@ -74,20 +74,20 @@ typedef struct {
   } ok;
 } miteruby_stack_dedup_result_t;
 
-void miteruby_stack_dedup_init(void);
-void miteruby_stack_dedup_reset(void);
-size_t miteruby_stack_dedup_size(void);
+MITERUBY_INTERNAL void miteruby_stack_dedup_init(void);
+MITERUBY_INTERNAL void miteruby_stack_dedup_reset(void);
+MITERUBY_INTERNAL size_t miteruby_stack_dedup_size(void);
 
 typedef struct {
   size_t map_entries;
 } miteruby_stack_dedup_stats_t;
 
-miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
+MITERUBY_INTERNAL miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
 
 // Returned views borrow storage until the queue is drained or reset; callers must not modify stored stacks.
-miteruby_stack_t miteruby_stack_dedup_get(uint8_t *events, miteruby_stack_dedup_id_t stack_id);
-miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event);
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
+MITERUBY_INTERNAL miteruby_stack_t miteruby_stack_dedup_get(uint8_t *events, miteruby_stack_dedup_id_t stack_id);
+MITERUBY_INTERNAL miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event);
+MITERUBY_INTERNAL miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
   uint16_t frame_count, miteruby_stack_hash_t stack_hash, uint8_t *events, size_t events_pos, size_t events_capacity
 );
 
@@ -95,6 +95,6 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
 // Failure leaves the map and storage position unchanged; abandoned reservations need no cleanup.
 // ids_end is the cursor after writing all frame IDs, within the reservation.
 // Commit sets the sample size; the caller advances its queue position only after the whole sample succeeds.
-bool miteruby_stack_dedup_commit(
+MITERUBY_INTERNAL bool miteruby_stack_dedup_commit(
   uint8_t *events, miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash, const uint8_t *ids_end
 );
