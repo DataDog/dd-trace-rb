@@ -249,8 +249,10 @@ int main(int argc, char **argv)
     assert(pthread_cond_destroy(&state.condition) == 0);
     assert(pthread_mutex_destroy(&state.mutex) == 0);
     test_interruptible_read();
+    /*
     miteruby_raw_events_queue_close(&raw_events_queue, NULL);
     assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).end_of_stream);
+    */
     miteruby_raw_events_queue_destroy(&raw_events_queue);
     test_internal_errors();
     alarm(0);

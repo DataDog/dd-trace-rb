@@ -172,6 +172,7 @@ bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events
   }
 }
 
+/* @ivoanjo: Not sure if we need this, so let's keep it around for a bit longer.
 void miteruby_raw_events_queue_close(miteruby_raw_events_queue_t *raw_events_queue, const sigset_t *signal_mask) {
   if (signal_mask != NULL)
     miteruby_raw_events_queue_producer_lock_mask(raw_events_queue, signal_mask);
@@ -181,6 +182,7 @@ void miteruby_raw_events_queue_close(miteruby_raw_events_queue_t *raw_events_que
   miteruby_raw_events_queue_notify_extra(raw_events_queue);
   miteruby_raw_events_queue_producer_unlock(raw_events_queue);
 }
+*/
 
 extern inline __attribute__((always_inline)) miteruby_raw_events_queue_record_t miteruby_raw_events_queue_read(
   miteruby_raw_events_queue_t *raw_events_queue, atomic_bool *interrupted) {

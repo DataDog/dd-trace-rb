@@ -80,6 +80,7 @@ void miteruby_raw_events_queue_destroy(miteruby_raw_events_queue_t *raw_events_q
 // Mask-operation and semaphore-post failures are fatal.
 bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
                               const sigset_t *signal_mask);
+/* @ivoanjo: Not sure if we need this, so let's keep it around for a bit longer.
 // Call once, after ALL producers (including handlers) have finished writing.
 // Signals that no more items will arrive and wakes a sleeping consumer.
 // On macOS, the consumer observes close on its next poll.
@@ -88,6 +89,7 @@ bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events
 // Uses the same signal_mask convention. Closing does not prevent writes;
 // the caller must stop producers first and ensure no writes occur after close.
 void miteruby_raw_events_queue_close(miteruby_raw_events_queue_t *raw_events_queue, const sigset_t *signal_mask);
+*/
 
 // Consumer only. Releases the previous item, then returns one complete item,
 // a rejection count, or EOF. data != NULL means an item, even when length is 0.
