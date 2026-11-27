@@ -1,6 +1,8 @@
 #pragma once
 
 #define MITERUBY_INTERNAL static
+#include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_common.c"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.c"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/can_overflow.c"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.c"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/compressed_deltas.c"

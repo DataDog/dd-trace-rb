@@ -421,7 +421,7 @@ struct pb_callback_s {
     void *arg;
 };
 
-extern bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);
+MITERUBY_INTERNAL bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);
 
 /* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {

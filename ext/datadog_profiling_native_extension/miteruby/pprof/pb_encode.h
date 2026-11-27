@@ -74,7 +74,7 @@ struct pb_ostream_s
  *    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
  *    pb_encode(&stream, MyMessage_fields, &msg);
  */
-bool pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
+MITERUBY_INTERNAL bool pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 /* Extended version of pb_encode, with several options to control the
  * encoding process:
@@ -90,7 +90,7 @@ bool pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src
  */
 #define PB_ENCODE_DELIMITED       0x02U
 #define PB_ENCODE_NULLTERMINATED  0x04U
-bool pb_encode_ex(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags);
+MITERUBY_INTERNAL bool pb_encode_ex(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags);
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define pb_encode_delimited(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_DELIMITED)
@@ -98,7 +98,7 @@ bool pb_encode_ex(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *
 
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
-bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct);
+MITERUBY_INTERNAL bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct);
 
 /**************************************
  * Functions for manipulating streams *
@@ -111,7 +111,7 @@ bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *s
  * Alternatively, you can use a custom stream that writes directly to e.g.
  * a file or a network socket.
  */
-pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize);
+MITERUBY_INTERNAL pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize);
 
 /* Pseudo-stream for measuring the size of a message without actually storing
  * the encoded data.
@@ -131,7 +131,7 @@ pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize);
 /* Function to write into a pb_ostream_t stream. You can use this if you need
  * to append or prepend some custom headers to the message.
  */
-bool pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
+MITERUBY_INTERNAL bool pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
 
 
 /************************************************
@@ -140,45 +140,45 @@ bool pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
 
 /* Encode field header based on type and field number defined in the field
  * structure. Call this from the callback before writing out field contents. */
-bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_iter_t *field);
+MITERUBY_INTERNAL bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 
 /* Encode field header by manually specifying wire type. You need to use this
  * if you want to write out packed arrays from a callback field. */
-bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number);
+MITERUBY_INTERNAL bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number);
 
 /* Encode an integer in the varint format.
  * This works for bool, enum, int32, int64, uint32 and uint64 field types. */
 #ifndef PB_WITHOUT_64BIT
-bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
+MITERUBY_INTERNAL bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
 #else
-bool pb_encode_varint(pb_ostream_t *stream, uint32_t value);
+MITERUBY_INTERNAL bool pb_encode_varint(pb_ostream_t *stream, uint32_t value);
 #endif
 
 /* Encode an integer in the zig-zagged svarint format.
  * This works for sint32 and sint64. */
 #ifndef PB_WITHOUT_64BIT
-bool pb_encode_svarint(pb_ostream_t *stream, int64_t value);
+MITERUBY_INTERNAL bool pb_encode_svarint(pb_ostream_t *stream, int64_t value);
 #else
-bool pb_encode_svarint(pb_ostream_t *stream, int32_t value);
+MITERUBY_INTERNAL bool pb_encode_svarint(pb_ostream_t *stream, int32_t value);
 #endif
 
 /* Encode a string or bytes type field. For strings, pass strlen(s) as size. */
-bool pb_encode_string(pb_ostream_t *stream, const pb_byte_t *buffer, size_t size);
+MITERUBY_INTERNAL bool pb_encode_string(pb_ostream_t *stream, const pb_byte_t *buffer, size_t size);
 
 /* Encode a fixed32, sfixed32 or float value.
  * You need to pass a pointer to a 4-byte wide C variable. */
-bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
+MITERUBY_INTERNAL bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
 
 #ifndef PB_WITHOUT_64BIT
 /* Encode a fixed64, sfixed64 or double value.
  * You need to pass a pointer to a 8-byte wide C variable. */
-bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
+MITERUBY_INTERNAL bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
 #endif
 
 #ifdef PB_CONVERT_DOUBLE_FLOAT
 /* Encode a float value so that it appears like a double in the encoded
  * message. */
-bool pb_encode_float_as_double(pb_ostream_t *stream, float value);
+MITERUBY_INTERNAL bool pb_encode_float_as_double(pb_ostream_t *stream, float value);
 #endif
 
 /* Encode a submessage field.
@@ -186,7 +186,7 @@ bool pb_encode_float_as_double(pb_ostream_t *stream, float value);
  * with pb_encode(). This internally encodes the submessage twice, first to
  * calculate message size and then to actually write it out.
  */
-bool pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
+MITERUBY_INTERNAL bool pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 #ifdef __cplusplus
 } /* extern "C" */

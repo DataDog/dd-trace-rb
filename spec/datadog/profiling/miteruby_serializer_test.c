@@ -4,7 +4,6 @@
 #include "miteruby_test_support.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pprof_fragments.pb.c"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/raw_events_queue_marking.c"
-#include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.h"
 #include "../../../ext/datadog_profiling_native_extension/ruby_helpers.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/sample_event.h"
 #include <stdbool.h>
