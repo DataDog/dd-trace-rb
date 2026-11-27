@@ -14,7 +14,7 @@
 //
 // WARN: Unless otherwise stated the heap recorder APIs assume calls are done
 // under the GVL.
-typedef struct heap_recorder heap_recorder;
+typedef struct heap_recorder heap_recorder_t;
 
 // Extra data associated with each live object being tracked.
 typedef struct {
@@ -59,10 +59,10 @@ typedef struct {
 } heap_recorder_iteration_data;
 
 // Initialize a new heap recorder.
-heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage);
+heap_recorder_t* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage);
 
 // Free a previously initialized heap recorder.
-void heap_recorder_free(heap_recorder *heap_recorder);
+void heap_recorder_free(heap_recorder_t *heap_recorder);
 
 // Sets whether this heap recorder should keep track of sizes or not.
 //
@@ -73,7 +73,7 @@ void heap_recorder_free(heap_recorder *heap_recorder);
 //
 // NOTE: Default is true, i.e., it will attempt to determine approximate sizes of tracked
 // objects.
-void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enabled);
+void heap_recorder_set_size_enabled(heap_recorder_t *heap_recorder, bool size_enabled);
 
 // Set sample rate used by this heap recorder.
 //
@@ -88,11 +88,11 @@ void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enab
 // NOTE: Default is 1, i.e., track all heap allocation recordings.
 //
 // WARN: Non-positive values will lead to an exception being thrown.
-void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate);
+void heap_recorder_set_sample_rate(heap_recorder_t *heap_recorder, int sample_rate);
 
 // Do any cleanup needed after forking.
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
-void heap_recorder_after_fork(heap_recorder *heap_recorder);
+void heap_recorder_after_fork(heap_recorder_t *heap_recorder);
 
 // Record a heap allocation on the heap recorder.
 //
@@ -115,7 +115,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 // WARN: This gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint, so it neither allocates in the Ruby
 // heap nor releases the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
 void heap_recorder_record_allocation(
-  heap_recorder *heap_recorder,
+  heap_recorder_t *heap_recorder,
   VALUE new_object,
   unsigned int weight,
   ddog_CharSlice alloc_class,
@@ -126,28 +126,28 @@ void heap_recorder_record_allocation(
 // Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
 // survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of
 // these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
-void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
+void heap_recorder_update_young_objects(heap_recorder_t *heap_recorder);
 
 // Commit any pending heap allocation recordings by taking a weak reference to their objects.
 // This should be called via a postponed job, after the on_newobj_event has completed.
-void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder);
+void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder_t *heap_recorder);
 
 // Mark the Ruby objects the heap recorder holds on to: the objects of any pending recordings (so that GC does not
 // collect them while they're waiting to be committed) and the weak map itself.
-void heap_recorder_mark(heap_recorder *heap_recorder);
+void heap_recorder_mark(heap_recorder_t *heap_recorder);
 
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
 //
 // WARN: This must be called strictly before iteration. Failing to do so will result in exceptions.
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder);
+void heap_recorder_prepare_iteration(heap_recorder_t *heap_recorder);
 
 // Optimize the heap recorder by cleaning up any data that might have been prepared specifically
 // for the purpose of iterating over the heap recorder data.
 //
 // WARN: This must be called strictly after iteration to ensure proper cleanup and to keep the memory
 // profile of the heap recorder low.
-void heap_recorder_finish_iteration(heap_recorder *heap_recorder);
+void heap_recorder_finish_iteration(heap_recorder_t *heap_recorder);
 
 // Iterate over each live object being tracked by the heap recorder.
 //
@@ -166,42 +166,42 @@ void heap_recorder_finish_iteration(heap_recorder *heap_recorder);
 //   callback function alongside the data for each live tracked object.
 // @return true if iteration ran, false if something prevented it from running.
 bool heap_recorder_for_each_live_object(
-    heap_recorder *heap_recorder,
+    heap_recorder_t *heap_recorder,
     bool (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
     void *for_each_callback_extra_arg);
 
 // Return a Ruby hash containing a snapshot of this recorder's interesting state at calling time.
 // WARN: This allocates in the Ruby VM and therefore should not be called without the
 //       VM lock or during GC.
-VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
+VALUE heap_recorder_state_snapshot(heap_recorder_t *heap_recorder);
 
 // v--- TEST-ONLY APIs ---v
 
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
-VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
+VALUE heap_recorder_testonly_debug(heap_recorder_t *heap_recorder);
 
 // Check if a given record_id is being tracked or not
-VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, long record_id);
+VALUE heap_recorder_testonly_is_object_recorded(heap_recorder_t *heap_recorder, long record_id);
 
 // Returns the record id being used to track the given (still alive) object, or nil if it's not being tracked (which
 // includes the case where heap profiling is disabled). This lets tests hold on to a record id and keep asking about
 // it after the object itself is gone.
 // NOTE: This is a linear scan over the tracked objects; fine for the small numbers tests track.
-VALUE heap_recorder_testonly_record_id_for(heap_recorder *heap_recorder, VALUE obj);
+VALUE heap_recorder_testonly_record_id_for(heap_recorder_t *heap_recorder, VALUE obj);
 
 // Overrides the GC gen a tracked object is considered to have been allocated in. This lets tests give an object an
 // exact age, instead of relying on an exact number of GCs having run.
-void heap_recorder_testonly_set_object_alloc_gen(heap_recorder *heap_recorder, long record_id, size_t alloc_gen);
+void heap_recorder_testonly_set_object_alloc_gen(heap_recorder_t *heap_recorder, long record_id, size_t alloc_gen);
 
 // Used to ensure that a GC actually triggers an update of the objects
-void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
+void heap_recorder_testonly_reset_last_update(heap_recorder_t *heap_recorder);
 
 // Exhausts the usable record ids, so that all subsequent heap recordings raise (the id keeps being incremented, so
 // there's no going back). Used to test that our callers correctly handle a heap recorder that raises in the middle of
 // recording a sample.
 //
 // WARN: This should only be used for testing.
-void heap_recorder_testonly_exhaust_record_ids(heap_recorder *heap_recorder);
+void heap_recorder_testonly_exhaust_record_ids(heap_recorder_t *heap_recorder);
 
-void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all);
+void heap_recorder_testonly_benchmark_intern(heap_recorder_t *heap_recorder, ddog_CharSlice string, int times, bool use_all);

@@ -602,7 +602,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE max_frames = rb_hash_fetch(options, ID2SYM(rb_intern("max_frames")));
   VALUE tracer_context_key = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_context_key")));
   VALUE endpoint_collection_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("endpoint_collection_enabled")));
-  VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
+  VALUE otel_context_option = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
   VALUE native_filenames_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("native_filenames_enabled")));
   VALUE show_classes = rb_hash_fetch(options, ID2SYM(rb_intern("show_classes")));
   VALUE overhead_filename = rb_hash_fetch(options, ID2SYM(rb_intern("overhead_filename")));
@@ -625,14 +625,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
   state->show_classes = (show_classes == Qtrue);
   state->overhead_filename = overhead_filename;
-  if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
+  if (otel_context_option == Qfalse || otel_context_option == Qnil) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
-  } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
+  } else if (otel_context_option == ID2SYM(rb_intern("only"))) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_ONLY;
-  } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
+  } else if (otel_context_option == ID2SYM(rb_intern("both"))) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_BOTH;
   } else {
-    raise_error(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
+    raise_error(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_option);
   }
 
   if (RTEST(tracer_context_key)) {
@@ -1944,9 +1944,9 @@ static void ddtrace_otel_trace_identifiers_for(
   // trace and span representing it. Each ddtrace trace is then connected to the previous otel span, forming a linked
   // list. The local root span is going to be the trace/span we find at the end of this linked list.
   while (otel_values != Qnil) {
-    VALUE otel_span = safely_lookup_hash_without_going_into_ruby_code(otel_values, otel_current_span_key);
-    if (otel_span == Qnil) break;
-    VALUE next_trace = rb_ivar_get(otel_span, at_datadog_trace_id);
+    VALUE current_otel_span = safely_lookup_hash_without_going_into_ruby_code(otel_values, otel_current_span_key);
+    if (current_otel_span == Qnil) break;
+    VALUE next_trace = rb_ivar_get(current_otel_span, at_datadog_trace_id);
     if (next_trace == Qnil) break;
 
     current_trace = next_trace;

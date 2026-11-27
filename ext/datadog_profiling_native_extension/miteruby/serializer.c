@@ -541,7 +541,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, miteruby_sample_values values,
   const serializer_thread_context *context, int64_t end_timestamp_ns
 ) {
-  uint64_t sample_values[] = {
+  uint64_t pprof_values[] = {
     (uint64_t) values.cpu_time_ns, values.cpu_or_wall_samples, (uint64_t) values.wall_time_ns,
     values.alloc_samples, values.alloc_samples_unscaled, (uint64_t) values.timeline_wall_time_ns,
   };
@@ -552,12 +552,12 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
     {.key = PPROF_STRING_MITERUBY, .num = 1},
     {.key = PPROF_STRING_END_TIMESTAMP_NS, .num = end_timestamp_ns},
   };
-  size_t value_count = sizeof(sample_values) / sizeof(sample_values[0]);
+  size_t value_count = sizeof(pprof_values) / sizeof(pprof_values[0]);
   size_t label_count = sizeof(labels) / sizeof(labels[0]);
   // This buffer uses 257 bytes plus 10 bytes per frame, about 6.1 KiB at the 600-frame limit.
   uint8_t bytes[10 * (location_count + value_count) + 2 * 11 + label_count * (2 + MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_SIZE)];
   pb_ostream_t body = pb_ostream_from_buffer(bytes, sizeof(bytes));
-  if (!encode_sample(&body, location_ids, location_count, sample_values, value_count, labels, label_count) ||
+  if (!encode_sample(&body, location_ids, location_count, pprof_values, value_count, labels, label_count) ||
       !pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_TAG) ||
       !pb_encode_string(stream, bytes, body.bytes_written))
     return MITERUBY_SERIALIZER_SAMPLE_ENCODING_ERROR;

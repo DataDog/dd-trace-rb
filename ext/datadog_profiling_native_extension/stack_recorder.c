@@ -174,7 +174,7 @@ typedef struct {
 // Contains native state for each instance
 typedef struct {
   // Heap recorder instance
-  heap_recorder *heap_recorder;
+  heap_recorder_t *heap_recorder;
   bool heap_clean_after_gc_enabled;
 
   pthread_mutex_t mutex_slot_one;

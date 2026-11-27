@@ -94,6 +94,9 @@ unless try_cflags("-std=gnu11") && have_type("atomic_int", ["stdatomic.h"])
 end
 $CFLAGS += " -std=gnu11"
 
+# Surprisingly not included in -Wall -Wextra
+append_cflags "-Wshadow"
+
 # Gets really noisy when we include the private VM headers, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
 append_cflags "-Wno-unused-function"
 
