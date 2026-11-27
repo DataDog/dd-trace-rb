@@ -6,62 +6,590 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
   let(:span) { instance_double("Span") }
   let(:params) { {} }
   let(:lambda_service) { described_class.new }
+  let(:ext) { Datadog::Tracing::Contrib::Aws::Ext }
 
   before do
     allow(span).to receive(:set_tag)
   end
 
-  shared_examples "sets the function arn" do |expected_arn|
-    it "sets the function arn tag" do
-      lambda_service.add_tags(span, params)
-      expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_FUNCTION_ARN, expected_arn)
-    end
-  end
-
-  shared_examples "does not set the function arn" do
-    it "does not set the function arn tag" do
-      lambda_service.add_tags(span, params)
-      expect(span).not_to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_FUNCTION_ARN, anything)
-    end
-  end
-
-  context "with a full function ARN" do
-    let(:params) { {function_name: "arn:aws:lambda:us-east-1:123456789012:function:my-function"} }
-
-    include_examples "sets the function arn", "arn:aws:lambda:us-east-1:123456789012:function:my-function"
-  end
-
-  context "with a qualified function ARN" do
-    let(:params) { {function_name: "arn:aws:lambda:us-east-1:123456789012:function:my-function:my-alias"} }
-
-    include_examples "sets the function arn", "arn:aws:lambda:us-east-1:123456789012:function:my-function"
-  end
-
-  context "with a function ARN in another partition" do
-    let(:params) { {function_name: "arn:aws-cn:lambda:cn-north-1:123456789012:function:my-function:3"} }
-
-    include_examples "sets the function arn", "arn:aws-cn:lambda:cn-north-1:123456789012:function:my-function"
-  end
-
-  context "with a function name" do
+  context "with a bare function name" do
     let(:params) { {function_name: "my-function"} }
 
-    include_examples "does not set the function arn"
+    it "sets the function name" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+    end
+
+    it "reports no ARN, because the request carries none" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+      expect(span).not_to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, anything)
+    end
+  end
+
+  context "with a name-and-qualifier function name" do
+    let(:params) { {function_name: "my-function:PROD"} }
+
+    it "reports the function, not the alias" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+    end
+  end
+
+  context "with a name-and-version function name" do
+    let(:params) { {function_name: "my-function:1"} }
+
+    it "reports the function, not the version" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+    end
   end
 
   context "with a partial ARN" do
     let(:params) { {function_name: "123456789012:function:my-function"} }
 
-    include_examples "does not set the function arn"
+    it "resolves the function name and account" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+    end
+
+    it "reports no ARN, because the Region and partition are unknown" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+    end
   end
 
-  context "with an ARN that is not a function ARN" do
-    let(:params) { {function_name: "arn:aws:lambda:us-east-1:123456789012:layer:my-layer:1"} }
+  context "with a qualified partial ARN" do
+    let(:params) { {function_name: "123456789012:function:my-function:PROD"} }
 
-    include_examples "does not set the function arn"
+    it "resolves the function name and account without an ARN" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+    end
   end
 
-  context "without function_name" do
-    include_examples "does not set the function arn"
+  context "with a full ARN" do
+    let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my-function" }
+    let(:params) { {function_name: function_name} }
+
+    it "resolves the function name, ARN and account" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, function_name)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+    end
+  end
+
+  context "with a qualified full ARN" do
+    let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD" }
+    let(:params) { {function_name: function_name} }
+
+    it "reports the name without its qualifier" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+    end
+
+    it "reports the ARN without the qualifier" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag)
+        .with(ext::TAG_FUNCTION_ARN, "arn:aws:lambda:us-west-2:123456789012:function:my-function")
+    end
+  end
+
+  context "with a full ARN qualified by a version number" do
+    let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my-function:42" }
+    let(:params) { {function_name: function_name} }
+
+    it "drops the version from the name and the ARN" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).to have_received(:set_tag)
+        .with(ext::TAG_FUNCTION_ARN, "arn:aws:lambda:us-west-2:123456789012:function:my-function")
+    end
+  end
+
+  context "with a GovCloud full ARN" do
+    let(:function_name) { "arn:aws-us-gov:lambda:us-gov-west-1:123456789012:function:my-function" }
+    let(:params) { {function_name: function_name} }
+
+    it "resolves the function name, ARN and account" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, function_name)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+    end
+  end
+
+  context "with a China full ARN" do
+    let(:function_name) { "arn:aws-cn:lambda:cn-north-1:123456789012:function:my-function" }
+    let(:params) { {function_name: function_name} }
+
+    it "resolves the function name, ARN and account" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+      expect(span).to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, function_name)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+    end
+  end
+
+  context "with a layer ARN" do
+    let(:params) { {function_name: "arn:aws:lambda:us-west-2:123456789012:layer:my-layer:1"} }
+
+    it "claims no function identity" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with another service's ARN" do
+    let(:params) { {function_name: "arn:aws:sns:us-west-2:123456789012:my-topic"} }
+
+    it "claims no function identity" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with a malformed ARN" do
+    let(:params) { {function_name: "arn:aws:lambda:us-west-2:oops:function:my-function"} }
+
+    it "claims no function identity" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with a truncated ARN" do
+    let(:params) { {function_name: "arn:aws:lambda"} }
+
+    it "claims no function identity" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  describe "with a wrong-sized account prefix" do
+    [
+      ["too few digits", "12345:function:my-function"],
+      ["too many digits", "1234567890123:function:my-function"],
+    ].each do |description, value|
+      context "that has #{description}" do
+        let(:params) { {function_name: value} }
+
+        it "sets no tags at all" do
+          lambda_service.add_tags(span, params)
+          expect(span).not_to have_received(:set_tag)
+        end
+      end
+    end
+  end
+
+  context "with a function_name of exactly twelve digits" do
+    let(:params) { {function_name: "123456789012"} }
+
+    it "sets the function name" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "123456789012")
+      expect(span).to have_received(:set_tag).once
+    end
+  end
+
+  describe "with a qualified name that opens like a partial ARN" do
+    [
+      ["an account", "123456789012:PROD"],
+      ["a Region", "us-west-2:my-function"],
+      ["the function type", "function:my-function"],
+    ].each do |description, value|
+      context "that opens with #{description}" do
+        let(:params) { {function_name: value} }
+
+        it "sets no tags at all" do
+          lambda_service.add_tags(span, params)
+          expect(span).not_to have_received(:set_tag)
+        end
+      end
+    end
+  end
+
+  describe "with a qualifier that cannot be a name" do
+    [
+      ["123456789012:$LATEST", "123456789012"],
+      ["function:$LATEST.PUBLISHED", "function"],
+      ["us-west-2:$LATEST", "us-west-2"],
+      ["123456789012:#{"a" * 65}", "123456789012"],
+    ].each do |value, name|
+      context "given #{value}" do
+        let(:params) { {function_name: value} }
+
+        it "sets the function name" do
+          lambda_service.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, name)
+          expect(span).to have_received(:set_tag).once
+        end
+      end
+    end
+  end
+
+  describe "with an unqualified name shaped like a partial ARN segment" do
+    ["function", "us-west-2"].each do |value|
+      context "given #{value}" do
+        let(:params) { {function_name: value} }
+
+        it "sets the function name" do
+          lambda_service.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, value)
+          expect(span).to have_received(:set_tag).once
+        end
+      end
+    end
+  end
+
+  context "with an account id followed by a bare qualifier" do
+    let(:params) { {function_name: "123456789012:function"} }
+
+    it "does not promote the account number to a function name" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with no function_name" do
+    it "sets no tags" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with an empty function_name" do
+    let(:params) { {function_name: ""} }
+
+    it "sets no tags" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with a colon-only function_name" do
+    let(:params) { {function_name: ":"} }
+
+    it "sets no tags" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with a non-string function_name" do
+    let(:params) { {function_name: 1234} }
+
+    it "sets no tags" do
+      lambda_service.add_tags(span, params)
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  describe "with a malformed partial ARN" do
+    [
+      ["no function name after the type", "123456789012:function:"],
+      ["a trailing colon where the name should be", "123456789012:function::"],
+      ["a name of only a qualifier separator", "123456789012:function: :"],
+      ["a space in the name", "123456789012:function:my function"],
+      ["a slash in the name", "123456789012:function:my/function"],
+      ["an empty qualifier", "123456789012:function:my-function:"],
+      ["an invalid qualifier", "123456789012:function:my-function:bad qualifier"],
+      ["a dot in the qualifier", "123456789012:function:my-function:v1.0"],
+      ["a segment beyond the qualifier", "123456789012:function:my-function:PROD:extra"],
+      ["a name longer than 64 characters", "123456789012:function:#{"a" * 65}"],
+      ["a qualifier longer than 128 characters", "123456789012:function:my-function:#{"a" * 129}"],
+      ["a layer in place of the function", "123456789012:layer:my-layer"],
+      ["a qualified layer in place of the function", "123456789012:layer:my-layer:1"],
+    ].each do |description, malformed|
+      context "that has #{description}" do
+        let(:params) { {function_name: malformed} }
+
+        it "sets no tags at all" do
+          lambda_service.add_tags(span, params)
+          expect(span).not_to have_received(:set_tag)
+        end
+      end
+    end
+  end
+
+  describe "with a valid partial ARN at the boundaries" do
+    context "with a 64-character name" do
+      let(:name) { "a" * 64 }
+      let(:params) { {function_name: "123456789012:function:#{name}"} }
+
+      it "resolves the name and account" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, name)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    context "with an underscored name" do
+      let(:params) { {function_name: "123456789012:function:my_function_v2"} }
+
+      it "resolves the name and account" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my_function_v2")
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    context "with a $LATEST qualifier" do
+      let(:params) { {function_name: "123456789012:function:my-function:$LATEST"} }
+
+      it "resolves the name and account without an ARN" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+        expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+      end
+    end
+
+    context "with a numeric version qualifier" do
+      let(:params) { {function_name: "123456789012:function:my-function:7"} }
+
+      it "resolves the name and account" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    describe "with a Region ahead of the account" do
+      [
+        ["a commercial Region", "us-west-2:123456789012:function:my-function"],
+        ["a GovCloud Region", "us-gov-west-1:123456789012:function:my-function"],
+        ["an ISO Region", "us-iso-east-1:123456789012:function:my-function"],
+      ].each do |description, value|
+        context "with #{description}" do
+          let(:params) { {function_name: value} }
+
+          it "resolves the name and account without an ARN" do
+            lambda_service.add_tags(span, params)
+            expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+            expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+            expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+          end
+        end
+      end
+    end
+  end
+
+  describe "with a dot in the function name" do
+    context "in a bare name" do
+      let(:params) { {function_name: "my.function.v2"} }
+
+      it "resolves the whole dotted name" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my.function.v2")
+      end
+    end
+
+    context "in a qualified bare name" do
+      let(:params) { {function_name: "my.function:PROD"} }
+
+      it "resolves the dotted name without its qualifier" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my.function")
+      end
+    end
+
+    context "in a partial ARN" do
+      let(:params) { {function_name: "123456789012:function:my.function"} }
+
+      it "resolves the dotted name and the account" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my.function")
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    context "in a full ARN" do
+      let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my.function" }
+      let(:params) { {function_name: function_name} }
+
+      it "resolves the dotted name, ARN and account" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my.function")
+        expect(span).to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, function_name)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+  end
+
+  describe "with a $LATEST.PUBLISHED qualifier" do
+    context "on a bare name" do
+      let(:params) { {function_name: "my-function:$LATEST.PUBLISHED"} }
+
+      it "resolves the function and reports no ARN" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+        expect(span).not_to have_received(:set_tag).with(ext::TAG_FUNCTION_ARN, anything)
+      end
+    end
+
+    context "on a partial ARN" do
+      let(:params) { {function_name: "123456789012:function:my-function:$LATEST.PUBLISHED"} }
+
+      it "resolves the function and the account" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_ACCOUNT, "123456789012")
+      end
+    end
+
+    context "on a full ARN" do
+      let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:my-function:$LATEST.PUBLISHED" }
+      let(:params) { {function_name: function_name} }
+
+      it "drops the qualifier from the name and the ARN" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "my-function")
+        expect(span).to have_received(:set_tag)
+          .with(ext::TAG_FUNCTION_ARN, "arn:aws:lambda:us-west-2:123456789012:function:my-function")
+      end
+    end
+  end
+
+  describe "with a bare name at the length boundaries" do
+    context "with a 64-character name" do
+      let(:name) { "a" * 64 }
+      let(:params) { {function_name: name} }
+
+      it "resolves the name" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, name)
+      end
+    end
+
+    context "with a 65-character name" do
+      let(:params) { {function_name: "a" * 65} }
+
+      it "sets no tags at all" do
+        lambda_service.add_tags(span, params)
+        expect(span).not_to have_received(:set_tag)
+      end
+    end
+  end
+
+  describe "with a full ARN at the overall length limit" do
+    context "with the longest ARN the segment grammars accept" do
+      let(:function_name) { "arn:aws:lambda:us-west-2:123456789012:function:#{"a" * 64}:#{"b" * 128}" }
+      let(:params) { {function_name: function_name} }
+
+      it "stays inside the limit" do
+        expect(function_name.length).to be <= 256
+      end
+
+      it "resolves the function" do
+        lambda_service.add_tags(span, params)
+        expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "a" * 64)
+        expect(span).to have_received(:set_tag)
+          .with(ext::TAG_FUNCTION_ARN, "arn:aws:lambda:us-west-2:123456789012:function:#{"a" * 64}")
+      end
+    end
+
+    context "with an overlong partition" do
+      let(:function_name) { "arn:aws-#{"a" * 220}:lambda:us-west-2:123456789012:function:my-function" }
+      let(:params) { {function_name: function_name} }
+
+      it "is over the limit" do
+        expect(function_name.length).to be > 256
+      end
+
+      it "sets no tags at all" do
+        lambda_service.add_tags(span, params)
+        expect(span).not_to have_received(:set_tag)
+      end
+    end
+  end
+
+  describe "with a full ARN whose resource does not validate" do
+    [
+      ["a segment beyond the qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:PROD:extra"],
+      ["a space in the name", "arn:aws:lambda:us-west-2:123456789012:function:my fn"],
+      ["a slash in place of the type separator", "arn:aws:lambda:us-west-2:123456789012:function/my-fn"],
+      ["an empty name", "arn:aws:lambda:us-west-2:123456789012:function:"],
+      ["an empty qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:"],
+      ["a dot in the qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:v1.0"],
+      ["a name longer than 64 characters", "arn:aws:lambda:us-west-2:123456789012:function:#{"a" * 65}"],
+      ["an event source mapping", "arn:aws:lambda:us-west-2:123456789012:event-source-mapping:1234"],
+    ].each do |description, value|
+      context "that has #{description}" do
+        let(:params) { {function_name: value} }
+
+        it "sets no tags at all" do
+          lambda_service.add_tags(span, params)
+          expect(span).not_to have_received(:set_tag)
+        end
+      end
+    end
+  end
+
+  describe "with a qualified function named arn" do
+    ["arn:PROD", "arn:aws", "arn:$LATEST"].each do |value|
+      context "given #{value}" do
+        let(:params) { {function_name: value} }
+
+        it "sets the function name" do
+          lambda_service.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "arn")
+          expect(span).to have_received(:set_tag).once
+        end
+      end
+    end
+  end
+
+  context "with a function named arn" do
+    let(:params) { {function_name: "arn"} }
+
+    it "sets the function name" do
+      lambda_service.add_tags(span, params)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "arn")
+      expect(span).to have_received(:set_tag).once
+    end
+  end
+
+  context "with a function_name whose bytes are invalid in its encoding" do
+    let(:params) do
+      {function_name: (+"arn:aws:lambda:us-west-2:123456789012:function:my\xFFfn").force_encoding("UTF-8")}
+    end
+
+    it "sets no tags and does not raise" do
+      expect { lambda_service.add_tags(span, params) }.not_to raise_error
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  context "with a function_name in a non ASCII-compatible encoding" do
+    let(:params) { {function_name: "my-function".encode("UTF-16LE")} }
+
+    it "sets no tags and does not raise" do
+      expect { lambda_service.add_tags(span, params) }.not_to raise_error
+      expect(span).not_to have_received(:set_tag)
+    end
+  end
+
+  describe "peer.service compatibility" do
+    it "keeps aws.function.name out of the peer.service sources" do
+      expect(ext::PEER_SERVICE_SOURCES).not_to include(ext::TAG_AWS_FUNCTION_NAME)
+      expect(ext::PEER_SERVICE_SOURCES).not_to include(ext::TAG_FUNCTION_ARN)
+    end
+
+    it "leaves peer.hostname as the only Lambda-reachable source" do
+      recorded = {}
+      allow(span).to receive(:set_tag) { |key, value| recorded[key] = value }
+
+      lambda_service.add_tags(span, {function_name: "arn:aws:lambda:us-west-2:123456789012:function:my-function"})
+
+      expect(recorded.keys & ext::PEER_SERVICE_SOURCES).to be_empty
+      expect(ext::PEER_SERVICE_SOURCES).to include(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)
+    end
   end
 end
