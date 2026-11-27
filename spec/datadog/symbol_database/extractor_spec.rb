@@ -1276,7 +1276,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
 
   context "with active method probes" do
     let(:instrumenter) do
-      guardrails = Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+      guardrails = Datadog::DI::GuardrailsTelemetry.new(telemetry: nil)
       Datadog::DI::Instrumenter.new(settings, nil, logger,
         guardrails_telemetry: guardrails,
         capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(

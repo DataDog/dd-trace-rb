@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry/reason"
 
 module Datadog
@@ -30,24 +29,14 @@ module Datadog
 
       # Initializes the reporter.
       #
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings the propagation escape hatch is read from
-      # @param logger [DI::Logger] logger for contained emission failures
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
-      def initialize(settings:, logger:, telemetry:)
-        @settings = settings
-        @logger = logger
+      def initialize(telemetry:)
         @telemetry = telemetry
         @skipped_tags_memo = {}
         @dropped_tags_memo = {}
         @capture_incomplete_tags_memo = {}
       end
 
-      # The tracer settings.
-      # @return [Datadog::Core::Configuration::Settings]
-      attr_reader :settings
-      # The logger.
-      # @return [DI::Logger]
-      attr_reader :logger
       # The component the guardrails metrics are emitted through.
       # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
@@ -128,25 +117,6 @@ module Datadog
       # @return [void]
       def inc_metric(namespace, metric_name, value, tags:)
         telemetry&.inc(namespace, metric_name, value, tags: tags)
-      rescue Exception => exc # standard:disable Lint/RescueException
-        Datadog::DI.reraise_if_fatal(exc)
-        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        report_emission_failure(namespace, metric_name, exc)
-        nil
-      end
-
-      def report_emission_failure(namespace, metric_name, exc)
-        logger.debug { "di: error emitting #{namespace}.#{metric_name} metric: #{exc.class}: #{exc.message}" }
-        begin
-          telemetry&.report(exc, description: "Error emitting #{namespace}.#{metric_name} metric")
-        rescue Exception => nested_exc # standard:disable Lint/RescueException
-          Datadog::DI.reraise_if_fatal(nested_exc)
-          logger.debug do
-            "di: error reporting #{namespace}.#{metric_name} metric emission failure: " \
-              "#{nested_exc.class}: #{nested_exc.message}"
-          end
-        end
-        nil
       end
 
       # Returns the frozen tags for a skip emission. Emissions without

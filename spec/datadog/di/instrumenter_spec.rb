@@ -56,7 +56,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_logger_double
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: nil)
   end
 
   let(:capture_expression_evaluator) do
@@ -2220,7 +2220,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:guardrails_telemetry) do
-        Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+        Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
       end
 
       def expect_condition_timeout_skip_metric
@@ -2575,7 +2575,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:guardrails_telemetry) do
-      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
     end
 
     # Asserts the guardrails skip metric emission for a rejected probe
@@ -2840,44 +2840,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         context "when emitting the skip metric raises" do
           let(:telemetry) { telemetry_double_raising_on_inc }
 
-          it "completes the probed method normally and logs the telemetry failure" do
-            expect_lazy_log(logger, :debug,
-              /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
-            expect(telemetry).to receive(:report).with(instance_of(StandardError),
-              description: "Error emitting debugger.events.skipped metric")
-
-            hook_method(probe) do |payload|
-              observed_calls << payload
-            end
-
-            expect(HookTestClass.new.hook_test_method).to eq 42
-
-            expect(observed_calls.length).to eq 0
-          end
-        end
-
-        context "when emitting the skip metric raises and all exceptions propagate" do
-          let(:propagate_all_exceptions) { true }
-          let(:telemetry) { telemetry_double_raising_on_inc }
-
           it "raises the telemetry failure out of the probed method" do
             hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             expect { HookTestClass.new.hook_test_method }.to raise_error(StandardError, "telemetry down")
-          end
-        end
-
-        context "when emitting the skip metric raises a fatal exception" do
-          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
-
-          it "re-raises the fatal exception out of the probed method" do
-            hook_method(probe) do |payload|
-              observed_calls << payload
-            end
-
-            expect { HookTestClass.new.hook_test_method }.to raise_error(SystemExit)
 
             expect(observed_calls).to be_empty
           end
@@ -3162,9 +3130,11 @@ RSpec.describe Datadog::DI::Instrumenter do
           context "when emitting the skip metric raises" do
             let(:telemetry) { telemetry_double_raising_on_inc }
 
-            it "completes the probed method and logs the telemetry failure" do
+            it "contains the telemetry failure in the condition error callback and completes the probed method" do
+              expect(telemetry).to receive(:report).with(instance_of(StandardError),
+                description: "Error in probe condition evaluation failed callback")
               expect_lazy_log(logger, :debug,
-                /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
+                /error in probe condition evaluation failed callback.*StandardError.*telemetry down/)
 
               instrumenter.hook_method(probe, manager)
 
@@ -3331,7 +3301,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:guardrails_telemetry) do
-      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
     end
 
     context "when a capture limit truncates the snapshot" do

@@ -40,7 +40,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
       true
     end
 
-    Datadog::DI::GuardrailsTelemetry.new(settings: Object.new, logger: Object.new, telemetry: telemetry).skipped(
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry).skipped(
       reason: Datadog::DI::GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE,
       probe: probe,
     )
@@ -66,9 +66,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
       nil
     end
 
-    guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
-      settings: Object.new, logger: Object.new, telemetry: telemetry,
-    )
+    guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
 
     settings = Object.new
 
