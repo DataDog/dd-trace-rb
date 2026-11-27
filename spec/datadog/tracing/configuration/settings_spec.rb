@@ -275,6 +275,14 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe "#fiber_inheritance_enabled" do
+      subject(:fiber_inheritance_enabled) { settings.tracing.fiber_inheritance_enabled }
+
+      it_behaves_like "a binary setting with",
+        env_variable: "DD_TRACE_FIBER_INHERITANCE_ENABLED",
+        default: false
+    end
+
     describe "#enabled" do
       subject(:enabled) { settings.tracing.enabled }
 

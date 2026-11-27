@@ -1438,6 +1438,13 @@
         "default": "faraday"
       }
     ],
+    "DD_TRACE_FIBER_INHERITANCE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_GRAPE_ANALYTICS_ENABLED": [
       {
         "version": "A",

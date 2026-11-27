@@ -12,9 +12,12 @@ module Datadog
     # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
     class DefaultContextProvider
       # Initializes the default context provider with a fiber-bound context.
-      def initialize(otel_thread_context: nil)
+      def initialize(
+        otel_thread_context: nil,
+        local_context: FiberLocalContext.new(otel_thread_context: otel_thread_context)
+      )
         @otel_thread_context = otel_thread_context
-        @context = FiberLocalContext.new(otel_thread_context: otel_thread_context)
+        @context = local_context
       end
 
       # Sets the current context.
@@ -88,6 +91,34 @@ module Datadog
 
       def self.next_instance_id
         UNIQUE_INSTANCE_MUTEX.synchronize { UNIQUE_INSTANCE_GENERATOR.next }
+      end
+    end
+
+    # Like {FiberLocalContext}, but a Fiber's new trace continues from the active trace of the Fiber
+    # that created it (e.g. an `Enumerator` or an `Async` task), as a separate trace chunk.
+    # Threads do not inherit the active trace.
+    #
+    # Requires `Fiber[]` (Ruby 3.2+).
+    #
+    # @see https://docs.ruby-lang.org/en/master/Fiber.html#class-Fiber-label-Fiber+Storage
+    class FiberInheritedContext < FiberLocalContext
+      def local=(ctx)
+        # Ruby also copies Fiber storage into new Threads, so record the owner Thread.
+        Fiber[@key] = [Thread.current, ctx].freeze
+        super
+      end
+
+      def local(storage = Thread.current)
+        return super unless storage.equal?(Thread.current)
+
+        Thread.current[@key] || (self.local = Context.new(otel_thread_context: @otel_thread_context, parent: inherited_context))
+      end
+
+      private
+
+      def inherited_context
+        thread, context = Fiber[@key]
+        context if thread.equal?(Thread.current)
       end
     end
   end

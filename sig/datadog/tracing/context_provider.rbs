@@ -4,7 +4,7 @@ module Datadog
       @context: FiberLocalContext
       @otel_thread_context: OTelThreadContext?
 
-      def initialize: (?otel_thread_context: OTelThreadContext?) -> void
+      def initialize: (?otel_thread_context: OTelThreadContext?, ?local_context: FiberLocalContext) -> void
       def context=: (untyped ctx) -> untyped
       def context: (?untyped? key) -> untyped
     end
@@ -21,6 +21,15 @@ module Datadog
       UNIQUE_INSTANCE_GENERATOR: untyped
 
       def self.next_instance_id: () -> untyped
+    end
+
+    class FiberInheritedContext < FiberLocalContext
+      def local=: (Context? ctx) -> Context?
+      def local: (?untyped storage) -> Context
+
+      private
+
+      def inherited_context: () -> Context?
     end
   end
 end

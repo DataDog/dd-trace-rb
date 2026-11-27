@@ -146,6 +146,22 @@ module Datadog
                 o.type :bool
               end
 
+              # Makes spans created in a new Fiber (e.g. `Enumerator#next`, `Async` tasks) continue the trace
+              # active in the Fiber that created it, instead of starting a new trace.
+              # Each Fiber's spans are flushed as a separate chunk of the same trace.
+              # Fibers created with [`storage: nil`](https://docs.ruby-lang.org/en/master/Fiber.html#method-c-new)
+              # and new Threads still start without an active trace.
+              #
+              # Requires Ruby 3.2+; ignored with a warning on older Rubies.
+              #
+              # @default `DD_TRACE_FIBER_INHERITANCE_ENABLED` environment variable, otherwise `false`
+              # @return [Boolean]
+              option :fiber_inheritance_enabled do |o|
+                o.env Tracing::Configuration::Ext::ENV_FIBER_INHERITANCE_ENABLED
+                o.default false
+                o.type :bool
+              end
+
               # Enable trace collection and span generation.
               #
               # You can use this option to disable tracing without having to
