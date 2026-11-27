@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6733",
+  "message": "Add `exposures_enabled:` to `Datadog::OpenFeature::Provider.new` (default `true`); `false` stops that provider's evaluations from counting as exposures, so it can look up a variant without exposing the subject."
+}
