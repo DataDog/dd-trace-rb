@@ -98,7 +98,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   VALUE zero = INT2NUM(0);
   // Pass `heap_sample: {new_object: ..., alloc_class: ...}` to also record this sample for heap profiling
   VALUE heap_sample_options = rb_hash_lookup2(options, ID2SYM(rb_intern("heap_sample")), Qnil);
-  heap_sample_values heap_sample = {};
+  heap_sample_values heap_sample = {0};
   if (heap_sample_options != Qnil) {
     ENFORCE_TYPE(heap_sample_options, T_HASH);
     heap_sample.new_object = rb_hash_fetch(heap_sample_options, ID2SYM(rb_intern("new_object")));
@@ -445,7 +445,7 @@ void sample_thread(
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
     locations.ptr[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
-      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {0}},
       .function = (ddog_prof_Function) {.name = frame_name, .filename = filename_slice},
       .line = line,
     };
@@ -569,8 +569,8 @@ static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {
   // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
   locations[0] = (ddog_prof_Location) {
-    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-    .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C(""), .filename_id = {}},
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {0}},
+    .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C(""), .filename_id = {0}},
     .line = 0,
   };
 }
@@ -616,7 +616,7 @@ void record_placeholder_stack(
   ddog_CharSlice placeholder_stack
 ) {
   ddog_prof_Location placeholder_location = {
-    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {0}},
     .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
     .line = 0,
   };

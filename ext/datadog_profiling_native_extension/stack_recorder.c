@@ -961,7 +961,7 @@ static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp
     raise_error(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
   slot->start_timestamp = start_timestamp;
-  slot->stats = (stats_slot) {};
+  slot->stats = (stats_slot) {0};
 }
 
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
@@ -1118,7 +1118,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 
   ddog_prof_Location locations[] = {
     (ddog_prof_Location) {
-      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {0}},
       .function = {
         .name = DDOG_CHARSLICE_C(""),
         .name_id = hello,

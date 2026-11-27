@@ -721,7 +721,7 @@ static void record_sampling_overhead(thread_context_collector_state *state, per_
   int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, wall_time_after_sampling);
 
   ddog_prof_Location overhead_location = {
-    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {0}},
     .function = {
       .name = DDOG_CHARSLICE_C("sampling"),
       .filename = char_slice_from_ruby_string(state->overhead_filename),
@@ -1671,7 +1671,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  state->stats = (struct stats) {}; // Resets all stats back to zero
+  state->stats = (struct stats) {0}; // Resets all stats back to zero
 
   // No need to clean-up the per-thread context because the CpuAndWallTimeWorker always cleans
   // it up unconditionally on every start/restart and that includes after a fork.
@@ -2153,7 +2153,7 @@ void thread_context_collector_stats(VALUE self_instance, VALUE stats_hash) {
 void thread_context_collector_stats_reset_not_thread_safe(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-  state->stats = (struct stats) {};
+  state->stats = (struct stats) {0};
 }
 
 static void mark_thread_as_profiler_internal(per_thread_context *ctx) {
