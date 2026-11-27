@@ -516,13 +516,6 @@ RSpec.describe Datadog::AppSec::Context do
       end
     end
 
-    context "when span is present" do
-      it "adds appsec.blocked tag to span" do
-        expect { context.catch_interrupt { context.interrupt!({"status_code" => "403"}) } }
-          .to change { span.get_tag("appsec.blocked") }.from(nil).to("true")
-      end
-    end
-
     context "when interrupt is caught with a raw catch" do
       it "throws the action params" do
         expect(catch(Datadog::AppSec::Ext::INTERRUPT) { context.interrupt!({"status_code" => "403"}) })

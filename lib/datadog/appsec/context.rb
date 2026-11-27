@@ -108,8 +108,6 @@ module Datadog
           @state[:interrupt_params] = action_params unless @state.key?(:interrupt_params)
         end
 
-        span&.set_tag("appsec.blocked", "true")
-
         throw(Ext::INTERRUPT, action_params)
       rescue UncaughtThrowError
         # NOTE: Without a catch up the stack, the throw raises into the host app
