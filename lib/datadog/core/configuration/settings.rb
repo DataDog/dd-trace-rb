@@ -763,6 +763,7 @@ module Datadog
                   "#{env_name} ignored: member #{malformed_index + 1} #{malformed_reason.call(members[malformed_index])}. " \
                   "No resource attributes from this variable were applied.",
                 )
+                # nil keeps the option unset, so lower-precedence sources still apply
                 next
               end
 
