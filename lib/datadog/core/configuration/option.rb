@@ -364,7 +364,7 @@ module Datadog
           raise ArgumentError,
             # ArgumentError will be thrown from coerce_env_variable, so we've already checked that env is not nil.
             # @type var env: String
-            "Expected environment variable #{DATADOG_ENV.resolve_env(env)} " \
+            "Expected environment variable #{env_name} " \
             "to be a #{definition.type}, but '#{value}' was provided."
         end
 
@@ -382,7 +382,7 @@ module Datadog
           raise ArgumentError,
             # ArgumentError will be thrown from coerce_env_variable, so we've already checked that env is not nil.
             # @type var env: String
-            "Expected #{source_name} configuration file variable #{DATADOG_ENV.resolve_env(env, source_env: source_env)} " \
+            "Expected #{source_name} configuration file variable #{env_name} " \
             "to be a #{definition.type}, but '#{value}' was provided."
         end
 
