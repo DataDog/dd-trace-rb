@@ -6,6 +6,7 @@
     "threads.h": "c",
     "raw_events_queue.h": "c",
     "consumer.h": "c",
-    "can_overflow.h": "c"
+    "can_overflow.h": "c",
+    "miteruby_unity.h": "c"
   }
 }

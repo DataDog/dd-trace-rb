@@ -12,8 +12,6 @@
 
 /* Enable support for dynamically allocated fields */
 /* #define PB_ENABLE_MALLOC 1 */
-// @ivoanjo: the profiler will own all allocations, no malloc allowed
-#undef PB_ENABLE_MALLOC
 
 /* Define this if your CPU / compiler combination does not support
  * unaligned memory access to packed structures. Note that packed
@@ -31,8 +29,7 @@
 /* #define PB_NO_ERRMSG 1 */
 
 /* Disable support for custom streams (support only memory buffers). */
-// @ivoanjo: Not needed by the profiler
-#define PB_BUFFER_ONLY 1
+/* #define PB_BUFFER_ONLY 1 */
 
 /* Disable support for 64-bit datatypes, for compilers without int64_t
    or to save some code space. */
