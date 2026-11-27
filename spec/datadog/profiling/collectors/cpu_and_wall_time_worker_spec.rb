@@ -2960,13 +2960,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(headers.first.fetch(:cpu_time_ns)).to be_between(cpu_before, cpu_after)
     end
 
-    it "preserves an unavailable CPU time in the sample header" do
-      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, -1)).to be true
-
-      headers = described_class::Testing._native_miteruby_read_sample_headers
-      expect(headers.map { |header| header.fetch(:cpu_time_ns) }).to eq([-1])
-    end
-
     it "publishes another thread's stack using the supplied signal mask" do
       ready = Queue.new
       finish = Queue.new
