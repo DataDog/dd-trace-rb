@@ -163,6 +163,18 @@ module Datadog
         end
         false
       end
+
+      ROOT_NAMESPACE_PREFIX = /\A(?:::)?(?:Object::)*/
+      private_constant :ROOT_NAMESPACE_PREFIX
+
+      # Returns +type_name+ with its root namespace prefix removed, which is
+      # the form Module#name reports for the named class or module.
+      #
+      # @param type_name [String] class or module name as written in a probe
+      # @return [String] the name without the root namespace prefix
+      def self.normalize_type_name(type_name)
+        type_name.sub(ROOT_NAMESPACE_PREFIX, "")
+      end
     end
   end
 end

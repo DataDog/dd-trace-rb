@@ -59,6 +59,22 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
+    context "type name is not a String" do
+      [42, false].each do |type_name|
+        context "when the type name is #{type_name.inspect}" do
+          let(:probe) do
+            described_class.new(id: "42", type: :log, type_name: type_name, method_name: "bar")
+          end
+
+          it "raises ArgumentError" do
+            expect do
+              probe
+            end.to raise_error(ArgumentError, /Probe type name must be a String, got: #{type_name.class}/)
+          end
+        end
+      end
+    end
+
     context "unsupported type" do
       let(:probe) do
         # LOG_PROBE is a valid type in RC probe specification but not
@@ -177,6 +193,28 @@ RSpec.describe Datadog::DI::Probe do
       it "returns nil" do
         expect(probe.line_no).to be nil
       end
+    end
+  end
+
+  describe "#normalized_type_name" do
+    subject(:normalized_type_name) { probe.normalized_type_name }
+
+    context "when the type name has a root namespace prefix" do
+      let(:probe) { described_class.new(id: "42", type: :log, type_name: "::Object::Foo", method_name: "bar") }
+
+      it "is the type name without the prefix" do
+        is_expected.to eq "Foo"
+      end
+
+      it "leaves the type name as written" do
+        expect(probe.type_name).to eq "::Object::Foo"
+      end
+    end
+
+    context "when the probe has no type name" do
+      include_context "line probe"
+
+      it { is_expected.to be nil }
     end
   end
 
