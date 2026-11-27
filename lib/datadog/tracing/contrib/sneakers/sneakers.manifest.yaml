@@ -1,0 +1,12 @@
+_v: 1
+name: sneakers
+display_name: Sneakers
+description: Instruments Sneakers and Kicks server-side middleware to trace RabbitMQ job processing.
+packages:
+- name: kicks
+- name: sneakers
+category:
+- messaging.consumer
+systems:
+- rabbitmq
+creation_date: '2020-07-27'

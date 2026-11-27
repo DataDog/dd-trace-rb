@@ -1,0 +1,11 @@
+_v: 1
+name: racecar
+display_name: Racecar
+description: Instruments Racecar's Kafka consumer loop and individual-message and batch-processing spans.
+packages:
+- name: racecar
+category:
+- messaging.consumer
+systems:
+- kafka
+creation_date: '2017-12-22'

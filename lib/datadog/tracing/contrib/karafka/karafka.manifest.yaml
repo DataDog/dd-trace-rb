@@ -1,0 +1,13 @@
+_v: 1
+name: karafka
+display_name: Karafka
+description: Instruments Karafka Kafka message consumption and processing, activates WaterDrop message production tracing,
+  and optionally propagates distributed trace context and records Data Streams checkpoints.
+packages:
+- name: karafka
+category:
+- messaging.consumer
+- messaging.producer
+systems:
+- kafka
+creation_date: '2025-04-03'

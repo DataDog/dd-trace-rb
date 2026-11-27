@@ -1,0 +1,12 @@
+_v: 1
+name: shoryuken
+display_name: Shoryuken
+description: Instruments Shoryuken server middleware that traces workers processing queued Amazon SQS jobs, with optional
+  message-body tagging.
+packages:
+- name: shoryuken
+category:
+- messaging.consumer
+systems:
+- aws.sqs
+creation_date: '2018-11-08'
