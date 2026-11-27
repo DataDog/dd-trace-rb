@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6714",
+  "message": "Fix line probes capturing snapshots of the tracer's own calls when set on standard library methods that the tracer also calls."
+}
