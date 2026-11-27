@@ -2960,8 +2960,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(headers.first.fetch(:cpu_time_ns)).to be_between(cpu_before, cpu_after)
     end
 
-    it "marks CPU time unavailable for explicit-thread publication" do
-      expect(described_class::Testing._native_miteruby_sample_event_publish_thread(Thread.current)).to be true
+    it "preserves an unavailable CPU time in the sample header" do
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, -1)).to be true
 
       headers = described_class::Testing._native_miteruby_read_sample_headers
       expect(headers.map { |header| header.fetch(:cpu_time_ns) }).to eq([-1])
@@ -2980,7 +2980,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       capture_miteruby do
         described_class::Testing._native_with_blocked_sigprof do
           expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be true
-          expect(described_class::Testing._native_miteruby_sample_event_publish_thread(sampled_thread)).to be true
+          expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, -1)).to be true
           expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false
         end
       end
@@ -2990,7 +2990,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(samples.size).to eq(1)
       expect(samples.first.labels).to include("thread name": "miteruby masked publisher")
       expect(samples.first.locations.map(&:label)).to include("Thread::Queue#pop")
-      expect(samples.first.locations.map(&:label)).to_not include("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_thread")
+      expect(samples.first.locations.map(&:label)).to_not include("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_testing")
       expect(samples.first.locations.map(&:label)).to_not include("(sampled by miteruby)", "(sampled in sighandler)")
     ensure
       finish << true if finish
@@ -3299,7 +3299,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     it "reports a finished thread's stack as unavailable" do
       sampled_thread = Thread.new {}
       sampled_thread.join
-      expect(described_class::Testing._native_miteruby_sample_event_publish_thread(sampled_thread)).to be true
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, -1)).to be true
 
       expect(described_class::Testing._native_miteruby_read_sample_headers).to contain_exactly(
         stack_truncated: false,

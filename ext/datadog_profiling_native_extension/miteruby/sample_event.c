@@ -48,10 +48,6 @@ bool miteruby_sample_event_publish_mask(miteruby_raw_events_queue_t *raw_events_
   );
 }
 
-bool miteruby_sample_event_publish_thread(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask) {
-  return miteruby_sample_event_try_publish(raw_events_queue, thread, signal_mask, INVALID_CPU_TIME);
-}
-
 bool miteruby_sample_event_publish_testing(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time) {
   return miteruby_sample_event_try_publish(raw_events_queue, thread, signal_mask, cpu_time);
 }

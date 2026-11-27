@@ -17,7 +17,6 @@ bool miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue_t *raw_e
 
 // The non-signal-handler entry points require a non-NULL signal_mask including the producer signals.
 bool miteruby_sample_event_publish_mask(miteruby_raw_events_queue_t *raw_events_queue, const sigset_t *signal_mask);
-bool miteruby_sample_event_publish_thread(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask);
 
 // For tests requiring deterministic CPU readings, including unavailable readings.
 bool miteruby_sample_event_publish_testing(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time);
