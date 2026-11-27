@@ -24,7 +24,7 @@ cd -- "$temp_dir/nanopb-$NANOPB_VERSION"
 ruby -i -pe 'sub(/^(?:extern )?(?=(?:bool|pb_ostream_t) pb_\w+\()/, "MITERUBY_INTERNAL ")' pb.h pb_common.h pb_encode.h
 # nanopb-update-pprof-fragments.sh adds MITERUBY_INTERNAL to the descriptor declarations in pprof_fragments.pb.h.
 # PB_BIND in pb.h generates their definitions, so we need to add MITERUBY_INTERNAL here too or the linkage will conflict.
-ruby -i -pe 'sub(/^(    )(?=const pb_msgdesc_t structname ## _msg =)/, "\\1MITERUBY_INTERNAL ")' pb.h
+ruby -i -pe 'sub(/^    \K(?=const .* structname ## _(?:msg|field_info|submsg_info)\b)/, "MITERUBY_INTERNAL ")' pb.h
 
 install -m 644 pb.h pb_common.h pb_common.c pb_encode.h pb_encode.c "$pprof_dir/"
 install -m 644 LICENSE.txt "$pprof_dir/nanopb.LICENSE.txt"

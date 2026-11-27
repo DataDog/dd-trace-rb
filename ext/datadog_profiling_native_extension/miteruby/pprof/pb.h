@@ -510,12 +510,12 @@ struct pb_extension_s {
 
 /* Binding of a message field set into a specific structure */
 #define PB_BIND(msgname, structname, width) \
-    const uint32_t structname ## _field_info[] PB_PROGMEM = \
+    MITERUBY_INTERNAL const uint32_t structname ## _field_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
         0 \
     }; \
-    const pb_msgdesc_t* const structname ## _submsg_info[] = \
+    MITERUBY_INTERNAL const pb_msgdesc_t* const structname ## _submsg_info[] = \
     { \
         msgname ## _FIELDLIST(PB_GEN_SUBMSG_INFO, structname) \
         NULL \
