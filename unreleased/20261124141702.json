@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6736",
+  "message": "Fix unwanted resolver spans for GraphQL scalar and enum fields when using `UnifiedTrace`; they are now skipped by default, as documented for `trace_scalars`. Set `trace_scalars: true`, or `trace: true` on a field, to keep them."
+}

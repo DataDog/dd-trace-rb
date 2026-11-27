@@ -930,7 +930,10 @@ For `graphql` >= v2.2:
 
 ```ruby
 class YourSchema < GraphQL::Schema
-  trace_with Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
+  trace_with Datadog::Tracing::Contrib::GraphQL::UnifiedTrace,
+    trace_scalars: false,
+    trace_authorized: true,
+    trace_resolve_type: true
 end
 ```
 
@@ -951,6 +954,21 @@ end
 ```
 
 **Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
+
+**Controlling GraphQL spans**
+
+When using `UnifiedTrace`, pass these options to your schema's `trace_with` call:
+
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `trace_scalars` | `false` | Create resolver spans for scalar and enum fields. |
+| `trace_authorized` | `true` | Create spans for object authorization, including lazy authorization. |
+| `trace_resolve_type` | `true` | Create spans for resolving interface and union types, including lazy type resolution. |
+
+For scalar and enum fields, `trace: true` on a field enables its resolver spans even when `trace_scalars: false`; `trace: false` disables them even when `trace_scalars: true`.
+These rules also apply to lists of scalars or enums and lazy field resolvers.
+Object-field resolver spans are created regardless of `trace_scalars`.
+Authorization and type resolution continue to run when their spans are disabled.
 
 **Adding custom tags to Datadog spans**
 

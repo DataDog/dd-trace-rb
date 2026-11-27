@@ -13,8 +13,10 @@ module Datadog
         module UnifiedTrace
           include ::GraphQL::Tracing::PlatformTrace
 
-          def initialize(*args, **kwargs)
+          def initialize(*args, trace_authorized: true, trace_resolve_type: true, **kwargs)
             @has_prepare_span = respond_to?(:prepare_span)
+            @trace_authorized = trace_authorized
+            @trace_resolve_type = trace_resolve_type
 
             # Cache configuration values to avoid repeated lookups
             config = Datadog.configuration.tracing[:graphql]
@@ -115,13 +117,19 @@ module Datadog
             trace(proc { super }, "execute_lazy", resource, query: query, multiplex: multiplex)
           end
 
-          def execute_field_span(callable, span_key, **kwargs)
+          def execute_field_span(callable, span_key, field:, arguments:, **kwargs)
+            return_type = field.type
+            if return_type && return_type.unwrap.kind.leaf?
+              trace_field = field.trace.nil? ? @trace_scalars : field.trace
+              return callable.call unless trace_field
+            end
+
             # @platform_key_cache is initialized upstream, in ::GraphQL::Tracing::PlatformTrace
-            platform_key = @platform_key_cache[UnifiedTrace].platform_field_key_cache[kwargs[:field]]
+            platform_key = @platform_key_cache[UnifiedTrace].platform_field_key_cache[field]
 
             if platform_key
-              trace(callable, span_key, platform_key, **kwargs) do |span|
-                kwargs[:arguments].each do |key, value|
+              trace(callable, span_key, platform_key, field: field, arguments: arguments, **kwargs) do |span|
+                arguments.each do |key, value|
                   span.set_tag("graphql.variables.#{key}", value)
                 end
               end
@@ -130,15 +138,17 @@ module Datadog
             end
           end
 
-          def execute_field(*args, **kwargs)
-            execute_field_span(proc { super }, "resolve", **kwargs)
+          def execute_field(*args, field:, arguments:, **kwargs)
+            execute_field_span(proc { super }, "resolve", field: field, arguments: arguments, **kwargs)
           end
 
-          def execute_field_lazy(*args, **kwargs)
-            execute_field_span(proc { super }, "resolve_lazy", **kwargs)
+          def execute_field_lazy(*args, field:, arguments:, **kwargs)
+            execute_field_span(proc { super }, "resolve_lazy", field: field, arguments: arguments, **kwargs)
           end
 
           def authorized_span(callable, span_key, **kwargs)
+            return callable.call unless @trace_authorized
+
             platform_key = @platform_key_cache[UnifiedTrace].platform_authorized_key_cache[kwargs[:type]]
             trace(callable, span_key, platform_key, **kwargs)
           end
@@ -152,6 +162,8 @@ module Datadog
           end
 
           def resolve_type_span(callable, span_key, **kwargs)
+            return callable.call unless @trace_resolve_type
+
             platform_key = @platform_key_cache[UnifiedTrace].platform_resolve_type_key_cache[kwargs[:type]]
             trace(callable, span_key, platform_key, **kwargs)
           end

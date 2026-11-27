@@ -1,4 +1,16 @@
 module GraphQL
+  interface _Type
+    def unwrap: () -> _Type
+
+    def kind: () -> TypeKinds::TypeKind
+  end
+
+  module TypeKinds
+    class TypeKind
+      def leaf?: () -> bool
+    end
+  end
+
   class Query
     def selected_operation: () -> Language::Nodes::OperationDefinition?
     def selected_operation_name: () -> String?
@@ -20,6 +32,10 @@ module GraphQL
 
     class Field
       def path: () -> String
+
+      def trace: () -> bool?
+
+      def type: () -> _Type?
     end
 
     class Object < Member
@@ -33,6 +49,8 @@ module GraphQL
 
   module Tracing
     module PlatformTrace
+      @trace_scalars: bool
+
       @platform_key_cache: Hash[untyped, untyped]
 
       def initialize: (?trace_scalars: bool, **untyped) -> void

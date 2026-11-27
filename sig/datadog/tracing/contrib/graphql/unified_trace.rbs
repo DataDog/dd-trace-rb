@@ -5,6 +5,10 @@ module Datadog
         module UnifiedTrace
           @has_prepare_span: bool
 
+          @trace_authorized: bool
+
+          @trace_resolve_type: bool
+
           @service_name: String?
 
           @analytics_enabled: bool?
@@ -31,7 +35,7 @@ module Datadog
 
           include ::GraphQL::Tracing::PlatformTrace
 
-          def initialize: (*untyped args, **untyped kwargs) -> void
+          def initialize: (*untyped args, ?trace_authorized: bool, ?trace_resolve_type: bool, **untyped kwargs) -> void
 
           private
 
@@ -57,13 +61,11 @@ module Datadog
 
           def execute_query_lazy: (*untyped args, query: GraphQL::Query?, multiplex: GraphQL::Execution::Multiplex?, **untyped kwargs) -> untyped
 
-          type executeFieldKwargs = {field: GraphQL::Schema::Field, ast_node: GraphQL::Language::Nodes::Field, query: GraphQL::Query, object: untyped, arguments: Hash[untyped, untyped]}
+          def execute_field_span: (Proc callable, String span_key, field: GraphQL::Schema::Field, arguments: Hash[untyped, untyped], **untyped kwargs) -> untyped
 
-          def execute_field_span: (Proc callable, String span_key, **executeFieldKwargs kwargs) -> untyped
+          def execute_field: (*untyped args, field: GraphQL::Schema::Field, arguments: Hash[untyped, untyped], **untyped kwargs) -> untyped
 
-          def execute_field: (*untyped args, **executeFieldKwargs kwargs) -> untyped
-
-          def execute_field_lazy: (*untyped args, **executeFieldKwargs kwargs) -> untyped
+          def execute_field_lazy: (*untyped args, field: GraphQL::Schema::Field, arguments: Hash[untyped, untyped], **untyped kwargs) -> untyped
 
           type authorizedKwargs = {query: GraphQL::Query, type: singleton(GraphQL::Schema::Member), object: untyped}
 

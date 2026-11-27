@@ -121,6 +121,10 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
   describe "query trace" do
     subject(:result) { schema.execute(query: "query Users($var: ID!){ user(id: $var) { name } }", variables: {var: 1}) }
 
+    before do
+      schema.trace_options_for(:default)[:trace_scalars] = true
+    end
+
     matrix = [
       ["graphql.analyze", "query Users($var: ID!){ user(id: $var) { name } }"],
       ["graphql.analyze_multiplex", "Users"],
