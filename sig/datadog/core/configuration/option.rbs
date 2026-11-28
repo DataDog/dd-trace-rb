@@ -81,6 +81,10 @@ module Datadog
 
         def set_default_value: () -> void
 
+        def set_core_environment_values: () -> bool
+
+        def resolve_core_environment_values: (String env, Hash[Precedence::Value, String] values) -> void
+
         def set_env_value: () -> void
 
         def set_customer_stable_config_value: () -> void

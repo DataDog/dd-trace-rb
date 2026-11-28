@@ -13,6 +13,59 @@ static VALUE _native_configurator_with_fleet_path(DDTRACE_UNUSED VALUE _self, VA
 
 static VALUE config_logged_result_class = Qnil;
 
+#ifdef DDOG_HAS_CONFIG_CORE
+struct core_config_resolver {
+  struct ddog_CoreConfigResolver *inner;
+};
+
+static void core_config_resolver_free(void *ptr) {
+  struct core_config_resolver *resolver = ptr;
+  ddog_config_core_drop(resolver->inner);
+  ruby_xfree(resolver);
+}
+
+static const rb_data_type_t core_config_resolver_data = {
+  .wrap_struct_name = "Datadog::Core::Configuration::CoreConfigResolver",
+  .function = {.dfree = core_config_resolver_free},
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+static VALUE core_config_resolver_alloc(VALUE klass) {
+  struct core_config_resolver *resolver;
+  VALUE wrapped = TypedData_Make_Struct(klass, struct core_config_resolver, &core_config_resolver_data, resolver);
+  resolver->inner = ddog_config_core_new();
+  return wrapped;
+}
+
+static VALUE core_config_reply(VALUE response_ptr) {
+  ddog_StringWrapperResult *response = (ddog_StringWrapperResult *)response_ptr;
+  if (response->tag == DDOG_STRING_WRAPPER_RESULT_ERR) {
+    rb_exc_raise(rb_exc_new_str(rb_eRuntimeError, ruby_string_from_error(&response->err)));
+  }
+  ddog_CharSlice reply = ddog_StringWrapper_message(&response->ok);
+  return rb_utf8_str_new(reply.ptr, reply.len);
+}
+
+static VALUE core_config_reply_drop(VALUE response_ptr) {
+  ddog_StringWrapperResult *response = (ddog_StringWrapperResult *)response_ptr;
+  if (response->tag == DDOG_STRING_WRAPPER_RESULT_ERR) {
+    ddog_Error_drop(&response->err);
+  } else {
+    ddog_StringWrapper_drop(&response->ok);
+  }
+  return Qnil;
+}
+
+static VALUE core_config_request(VALUE self, VALUE request) {
+  struct core_config_resolver *resolver;
+  TypedData_Get_Struct(self, struct core_config_resolver, &core_config_resolver_data, resolver);
+  ENFORCE_TYPE(request, T_STRING);
+  ddog_ByteSlice bytes = {.ptr = (const uint8_t *)RSTRING_PTR(request), .len = RSTRING_LEN(request)};
+  ddog_StringWrapperResult response = ddog_config_core_request(resolver->inner, bytes);
+  return rb_ensure(core_config_reply, (VALUE)&response, core_config_reply_drop, (VALUE)&response);
+}
+#endif
+
 // ddog_Configurator memory management
 static void configurator_free(void *configurator_ptr) {
   ddog_Configurator *configurator = (ddog_Configurator *)configurator_ptr;
@@ -49,6 +102,11 @@ static const rb_data_type_t config_logged_result_typed_data = {
 void library_config_init(VALUE core_module) {
   rb_global_variable(&config_logged_result_class);
   VALUE configuration_module = rb_define_module_under(core_module, "Configuration");
+#ifdef DDOG_HAS_CONFIG_CORE
+  VALUE resolver_class = rb_define_class_under(configuration_module, "CoreConfigResolver", rb_cObject);
+  rb_define_alloc_func(resolver_class, core_config_resolver_alloc);
+  rb_define_method(resolver_class, "request", core_config_request, 1);
+#endif
   VALUE stable_config_module = rb_define_module_under(configuration_module, "StableConfig");
   VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);
   config_logged_result_class = rb_define_class_under(configuration_module, "StableConfigLoggedResult", rb_cObject);

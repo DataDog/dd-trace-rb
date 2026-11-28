@@ -1,6 +1,11 @@
 module Datadog
   module Core
     module Configuration
+      class CoreConfigResolver
+        def initialize: () -> void
+        def request: (String payload) -> String
+      end
+
       module StableConfig
         type stable_config = {
           ?logs: String?,

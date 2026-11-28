@@ -150,9 +150,11 @@ module Datadog
             # This approach handles scenarios where an environment value is unset
             # by falling back to the default value consistently.
             set_default_value
-            set_customer_stable_config_value
-            set_env_value
-            set_fleet_stable_config_value
+            unless set_core_environment_values
+              set_customer_stable_config_value
+              set_env_value
+              set_fleet_stable_config_value
+            end
           end
 
           @value
@@ -329,6 +331,65 @@ module Datadog
 
         def set_default_value
           set(default_value, precedence: Precedence::DEFAULT)
+        end
+
+        def set_core_environment_values
+          env = definition.env
+          return false unless defined?(CoreConfigResolver)
+          return false unless env == "DD_ENV" || env == "DD_VERSION"
+          return false unless definition.type == :string && definition.env_parser.nil? &&
+            definition.setter.equal?(OptionDefinition::IDENTITY) && definition.after_set.nil?
+
+          stable_config = StableConfig.configuration
+          local_config = stable_config.dig(:local, :config)
+          fleet_config = stable_config.dig(:fleet, :config)
+          # @type var values: Hash[Precedence::Value, String]
+          values = {
+            Precedence::LOCAL_STABLE => local_config && get_value_from(local_config, "local"),
+            Precedence::ENVIRONMENT => get_value_from_env,
+            Precedence::FLEET_STABLE => fleet_config && get_value_from(fleet_config, "fleet"),
+          }.compact
+          return true if values.empty?
+
+          if values.values.all? { |value| value.encoding == ::Encoding::UTF_8 && value.valid_encoding? }
+            resolve_core_environment_values(env, values)
+          end
+          values.each_pair { |precedence, value| set(value, precedence: precedence) }
+          true
+        end
+
+        def resolve_core_environment_values(env, values)
+          require "json"
+          configuration_directory = __dir__ #: String
+
+          request = {
+            version: 1,
+            operation: "resolve_once",
+            manifest: {
+              kind: "path",
+              value: File.expand_path("../../../../supported-configurations.json", configuration_directory),
+            },
+            inputs: {
+              skip_defaults: true,
+              report_sources: true,
+              layers: values.map do |precedence, value|
+                {origin: precedence.origin, entries: [{name: env, value: value}]}
+              end,
+            },
+          }
+          reply = JSON.parse(CoreConfigResolver.new.request(JSON.generate(request)))
+          unless reply["status"] == "complete" && reply["sources"].length == values.length
+            Datadog.config_init_logger.debug { "Unable to resolve #{env} with libdatadog startup config" }
+            return
+          end
+
+          sources = reply["sources"].each_with_object({}) do |source, values_by_origin|
+            values_by_origin[source["origin"]] = source.dig("value", "value")
+          end
+          values.each_key do |precedence|
+            value = sources[precedence.origin] #: String?
+            values[precedence] = value if value
+          end
         end
 
         def set_env_value

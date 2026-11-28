@@ -1,8 +1,75 @@
 # frozen_string_literal: true
 
+require "json"
+
 RSpec.describe Datadog::Core::Configuration::StableConfig do
   before do
     Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
+  end
+
+  it "resolves a startup manifest through the native library config extension" do
+    skip_if_libdatadog_not_supported
+    unless defined?(Datadog::Core::Configuration::CoreConfigResolver)
+      skip "requires a libdatadog build with the config-core feature"
+    end
+
+    Dir.mktmpdir do |directory|
+      manifest = File.join(directory, "supported-configurations.json")
+      File.write(manifest, JSON.generate({
+        version: "2",
+        supportedConfigurations: {"DD_MODE" => [{type: "string", default: "info", allowed: "info|debug"}]},
+      }))
+      request = {
+        version: 1,
+        operation: "initialize",
+        manifest: {kind: "path", value: manifest},
+        inputs: {layers: [{origin: "env_var", entries: [{name: "DD_MODE", value: "debug"}]}]},
+      }
+      resolver = Datadog::Core::Configuration::CoreConfigResolver.new
+      response = JSON.parse(resolver.request(JSON.generate(request)))
+
+      expect(response.fetch("status")).to eq("complete")
+      expect(response.fetch("settings").first.fetch("resolved")).to eq({
+        "value" => {"kind" => "string", "value" => "debug"},
+        "origin" => "env_var",
+        "input_name" => "DD_MODE",
+      })
+    end
+  end
+
+  it "keeps native startup values available when a higher source is unset" do
+    skip_if_libdatadog_not_supported
+    unless defined?(Datadog::Core::Configuration::CoreConfigResolver)
+      skip "requires a libdatadog build with the config-core feature"
+    end
+
+    config = Datadog::Core::Configuration
+    allow(described_class).to receive(:configuration).and_return({
+      local: {config: {"DD_ENV" => "local"}},
+      fleet: {config: {"DD_ENV" => "fleet"}},
+    })
+    allow(Datadog::DATADOG_ENV).to receive(:[]).and_call_original
+    allow(Datadog::DATADOG_ENV).to receive(:[]).with("DD_ENV").and_return("process")
+    allow(Datadog::DATADOG_ENV).to receive(:[]).with("DD_VERSION").and_return(nil)
+
+    resolver = config::CoreConfigResolver.new
+    allow(config::CoreConfigResolver).to receive(:new).and_return(resolver)
+    expect(resolver).to receive(:request).and_wrap_original do |request, value|
+      result = request.call(value)
+      snapshot = JSON.parse(result)
+      expect(snapshot.fetch("status")).to eq("complete")
+      expect(snapshot.fetch("sources").map { |source| source.fetch("origin") }).to eq(
+        ["local_stable_config", "env_var", "fleet_stable_config"],
+      )
+      result
+    end
+
+    settings = config::Settings.new
+    expect(settings.env).to eq("fleet")
+    settings.unset_option(:env, precedence: config::Option::Precedence::FLEET_STABLE)
+    expect(settings.env).to eq("process")
+    settings.unset_option(:env, precedence: config::Option::Precedence::ENVIRONMENT)
+    expect(settings.env).to eq("local")
   end
 
   describe "#extract_configuration" do
